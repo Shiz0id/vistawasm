@@ -13,3 +13,4 @@ bench/dist-size/
 .env.*
 *.pem
 *.key
+ports/d3d11/hlsl/cso/

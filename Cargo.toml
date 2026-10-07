@@ -1,5 +1,6 @@
 [workspace]
 members = [
+  "crates/vista_hlsl",
   "crates/vista_native",
   "crates/vista_types",
   "crates/vista_wasm"

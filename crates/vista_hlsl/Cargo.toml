@@ -1,0 +1,16 @@
+[package]
+name = "vista_hlsl"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+description = "Translates VistaWASM's WGSL shaders to Shader Model 5.0 HLSL for Direct3D 11 ports."
+publish = false
+
+[dependencies]
+naga = { version = "30", features = ["wgsl-in", "hlsl-out"] }
+serde_json = "1"
+
+[lints]
+workspace = true
