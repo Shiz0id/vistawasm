@@ -6,6 +6,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [Unreleased]
+
+### Added
+
+- `crates/vista_native`: a C API (`include/vista_native.h`) for native
+  engines. It runs world generation without a GPU and returns maps, trees
+  and water meshes. Options are JSON in the JavaScript API's shape.
+- `crates/vista_hlsl`: translates the WGSL shaders to Shader Model 5.0
+  HLSL for Direct3D 11, in `ports/d3d11/hlsl`, with a binding manifest.
+- [Porting to Direct3D 11](docs/porting-d3d11.md).
+- `EngineCore::terrain()` and `EngineCore::river_network()`, read-only
+  accessors for native hosts.
+
 ## [2.0.0] — 2026-10-03
 
 A realism release: geology-led terrain, biomes, real trees, simulated

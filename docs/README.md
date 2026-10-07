@@ -48,6 +48,7 @@ Then pick the guides for the features you use.
 | [Render quality and diagnostics](render-quality-and-diagnostics.md) | Quality settings, render statistics, and debug views |
 | [Building games](game-development.md) | Game loops, height queries, collision, and performance |
 | [Game engine integration](engine-integration.md) | Using VistaWASM alongside Babylon.js, PlayCanvas, and other engines |
+| [Porting to Direct3D 11](porting-d3d11.md) | The C library for native engines, the HLSL shaders, and what is left to port |
 | [Performance](performance.md) | GPU budgets per scene, generation times, peak memory and download size |
 | [Security](security.md) | The threat model, input limits, Content Security Policy, and dependency advisories |
 
