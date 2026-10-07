@@ -1,0 +1,4222 @@
+{
+  "files": [
+    {
+      "bindings": [
+        {
+          "binding": 0,
+          "group": 0,
+          "kind": "constant buffer",
+          "name": "frame",
+          "register": "b0"
+        },
+        {
+          "binding": 9,
+          "group": 1,
+          "kind": "constant buffer",
+          "name": "world",
+          "register": "b1"
+        },
+        {
+          "binding": 11,
+          "group": 1,
+          "kind": "SamplerState",
+          "name": "clamp_sampler",
+          "register": "s0"
+        },
+        {
+          "binding": 12,
+          "group": 1,
+          "kind": "Texture2DArray (Sampled { kind: Float, multi: false })",
+          "name": "ground_layers",
+          "register": "t0"
+        }
+      ],
+      "entryPoint": "vertex_main",
+      "file": "clipmap_render/vertex_main.hlsl",
+      "hazards": [],
+      "module": "clipmap_render",
+      "overrides": {},
+      "profile": "vs_5_0",
+      "stage": "vertex",
+      "wgslEntryPoint": "vertex_main",
+      "workgroupSize": null
+    },
+    {
+      "bindings": [
+        {
+          "binding": 0,
+          "group": 0,
+          "kind": "constant buffer",
+          "name": "frame",
+          "register": "b0"
+        },
+        {
+          "binding": 0,
+          "group": 1,
+          "kind": "SamplerState",
+          "name": "linear_sampler",
+          "register": "s0"
+        },
+        {
+          "binding": 1,
+          "group": 1,
+          "kind": "Texture2DArray (Sampled { kind: Float, multi: false })",
+          "name": "terrain_albedo",
+          "register": "t0"
+        },
+        {
+          "binding": 2,
+          "group": 1,
+          "kind": "Texture2DArray (Sampled { kind: Float, multi: false })",
+          "name": "terrain_normal",
+          "register": "t1"
+        },
+        {
+          "binding": 5,
+          "group": 1,
+          "kind": "Texture2D (Sampled { kind: Float, multi: false })",
+          "name": "noise_texture",
+          "register": "t2"
+        },
+        {
+          "binding": 9,
+          "group": 1,
+          "kind": "constant buffer",
+          "name": "world",
+          "register": "b1"
+        },
+        {
+          "binding": 10,
+          "group": 1,
+          "kind": "Texture2D (Sampled { kind: Float, multi: false })",
+          "name": "terrain_shadow_texture",
+          "register": "t3"
+        },
+        {
+          "binding": 11,
+          "group": 1,
+          "kind": "SamplerState",
+          "name": "clamp_sampler",
+          "register": "s1"
+        },
+        {
+          "binding": 12,
+          "group": 1,
+          "kind": "Texture2DArray (Sampled { kind: Float, multi: false })",
+          "name": "ground_layers",
+          "register": "t4"
+        },
+        {
+          "binding": 13,
+          "group": 1,
+          "kind": "Texture2D (Sampled { kind: Float, multi: false })",
+          "name": "regional_texture",
+          "register": "t5"
+        },
+        {
+          "binding": 14,
+          "group": 1,
+          "kind": "Texture2D (Sampled { kind: Float, multi: false })",
+          "name": "surface_weather_texture",
+          "register": "t6"
+        },
+        {
+          "binding": 0,
+          "group": 2,
+          "kind": "Texture2D (Depth { multi: false })",
+          "name": "tree_shadow_map",
+          "register": "t7"
+        },
+        {
+          "binding": 1,
+          "group": 2,
+          "kind": "SamplerComparisonState",
+          "name": "shadow_sampler",
+          "register": "s2"
+        },
+        {
+          "binding": 0,
+          "group": 3,
+          "kind": "Texture2D (Sampled { kind: Float, multi: false })",
+          "name": "grass_mask_texture",
+          "register": "t8"
+        },
+        {
+          "binding": 1,
+          "group": 3,
+          "kind": "Texture2D (Sampled { kind: Float, multi: false })",
+          "name": "channel_atlas",
+          "register": "t9"
+        },
+        {
+          "binding": 2,
+          "group": 3,
+          "kind": "ByteAddressBuffer",
+          "name": "channel_slots",
+          "register": "t10"
+        }
+      ],
+      "entryPoint": "fragment_main",
+      "file": "clipmap_render/fragment_main.hlsl",
+      "hazards": [],
+      "module": "clipmap_render",
+      "overrides": {},
+      "profile": "ps_5_0",
+      "stage": "fragment",
+      "wgslEntryPoint": "fragment_main",
+      "workgroupSize": null
+    },
+    {
+      "bindings": [
+        {
+          "binding": 0,
+          "group": 0,
+          "kind": "constant buffer",
+          "name": "frame",
+          "register": "b0"
+        },
+        {
+          "binding": 8,
+          "group": 1,
+          "kind": "Texture2D (Sampled { kind: Float, multi: false })",
+          "name": "height_texture",
+          "register": "t0"
+        },
+        {
+          "binding": 9,
+          "group": 1,
+          "kind": "constant buffer",
+          "name": "world",
+          "register": "b1"
+        },
+        {
+          "binding": 11,
+          "group": 1,
+          "kind": "SamplerState",
+          "name": "clamp_sampler",
+          "register": "s0"
+        },
+        {
+          "binding": 12,
+          "group": 1,
+          "kind": "Texture2DArray (Sampled { kind: Float, multi: false })",
+          "name": "ground_layers",
+          "register": "t1"
+        }
+      ],
+      "entryPoint": "canopy_vertex_main",
+      "file": "clipmap_render/canopy_vertex_main.hlsl",
+      "hazards": [],
+      "module": "clipmap_render",
+      "overrides": {},
+      "profile": "vs_5_0",
+      "stage": "vertex",
+      "wgslEntryPoint": "canopy_vertex_main",
+      "workgroupSize": null
+    },
+    {
+      "bindings": [
+        {
+          "binding": 0,
+          "group": 0,
+          "kind": "constant buffer",
+          "name": "frame",
+          "register": "b0"
+        },
+        {
+          "binding": 0,
+          "group": 1,
+          "kind": "SamplerState",
+          "name": "linear_sampler",
+          "register": "s0"
+        },
+        {
+          "binding": 5,
+          "group": 1,
+          "kind": "Texture2D (Sampled { kind: Float, multi: false })",
+          "name": "noise_texture",
+          "register": "t0"
+        },
+        {
+          "binding": 9,
+          "group": 1,
+          "kind": "constant buffer",
+          "name": "world",
+          "register": "b1"
+        },
+        {
+          "binding": 10,
+          "group": 1,
+          "kind": "Texture2D (Sampled { kind: Float, multi: false })",
+          "name": "terrain_shadow_texture",
+          "register": "t1"
+        },
+        {
+          "binding": 11,
+          "group": 1,
+          "kind": "SamplerState",
+          "name": "clamp_sampler",
+          "register": "s1"
+        },
+        {
+          "binding": 13,
+          "group": 1,
+          "kind": "Texture2D (Sampled { kind: Float, multi: false })",
+          "name": "regional_texture",
+          "register": "t2"
+        }
+      ],
+      "entryPoint": "canopy_fragment_main",
+      "file": "clipmap_render/canopy_fragment_main.hlsl",
+      "hazards": [],
+      "module": "clipmap_render",
+      "overrides": {},
+      "profile": "ps_5_0",
+      "stage": "fragment",
+      "wgslEntryPoint": "canopy_fragment_main",
+      "workgroupSize": null
+    },
+    {
+      "bindings": [
+        {
+          "binding": 0,
+          "group": 0,
+          "kind": "constant buffer",
+          "name": "frame",
+          "register": "b0"
+        },
+        {
+          "binding": 0,
+          "group": 1,
+          "kind": "SamplerState",
+          "name": "linear_sampler",
+          "register": "s0"
+        },
+        {
+          "binding": 5,
+          "group": 1,
+          "kind": "Texture2D (Sampled { kind: Float, multi: false })",
+          "name": "noise_texture",
+          "register": "t0"
+        }
+      ],
+      "entryPoint": "vertex_bank",
+      "file": "clipmap_render/vertex_bank.hlsl",
+      "hazards": [],
+      "module": "clipmap_render",
+      "overrides": {},
+      "profile": "vs_5_0",
+      "stage": "vertex",
+      "wgslEntryPoint": "vertex_bank",
+      "workgroupSize": null
+    },
+    {
+      "bindings": [
+        {
+          "binding": 0,
+          "group": 0,
+          "kind": "constant buffer",
+          "name": "frame",
+          "register": "b0"
+        },
+        {
+          "binding": 0,
+          "group": 1,
+          "kind": "SamplerState",
+          "name": "linear_sampler",
+          "register": "s0"
+        },
+        {
+          "binding": 1,
+          "group": 1,
+          "kind": "Texture2DArray (Sampled { kind: Float, multi: false })",
+          "name": "terrain_albedo",
+          "register": "t0"
+        },
+        {
+          "binding": 2,
+          "group": 1,
+          "kind": "Texture2DArray (Sampled { kind: Float, multi: false })",
+          "name": "terrain_normal",
+          "register": "t1"
+        },
+        {
+          "binding": 5,
+          "group": 1,
+          "kind": "Texture2D (Sampled { kind: Float, multi: false })",
+          "name": "noise_texture",
+          "register": "t2"
+        },
+        {
+          "binding": 9,
+          "group": 1,
+          "kind": "constant buffer",
+          "name": "world",
+          "register": "b1"
+        },
+        {
+          "binding": 10,
+          "group": 1,
+          "kind": "Texture2D (Sampled { kind: Float, multi: false })",
+          "name": "terrain_shadow_texture",
+          "register": "t3"
+        },
+        {
+          "binding": 11,
+          "group": 1,
+          "kind": "SamplerState",
+          "name": "clamp_sampler",
+          "register": "s1"
+        },
+        {
+          "binding": 12,
+          "group": 1,
+          "kind": "Texture2DArray (Sampled { kind: Float, multi: false })",
+          "name": "ground_layers",
+          "register": "t4"
+        },
+        {
+          "binding": 13,
+          "group": 1,
+          "kind": "Texture2D (Sampled { kind: Float, multi: false })",
+          "name": "regional_texture",
+          "register": "t5"
+        },
+        {
+          "binding": 14,
+          "group": 1,
+          "kind": "Texture2D (Sampled { kind: Float, multi: false })",
+          "name": "surface_weather_texture",
+          "register": "t6"
+        },
+        {
+          "binding": 0,
+          "group": 2,
+          "kind": "Texture2D (Depth { multi: false })",
+          "name": "tree_shadow_map",
+          "register": "t7"
+        },
+        {
+          "binding": 1,
+          "group": 2,
+          "kind": "SamplerComparisonState",
+          "name": "shadow_sampler",
+          "register": "s2"
+        },
+        {
+          "binding": 1,
+          "group": 3,
+          "kind": "Texture2D (Sampled { kind: Float, multi: false })",
+          "name": "channel_atlas",
+          "register": "t8"
+        },
+        {
+          "binding": 2,
+          "group": 3,
+          "kind": "ByteAddressBuffer",
+          "name": "channel_slots",
+          "register": "t9"
+        }
+      ],
+      "entryPoint": "fragment_bank",
+      "file": "clipmap_render/fragment_bank.hlsl",
+      "hazards": [],
+      "module": "clipmap_render",
+      "overrides": {},
+      "profile": "ps_5_0",
+      "stage": "fragment",
+      "wgslEntryPoint": "fragment_bank",
+      "workgroupSize": null
+    },
+    {
+      "bindings": [
+        {
+          "binding": 0,
+          "group": 0,
+          "kind": "constant buffer",
+          "name": "frame",
+          "register": "b0"
+        },
+        {
+          "binding": 9,
+          "group": 1,
+          "kind": "constant buffer",
+          "name": "world",
+          "register": "b1"
+        },
+        {
+          "binding": 11,
+          "group": 1,
+          "kind": "SamplerState",
+          "name": "clamp_sampler",
+          "register": "s0"
+        },
+        {
+          "binding": 12,
+          "group": 1,
+          "kind": "Texture2DArray (Sampled { kind: Float, multi: false })",
+          "name": "ground_layers",
+          "register": "t0"
+        }
+      ],
+      "entryPoint": "vertex_main",
+      "file": "boulders/vertex_main.hlsl",
+      "hazards": [],
+      "module": "boulders",
+      "overrides": {},
+      "profile": "vs_5_0",
+      "stage": "vertex",
+      "wgslEntryPoint": "vertex_main",
+      "workgroupSize": null
+    },
+    {
+      "bindings": [
+        {
+          "binding": 0,
+          "group": 0,
+          "kind": "constant buffer",
+          "name": "frame",
+          "register": "b0"
+        },
+        {
+          "binding": 0,
+          "group": 1,
+          "kind": "SamplerState",
+          "name": "linear_sampler",
+          "register": "s0"
+        },
+        {
+          "binding": 1,
+          "group": 1,
+          "kind": "Texture2DArray (Sampled { kind: Float, multi: false })",
+          "name": "terrain_albedo",
+          "register": "t0"
+        },
+        {
+          "binding": 2,
+          "group": 1,
+          "kind": "Texture2DArray (Sampled { kind: Float, multi: false })",
+          "name": "terrain_normal",
+          "register": "t1"
+        },
+        {
+          "binding": 5,
+          "group": 1,
+          "kind": "Texture2D (Sampled { kind: Float, multi: false })",
+          "name": "noise_texture",
+          "register": "t2"
+        },
+        {
+          "binding": 9,
+          "group": 1,
+          "kind": "constant buffer",
+          "name": "world",
+          "register": "b1"
+        },
+        {
+          "binding": 10,
+          "group": 1,
+          "kind": "Texture2D (Sampled { kind: Float, multi: false })",
+          "name": "terrain_shadow_texture",
+          "register": "t3"
+        },
+        {
+          "binding": 11,
+          "group": 1,
+          "kind": "SamplerState",
+          "name": "clamp_sampler",
+          "register": "s1"
+        },
+        {
+          "binding": 13,
+          "group": 1,
+          "kind": "Texture2D (Sampled { kind: Float, multi: false })",
+          "name": "regional_texture",
+          "register": "t4"
+        },
+        {
+          "binding": 14,
+          "group": 1,
+          "kind": "Texture2D (Sampled { kind: Float, multi: false })",
+          "name": "surface_weather_texture",
+          "register": "t5"
+        },
+        {
+          "binding": 0,
+          "group": 2,
+          "kind": "Texture2D (Depth { multi: false })",
+          "name": "tree_shadow_map",
+          "register": "t6"
+        },
+        {
+          "binding": 1,
+          "group": 2,
+          "kind": "SamplerComparisonState",
+          "name": "shadow_sampler",
+          "register": "s2"
+        }
+      ],
+      "entryPoint": "fragment_main",
+      "file": "boulders/fragment_main.hlsl",
+      "hazards": [],
+      "module": "boulders",
+      "overrides": {},
+      "profile": "ps_5_0",
+      "stage": "fragment",
+      "wgslEntryPoint": "fragment_main",
+      "workgroupSize": null
+    },
+    {
+      "bindings": [
+        {
+          "binding": 0,
+          "group": 0,
+          "kind": "constant buffer",
+          "name": "frame",
+          "register": "b0"
+        }
+      ],
+      "entryPoint": "shadow_main",
+      "file": "boulders/shadow_main.hlsl",
+      "hazards": [],
+      "module": "boulders",
+      "overrides": {},
+      "profile": "vs_5_0",
+      "stage": "vertex",
+      "wgslEntryPoint": "shadow_main",
+      "workgroupSize": null
+    },
+    {
+      "bindings": [],
+      "entryPoint": "shadow_fragment",
+      "file": "boulders/shadow_fragment.hlsl",
+      "hazards": [],
+      "module": "boulders",
+      "overrides": {},
+      "profile": "ps_5_0",
+      "stage": "fragment",
+      "wgslEntryPoint": "shadow_fragment",
+      "workgroupSize": null
+    },
+    {
+      "bindings": [
+        {
+          "binding": 0,
+          "group": 0,
+          "kind": "constant buffer",
+          "name": "frame",
+          "register": "b0"
+        },
+        {
+          "binding": 8,
+          "group": 1,
+          "kind": "Texture2D (Sampled { kind: Float, multi: false })",
+          "name": "height_texture",
+          "register": "t0"
+        },
+        {
+          "binding": 9,
+          "group": 1,
+          "kind": "constant buffer",
+          "name": "world",
+          "register": "b1"
+        },
+        {
+          "binding": 11,
+          "group": 1,
+          "kind": "SamplerState",
+          "name": "clamp_sampler",
+          "register": "s0"
+        },
+        {
+          "binding": 12,
+          "group": 1,
+          "kind": "Texture2DArray (Sampled { kind: Float, multi: false })",
+          "name": "ground_layers",
+          "register": "t1"
+        }
+      ],
+      "entryPoint": "vertex_main",
+      "file": "water/vertex_main.SEA_ICE-0.hlsl",
+      "hazards": [],
+      "module": "water",
+      "overrides": {
+        "INLAND": false,
+        "SEA_ICE": false
+      },
+      "profile": "vs_5_0",
+      "stage": "vertex",
+      "wgslEntryPoint": "vertex_main",
+      "workgroupSize": null
+    },
+    {
+      "bindings": [
+        {
+          "binding": 0,
+          "group": 0,
+          "kind": "constant buffer",
+          "name": "frame",
+          "register": "b0"
+        },
+        {
+          "binding": 0,
+          "group": 1,
+          "kind": "SamplerState",
+          "name": "linear_sampler",
+          "register": "s0"
+        },
+        {
+          "binding": 5,
+          "group": 1,
+          "kind": "Texture2D (Sampled { kind: Float, multi: false })",
+          "name": "noise_texture",
+          "register": "t0"
+        },
+        {
+          "binding": 6,
+          "group": 1,
+          "kind": "Texture3D (Sampled { kind: Float, multi: false })",
+          "name": "cloud_texture",
+          "register": "t1"
+        },
+        {
+          "binding": 8,
+          "group": 1,
+          "kind": "Texture2D (Sampled { kind: Float, multi: false })",
+          "name": "height_texture",
+          "register": "t2"
+        },
+        {
+          "binding": 9,
+          "group": 1,
+          "kind": "constant buffer",
+          "name": "world",
+          "register": "b1"
+        },
+        {
+          "binding": 10,
+          "group": 1,
+          "kind": "Texture2D (Sampled { kind: Float, multi: false })",
+          "name": "terrain_shadow_texture",
+          "register": "t3"
+        },
+        {
+          "binding": 11,
+          "group": 1,
+          "kind": "SamplerState",
+          "name": "clamp_sampler",
+          "register": "s1"
+        },
+        {
+          "binding": 12,
+          "group": 1,
+          "kind": "Texture2DArray (Sampled { kind: Float, multi: false })",
+          "name": "ground_layers",
+          "register": "t4"
+        },
+        {
+          "binding": 13,
+          "group": 1,
+          "kind": "Texture2D (Sampled { kind: Float, multi: false })",
+          "name": "regional_texture",
+          "register": "t5"
+        },
+        {
+          "binding": 0,
+          "group": 2,
+          "kind": "Texture2D (Depth { multi: false })",
+          "name": "tree_shadow_map",
+          "register": "t6"
+        },
+        {
+          "binding": 1,
+          "group": 2,
+          "kind": "SamplerComparisonState",
+          "name": "shadow_sampler",
+          "register": "s2"
+        }
+      ],
+      "entryPoint": "fragment_fall",
+      "file": "water/fragment_fall.SEA_ICE-0.hlsl",
+      "hazards": [],
+      "module": "water",
+      "overrides": {
+        "INLAND": false,
+        "SEA_ICE": false
+      },
+      "profile": "ps_5_0",
+      "stage": "fragment",
+      "wgslEntryPoint": "fragment_fall",
+      "workgroupSize": null
+    },
+    {
+      "bindings": [
+        {
+          "binding": 0,
+          "group": 0,
+          "kind": "constant buffer",
+          "name": "frame",
+          "register": "b0"
+        },
+        {
+          "binding": 0,
+          "group": 1,
+          "kind": "SamplerState",
+          "name": "linear_sampler",
+          "register": "s0"
+        },
+        {
+          "binding": 5,
+          "group": 1,
+          "kind": "Texture2D (Sampled { kind: Float, multi: false })",
+          "name": "noise_texture",
+          "register": "t0"
+        },
+        {
+          "binding": 6,
+          "group": 1,
+          "kind": "Texture3D (Sampled { kind: Float, multi: false })",
+          "name": "cloud_texture",
+          "register": "t1"
+        },
+        {
+          "binding": 7,
+          "group": 1,
+          "kind": "Texture2D (Sampled { kind: Float, multi: false })",
+          "name": "water_texture",
+          "register": "t2"
+        },
+        {
+          "binding": 8,
+          "group": 1,
+          "kind": "Texture2D (Sampled { kind: Float, multi: false })",
+          "name": "height_texture",
+          "register": "t3"
+        },
+        {
+          "binding": 9,
+          "group": 1,
+          "kind": "constant buffer",
+          "name": "world",
+          "register": "b1"
+        },
+        {
+          "binding": 10,
+          "group": 1,
+          "kind": "Texture2D (Sampled { kind: Float, multi: false })",
+          "name": "terrain_shadow_texture",
+          "register": "t4"
+        },
+        {
+          "binding": 11,
+          "group": 1,
+          "kind": "SamplerState",
+          "name": "clamp_sampler",
+          "register": "s1"
+        },
+        {
+          "binding": 12,
+          "group": 1,
+          "kind": "Texture2DArray (Sampled { kind: Float, multi: false })",
+          "name": "ground_layers",
+          "register": "t5"
+        },
+        {
+          "binding": 13,
+          "group": 1,
+          "kind": "Texture2D (Sampled { kind: Float, multi: false })",
+          "name": "regional_texture",
+          "register": "t6"
+        },
+        {
+          "binding": 0,
+          "group": 2,
+          "kind": "Texture2D (Depth { multi: false })",
+          "name": "tree_shadow_map",
+          "register": "t7"
+        },
+        {
+          "binding": 1,
+          "group": 2,
+          "kind": "SamplerComparisonState",
+          "name": "shadow_sampler",
+          "register": "s2"
+        },
+        {
+          "binding": 0,
+          "group": 3,
+          "kind": "Texture2D (Sampled { kind: Float, multi: false })",
+          "name": "scene_copy",
+          "register": "t8"
+        }
+      ],
+      "entryPoint": "fragment_main",
+      "file": "water/fragment_main.SEA_ICE-0.hlsl",
+      "hazards": [],
+      "module": "water",
+      "overrides": {
+        "INLAND": false,
+        "SEA_ICE": false
+      },
+      "profile": "ps_5_0",
+      "stage": "fragment",
+      "wgslEntryPoint": "fragment_main",
+      "workgroupSize": null
+    },
+    {
+      "bindings": [
+        {
+          "binding": 0,
+          "group": 0,
+          "kind": "constant buffer",
+          "name": "frame",
+          "register": "b0"
+        },
+        {
+          "binding": 8,
+          "group": 1,
+          "kind": "Texture2D (Sampled { kind: Float, multi: false })",
+          "name": "height_texture",
+          "register": "t0"
+        },
+        {
+          "binding": 9,
+          "group": 1,
+          "kind": "constant buffer",
+          "name": "world",
+          "register": "b1"
+        },
+        {
+          "binding": 11,
+          "group": 1,
+          "kind": "SamplerState",
+          "name": "clamp_sampler",
+          "register": "s0"
+        },
+        {
+          "binding": 12,
+          "group": 1,
+          "kind": "Texture2DArray (Sampled { kind: Float, multi: false })",
+          "name": "ground_layers",
+          "register": "t1"
+        }
+      ],
+      "entryPoint": "vertex_main",
+      "file": "water/vertex_main.INLAND-1.SEA_ICE-0.hlsl",
+      "hazards": [],
+      "module": "water",
+      "overrides": {
+        "INLAND": true,
+        "SEA_ICE": false
+      },
+      "profile": "vs_5_0",
+      "stage": "vertex",
+      "wgslEntryPoint": "vertex_main",
+      "workgroupSize": null
+    },
+    {
+      "bindings": [
+        {
+          "binding": 0,
+          "group": 0,
+          "kind": "constant buffer",
+          "name": "frame",
+          "register": "b0"
+        },
+        {
+          "binding": 0,
+          "group": 1,
+          "kind": "SamplerState",
+          "name": "linear_sampler",
+          "register": "s0"
+        },
+        {
+          "binding": 5,
+          "group": 1,
+          "kind": "Texture2D (Sampled { kind: Float, multi: false })",
+          "name": "noise_texture",
+          "register": "t0"
+        },
+        {
+          "binding": 6,
+          "group": 1,
+          "kind": "Texture3D (Sampled { kind: Float, multi: false })",
+          "name": "cloud_texture",
+          "register": "t1"
+        },
+        {
+          "binding": 8,
+          "group": 1,
+          "kind": "Texture2D (Sampled { kind: Float, multi: false })",
+          "name": "height_texture",
+          "register": "t2"
+        },
+        {
+          "binding": 9,
+          "group": 1,
+          "kind": "constant buffer",
+          "name": "world",
+          "register": "b1"
+        },
+        {
+          "binding": 10,
+          "group": 1,
+          "kind": "Texture2D (Sampled { kind: Float, multi: false })",
+          "name": "terrain_shadow_texture",
+          "register": "t3"
+        },
+        {
+          "binding": 11,
+          "group": 1,
+          "kind": "SamplerState",
+          "name": "clamp_sampler",
+          "register": "s1"
+        },
+        {
+          "binding": 12,
+          "group": 1,
+          "kind": "Texture2DArray (Sampled { kind: Float, multi: false })",
+          "name": "ground_layers",
+          "register": "t4"
+        },
+        {
+          "binding": 13,
+          "group": 1,
+          "kind": "Texture2D (Sampled { kind: Float, multi: false })",
+          "name": "regional_texture",
+          "register": "t5"
+        },
+        {
+          "binding": 0,
+          "group": 2,
+          "kind": "Texture2D (Depth { multi: false })",
+          "name": "tree_shadow_map",
+          "register": "t6"
+        },
+        {
+          "binding": 1,
+          "group": 2,
+          "kind": "SamplerComparisonState",
+          "name": "shadow_sampler",
+          "register": "s2"
+        }
+      ],
+      "entryPoint": "fragment_fall",
+      "file": "water/fragment_fall.INLAND-1.SEA_ICE-0.hlsl",
+      "hazards": [],
+      "module": "water",
+      "overrides": {
+        "INLAND": true,
+        "SEA_ICE": false
+      },
+      "profile": "ps_5_0",
+      "stage": "fragment",
+      "wgslEntryPoint": "fragment_fall",
+      "workgroupSize": null
+    },
+    {
+      "bindings": [
+        {
+          "binding": 0,
+          "group": 0,
+          "kind": "constant buffer",
+          "name": "frame",
+          "register": "b0"
+        },
+        {
+          "binding": 0,
+          "group": 1,
+          "kind": "SamplerState",
+          "name": "linear_sampler",
+          "register": "s0"
+        },
+        {
+          "binding": 5,
+          "group": 1,
+          "kind": "Texture2D (Sampled { kind: Float, multi: false })",
+          "name": "noise_texture",
+          "register": "t0"
+        },
+        {
+          "binding": 6,
+          "group": 1,
+          "kind": "Texture3D (Sampled { kind: Float, multi: false })",
+          "name": "cloud_texture",
+          "register": "t1"
+        },
+        {
+          "binding": 7,
+          "group": 1,
+          "kind": "Texture2D (Sampled { kind: Float, multi: false })",
+          "name": "water_texture",
+          "register": "t2"
+        },
+        {
+          "binding": 8,
+          "group": 1,
+          "kind": "Texture2D (Sampled { kind: Float, multi: false })",
+          "name": "height_texture",
+          "register": "t3"
+        },
+        {
+          "binding": 9,
+          "group": 1,
+          "kind": "constant buffer",
+          "name": "world",
+          "register": "b1"
+        },
+        {
+          "binding": 10,
+          "group": 1,
+          "kind": "Texture2D (Sampled { kind: Float, multi: false })",
+          "name": "terrain_shadow_texture",
+          "register": "t4"
+        },
+        {
+          "binding": 11,
+          "group": 1,
+          "kind": "SamplerState",
+          "name": "clamp_sampler",
+          "register": "s1"
+        },
+        {
+          "binding": 12,
+          "group": 1,
+          "kind": "Texture2DArray (Sampled { kind: Float, multi: false })",
+          "name": "ground_layers",
+          "register": "t5"
+        },
+        {
+          "binding": 13,
+          "group": 1,
+          "kind": "Texture2D (Sampled { kind: Float, multi: false })",
+          "name": "regional_texture",
+          "register": "t6"
+        },
+        {
+          "binding": 0,
+          "group": 2,
+          "kind": "Texture2D (Depth { multi: false })",
+          "name": "tree_shadow_map",
+          "register": "t7"
+        },
+        {
+          "binding": 1,
+          "group": 2,
+          "kind": "SamplerComparisonState",
+          "name": "shadow_sampler",
+          "register": "s2"
+        },
+        {
+          "binding": 0,
+          "group": 3,
+          "kind": "Texture2D (Sampled { kind: Float, multi: false })",
+          "name": "scene_copy",
+          "register": "t8"
+        }
+      ],
+      "entryPoint": "fragment_main",
+      "file": "water/fragment_main.INLAND-1.SEA_ICE-0.hlsl",
+      "hazards": [],
+      "module": "water",
+      "overrides": {
+        "INLAND": true,
+        "SEA_ICE": false
+      },
+      "profile": "ps_5_0",
+      "stage": "fragment",
+      "wgslEntryPoint": "fragment_main",
+      "workgroupSize": null
+    },
+    {
+      "bindings": [
+        {
+          "binding": 0,
+          "group": 0,
+          "kind": "constant buffer",
+          "name": "frame",
+          "register": "b0"
+        },
+        {
+          "binding": 8,
+          "group": 1,
+          "kind": "Texture2D (Sampled { kind: Float, multi: false })",
+          "name": "height_texture",
+          "register": "t0"
+        },
+        {
+          "binding": 9,
+          "group": 1,
+          "kind": "constant buffer",
+          "name": "world",
+          "register": "b1"
+        },
+        {
+          "binding": 11,
+          "group": 1,
+          "kind": "SamplerState",
+          "name": "clamp_sampler",
+          "register": "s0"
+        },
+        {
+          "binding": 12,
+          "group": 1,
+          "kind": "Texture2DArray (Sampled { kind: Float, multi: false })",
+          "name": "ground_layers",
+          "register": "t1"
+        }
+      ],
+      "entryPoint": "vertex_main",
+      "file": "water/vertex_main.hlsl",
+      "hazards": [],
+      "module": "water",
+      "overrides": {
+        "INLAND": false,
+        "SEA_ICE": true
+      },
+      "profile": "vs_5_0",
+      "stage": "vertex",
+      "wgslEntryPoint": "vertex_main",
+      "workgroupSize": null
+    },
+    {
+      "bindings": [
+        {
+          "binding": 0,
+          "group": 0,
+          "kind": "constant buffer",
+          "name": "frame",
+          "register": "b0"
+        },
+        {
+          "binding": 0,
+          "group": 1,
+          "kind": "SamplerState",
+          "name": "linear_sampler",
+          "register": "s0"
+        },
+        {
+          "binding": 5,
+          "group": 1,
+          "kind": "Texture2D (Sampled { kind: Float, multi: false })",
+          "name": "noise_texture",
+          "register": "t0"
+        },
+        {
+          "binding": 6,
+          "group": 1,
+          "kind": "Texture3D (Sampled { kind: Float, multi: false })",
+          "name": "cloud_texture",
+          "register": "t1"
+        },
+        {
+          "binding": 8,
+          "group": 1,
+          "kind": "Texture2D (Sampled { kind: Float, multi: false })",
+          "name": "height_texture",
+          "register": "t2"
+        },
+        {
+          "binding": 9,
+          "group": 1,
+          "kind": "constant buffer",
+          "name": "world",
+          "register": "b1"
+        },
+        {
+          "binding": 10,
+          "group": 1,
+          "kind": "Texture2D (Sampled { kind: Float, multi: false })",
+          "name": "terrain_shadow_texture",
+          "register": "t3"
+        },
+        {
+          "binding": 11,
+          "group": 1,
+          "kind": "SamplerState",
+          "name": "clamp_sampler",
+          "register": "s1"
+        },
+        {
+          "binding": 12,
+          "group": 1,
+          "kind": "Texture2DArray (Sampled { kind: Float, multi: false })",
+          "name": "ground_layers",
+          "register": "t4"
+        },
+        {
+          "binding": 13,
+          "group": 1,
+          "kind": "Texture2D (Sampled { kind: Float, multi: false })",
+          "name": "regional_texture",
+          "register": "t5"
+        },
+        {
+          "binding": 0,
+          "group": 2,
+          "kind": "Texture2D (Depth { multi: false })",
+          "name": "tree_shadow_map",
+          "register": "t6"
+        },
+        {
+          "binding": 1,
+          "group": 2,
+          "kind": "SamplerComparisonState",
+          "name": "shadow_sampler",
+          "register": "s2"
+        }
+      ],
+      "entryPoint": "fragment_fall",
+      "file": "water/fragment_fall.hlsl",
+      "hazards": [],
+      "module": "water",
+      "overrides": {
+        "INLAND": false,
+        "SEA_ICE": true
+      },
+      "profile": "ps_5_0",
+      "stage": "fragment",
+      "wgslEntryPoint": "fragment_fall",
+      "workgroupSize": null
+    },
+    {
+      "bindings": [
+        {
+          "binding": 0,
+          "group": 0,
+          "kind": "constant buffer",
+          "name": "frame",
+          "register": "b0"
+        },
+        {
+          "binding": 0,
+          "group": 1,
+          "kind": "SamplerState",
+          "name": "linear_sampler",
+          "register": "s0"
+        },
+        {
+          "binding": 5,
+          "group": 1,
+          "kind": "Texture2D (Sampled { kind: Float, multi: false })",
+          "name": "noise_texture",
+          "register": "t0"
+        },
+        {
+          "binding": 6,
+          "group": 1,
+          "kind": "Texture3D (Sampled { kind: Float, multi: false })",
+          "name": "cloud_texture",
+          "register": "t1"
+        },
+        {
+          "binding": 7,
+          "group": 1,
+          "kind": "Texture2D (Sampled { kind: Float, multi: false })",
+          "name": "water_texture",
+          "register": "t2"
+        },
+        {
+          "binding": 8,
+          "group": 1,
+          "kind": "Texture2D (Sampled { kind: Float, multi: false })",
+          "name": "height_texture",
+          "register": "t3"
+        },
+        {
+          "binding": 9,
+          "group": 1,
+          "kind": "constant buffer",
+          "name": "world",
+          "register": "b1"
+        },
+        {
+          "binding": 10,
+          "group": 1,
+          "kind": "Texture2D (Sampled { kind: Float, multi: false })",
+          "name": "terrain_shadow_texture",
+          "register": "t4"
+        },
+        {
+          "binding": 11,
+          "group": 1,
+          "kind": "SamplerState",
+          "name": "clamp_sampler",
+          "register": "s1"
+        },
+        {
+          "binding": 12,
+          "group": 1,
+          "kind": "Texture2DArray (Sampled { kind: Float, multi: false })",
+          "name": "ground_layers",
+          "register": "t5"
+        },
+        {
+          "binding": 13,
+          "group": 1,
+          "kind": "Texture2D (Sampled { kind: Float, multi: false })",
+          "name": "regional_texture",
+          "register": "t6"
+        },
+        {
+          "binding": 0,
+          "group": 2,
+          "kind": "Texture2D (Depth { multi: false })",
+          "name": "tree_shadow_map",
+          "register": "t7"
+        },
+        {
+          "binding": 1,
+          "group": 2,
+          "kind": "SamplerComparisonState",
+          "name": "shadow_sampler",
+          "register": "s2"
+        },
+        {
+          "binding": 0,
+          "group": 3,
+          "kind": "Texture2D (Sampled { kind: Float, multi: false })",
+          "name": "scene_copy",
+          "register": "t8"
+        }
+      ],
+      "entryPoint": "fragment_main",
+      "file": "water/fragment_main.hlsl",
+      "hazards": [],
+      "module": "water",
+      "overrides": {
+        "INLAND": false,
+        "SEA_ICE": true
+      },
+      "profile": "ps_5_0",
+      "stage": "fragment",
+      "wgslEntryPoint": "fragment_main",
+      "workgroupSize": null
+    },
+    {
+      "bindings": [
+        {
+          "binding": 0,
+          "group": 0,
+          "kind": "constant buffer",
+          "name": "frame",
+          "register": "b0"
+        },
+        {
+          "binding": 8,
+          "group": 1,
+          "kind": "Texture2D (Sampled { kind: Float, multi: false })",
+          "name": "height_texture",
+          "register": "t0"
+        },
+        {
+          "binding": 9,
+          "group": 1,
+          "kind": "constant buffer",
+          "name": "world",
+          "register": "b1"
+        },
+        {
+          "binding": 11,
+          "group": 1,
+          "kind": "SamplerState",
+          "name": "clamp_sampler",
+          "register": "s0"
+        },
+        {
+          "binding": 12,
+          "group": 1,
+          "kind": "Texture2DArray (Sampled { kind: Float, multi: false })",
+          "name": "ground_layers",
+          "register": "t1"
+        }
+      ],
+      "entryPoint": "vertex_main",
+      "file": "water/vertex_main.INLAND-1.hlsl",
+      "hazards": [],
+      "module": "water",
+      "overrides": {
+        "INLAND": true,
+        "SEA_ICE": true
+      },
+      "profile": "vs_5_0",
+      "stage": "vertex",
+      "wgslEntryPoint": "vertex_main",
+      "workgroupSize": null
+    },
+    {
+      "bindings": [
+        {
+          "binding": 0,
+          "group": 0,
+          "kind": "constant buffer",
+          "name": "frame",
+          "register": "b0"
+        },
+        {
+          "binding": 0,
+          "group": 1,
+          "kind": "SamplerState",
+          "name": "linear_sampler",
+          "register": "s0"
+        },
+        {
+          "binding": 5,
+          "group": 1,
+          "kind": "Texture2D (Sampled { kind: Float, multi: false })",
+          "name": "noise_texture",
+          "register": "t0"
+        },
+        {
+          "binding": 6,
+          "group": 1,
+          "kind": "Texture3D (Sampled { kind: Float, multi: false })",
+          "name": "cloud_texture",
+          "register": "t1"
+        },
+        {
+          "binding": 8,
+          "group": 1,
+          "kind": "Texture2D (Sampled { kind: Float, multi: false })",
+          "name": "height_texture",
+          "register": "t2"
+        },
+        {
+          "binding": 9,
+          "group": 1,
+          "kind": "constant buffer",
+          "name": "world",
+          "register": "b1"
+        },
+        {
+          "binding": 10,
+          "group": 1,
+          "kind": "Texture2D (Sampled { kind: Float, multi: false })",
+          "name": "terrain_shadow_texture",
+          "register": "t3"
+        },
+        {
+          "binding": 11,
+          "group": 1,
+          "kind": "SamplerState",
+          "name": "clamp_sampler",
+          "register": "s1"
+        },
+        {
+          "binding": 12,
+          "group": 1,
+          "kind": "Texture2DArray (Sampled { kind: Float, multi: false })",
+          "name": "ground_layers",
+          "register": "t4"
+        },
+        {
+          "binding": 13,
+          "group": 1,
+          "kind": "Texture2D (Sampled { kind: Float, multi: false })",
+          "name": "regional_texture",
+          "register": "t5"
+        },
+        {
+          "binding": 0,
+          "group": 2,
+          "kind": "Texture2D (Depth { multi: false })",
+          "name": "tree_shadow_map",
+          "register": "t6"
+        },
+        {
+          "binding": 1,
+          "group": 2,
+          "kind": "SamplerComparisonState",
+          "name": "shadow_sampler",
+          "register": "s2"
+        }
+      ],
+      "entryPoint": "fragment_fall",
+      "file": "water/fragment_fall.INLAND-1.hlsl",
+      "hazards": [],
+      "module": "water",
+      "overrides": {
+        "INLAND": true,
+        "SEA_ICE": true
+      },
+      "profile": "ps_5_0",
+      "stage": "fragment",
+      "wgslEntryPoint": "fragment_fall",
+      "workgroupSize": null
+    },
+    {
+      "bindings": [
+        {
+          "binding": 0,
+          "group": 0,
+          "kind": "constant buffer",
+          "name": "frame",
+          "register": "b0"
+        },
+        {
+          "binding": 0,
+          "group": 1,
+          "kind": "SamplerState",
+          "name": "linear_sampler",
+          "register": "s0"
+        },
+        {
+          "binding": 5,
+          "group": 1,
+          "kind": "Texture2D (Sampled { kind: Float, multi: false })",
+          "name": "noise_texture",
+          "register": "t0"
+        },
+        {
+          "binding": 6,
+          "group": 1,
+          "kind": "Texture3D (Sampled { kind: Float, multi: false })",
+          "name": "cloud_texture",
+          "register": "t1"
+        },
+        {
+          "binding": 7,
+          "group": 1,
+          "kind": "Texture2D (Sampled { kind: Float, multi: false })",
+          "name": "water_texture",
+          "register": "t2"
+        },
+        {
+          "binding": 8,
+          "group": 1,
+          "kind": "Texture2D (Sampled { kind: Float, multi: false })",
+          "name": "height_texture",
+          "register": "t3"
+        },
+        {
+          "binding": 9,
+          "group": 1,
+          "kind": "constant buffer",
+          "name": "world",
+          "register": "b1"
+        },
+        {
+          "binding": 10,
+          "group": 1,
+          "kind": "Texture2D (Sampled { kind: Float, multi: false })",
+          "name": "terrain_shadow_texture",
+          "register": "t4"
+        },
+        {
+          "binding": 11,
+          "group": 1,
+          "kind": "SamplerState",
+          "name": "clamp_sampler",
+          "register": "s1"
+        },
+        {
+          "binding": 12,
+          "group": 1,
+          "kind": "Texture2DArray (Sampled { kind: Float, multi: false })",
+          "name": "ground_layers",
+          "register": "t5"
+        },
+        {
+          "binding": 13,
+          "group": 1,
+          "kind": "Texture2D (Sampled { kind: Float, multi: false })",
+          "name": "regional_texture",
+          "register": "t6"
+        },
+        {
+          "binding": 0,
+          "group": 2,
+          "kind": "Texture2D (Depth { multi: false })",
+          "name": "tree_shadow_map",
+          "register": "t7"
+        },
+        {
+          "binding": 1,
+          "group": 2,
+          "kind": "SamplerComparisonState",
+          "name": "shadow_sampler",
+          "register": "s2"
+        },
+        {
+          "binding": 0,
+          "group": 3,
+          "kind": "Texture2D (Sampled { kind: Float, multi: false })",
+          "name": "scene_copy",
+          "register": "t8"
+        }
+      ],
+      "entryPoint": "fragment_main",
+      "file": "water/fragment_main.INLAND-1.hlsl",
+      "hazards": [],
+      "module": "water",
+      "overrides": {
+        "INLAND": true,
+        "SEA_ICE": true
+      },
+      "profile": "ps_5_0",
+      "stage": "fragment",
+      "wgslEntryPoint": "fragment_main",
+      "workgroupSize": null
+    },
+    {
+      "bindings": [
+        {
+          "binding": 0,
+          "group": 0,
+          "kind": "constant buffer",
+          "name": "frame",
+          "register": "b0"
+        },
+        {
+          "binding": 0,
+          "group": 1,
+          "kind": "SamplerState",
+          "name": "linear_sampler",
+          "register": "s0"
+        },
+        {
+          "binding": 5,
+          "group": 1,
+          "kind": "Texture2D (Sampled { kind: Float, multi: false })",
+          "name": "noise_texture",
+          "register": "t0"
+        },
+        {
+          "binding": 9,
+          "group": 1,
+          "kind": "constant buffer",
+          "name": "world",
+          "register": "b1"
+        },
+        {
+          "binding": 10,
+          "group": 1,
+          "kind": "Texture2D (Sampled { kind: Float, multi: false })",
+          "name": "terrain_shadow_texture",
+          "register": "t1"
+        },
+        {
+          "binding": 11,
+          "group": 1,
+          "kind": "SamplerState",
+          "name": "clamp_sampler",
+          "register": "s1"
+        },
+        {
+          "binding": 12,
+          "group": 1,
+          "kind": "Texture2DArray (Sampled { kind: Float, multi: false })",
+          "name": "ground_layers",
+          "register": "t2"
+        },
+        {
+          "binding": 13,
+          "group": 1,
+          "kind": "Texture2D (Sampled { kind: Float, multi: false })",
+          "name": "regional_texture",
+          "register": "t3"
+        },
+        {
+          "binding": 14,
+          "group": 1,
+          "kind": "Texture2D (Sampled { kind: Float, multi: false })",
+          "name": "surface_weather_texture",
+          "register": "t4"
+        },
+        {
+          "binding": 0,
+          "group": 2,
+          "kind": "Texture2D (Depth { multi: false })",
+          "name": "tree_shadow_map",
+          "register": "t5"
+        },
+        {
+          "binding": 1,
+          "group": 2,
+          "kind": "SamplerComparisonState",
+          "name": "shadow_sampler",
+          "register": "s2"
+        }
+      ],
+      "entryPoint": "vertex_mesh",
+      "file": "trees/vertex_mesh.hlsl",
+      "hazards": [],
+      "module": "trees",
+      "overrides": {
+        "LIGHT": false
+      },
+      "profile": "vs_5_0",
+      "stage": "vertex",
+      "wgslEntryPoint": "vertex_mesh",
+      "workgroupSize": null
+    },
+    {
+      "bindings": [
+        {
+          "binding": 0,
+          "group": 0,
+          "kind": "constant buffer",
+          "name": "frame",
+          "register": "b0"
+        },
+        {
+          "binding": 0,
+          "group": 1,
+          "kind": "SamplerState",
+          "name": "linear_sampler",
+          "register": "s0"
+        },
+        {
+          "binding": 3,
+          "group": 1,
+          "kind": "Texture2DArray (Sampled { kind: Float, multi: false })",
+          "name": "flora_texture",
+          "register": "t0"
+        },
+        {
+          "binding": 9,
+          "group": 1,
+          "kind": "constant buffer",
+          "name": "world",
+          "register": "b1"
+        },
+        {
+          "binding": 0,
+          "group": 2,
+          "kind": "Texture2D (Depth { multi: false })",
+          "name": "tree_shadow_map",
+          "register": "t1"
+        },
+        {
+          "binding": 1,
+          "group": 2,
+          "kind": "SamplerComparisonState",
+          "name": "shadow_sampler",
+          "register": "s1"
+        }
+      ],
+      "entryPoint": "fragment_mesh",
+      "file": "trees/fragment_mesh.hlsl",
+      "hazards": [],
+      "module": "trees",
+      "overrides": {
+        "LIGHT": false
+      },
+      "profile": "ps_5_0",
+      "stage": "fragment",
+      "wgslEntryPoint": "fragment_mesh",
+      "workgroupSize": null
+    },
+    {
+      "bindings": [
+        {
+          "binding": 0,
+          "group": 0,
+          "kind": "constant buffer",
+          "name": "frame",
+          "register": "b0"
+        },
+        {
+          "binding": 0,
+          "group": 1,
+          "kind": "SamplerState",
+          "name": "linear_sampler",
+          "register": "s0"
+        },
+        {
+          "binding": 5,
+          "group": 1,
+          "kind": "Texture2D (Sampled { kind: Float, multi: false })",
+          "name": "noise_texture",
+          "register": "t0"
+        },
+        {
+          "binding": 9,
+          "group": 1,
+          "kind": "constant buffer",
+          "name": "world",
+          "register": "b1"
+        },
+        {
+          "binding": 10,
+          "group": 1,
+          "kind": "Texture2D (Sampled { kind: Float, multi: false })",
+          "name": "terrain_shadow_texture",
+          "register": "t1"
+        },
+        {
+          "binding": 11,
+          "group": 1,
+          "kind": "SamplerState",
+          "name": "clamp_sampler",
+          "register": "s1"
+        },
+        {
+          "binding": 12,
+          "group": 1,
+          "kind": "Texture2DArray (Sampled { kind: Float, multi: false })",
+          "name": "ground_layers",
+          "register": "t2"
+        },
+        {
+          "binding": 13,
+          "group": 1,
+          "kind": "Texture2D (Sampled { kind: Float, multi: false })",
+          "name": "regional_texture",
+          "register": "t3"
+        },
+        {
+          "binding": 14,
+          "group": 1,
+          "kind": "Texture2D (Sampled { kind: Float, multi: false })",
+          "name": "surface_weather_texture",
+          "register": "t4"
+        }
+      ],
+      "entryPoint": "vertex_impostor",
+      "file": "trees/vertex_impostor.hlsl",
+      "hazards": [
+        "reads vertex_index: SV_VertexID does not include BaseVertexLocation in Direct3D 11. Draw with base vertex 0, or add it from a constant buffer."
+      ],
+      "module": "trees",
+      "overrides": {
+        "LIGHT": false
+      },
+      "profile": "vs_5_0",
+      "stage": "vertex",
+      "wgslEntryPoint": "vertex_impostor",
+      "workgroupSize": null
+    },
+    {
+      "bindings": [
+        {
+          "binding": 0,
+          "group": 0,
+          "kind": "constant buffer",
+          "name": "frame",
+          "register": "b0"
+        },
+        {
+          "binding": 0,
+          "group": 1,
+          "kind": "SamplerState",
+          "name": "linear_sampler",
+          "register": "s0"
+        },
+        {
+          "binding": 4,
+          "group": 1,
+          "kind": "Texture2DArray (Sampled { kind: Float, multi: false })",
+          "name": "impostor_texture",
+          "register": "t0"
+        },
+        {
+          "binding": 0,
+          "group": 2,
+          "kind": "Texture2D (Depth { multi: false })",
+          "name": "tree_shadow_map",
+          "register": "t1"
+        },
+        {
+          "binding": 1,
+          "group": 2,
+          "kind": "SamplerComparisonState",
+          "name": "shadow_sampler",
+          "register": "s1"
+        }
+      ],
+      "entryPoint": "fragment_impostor",
+      "file": "trees/fragment_impostor.hlsl",
+      "hazards": [],
+      "module": "trees",
+      "overrides": {
+        "LIGHT": false
+      },
+      "profile": "ps_5_0",
+      "stage": "fragment",
+      "wgslEntryPoint": "fragment_impostor",
+      "workgroupSize": null
+    },
+    {
+      "bindings": [
+        {
+          "binding": 0,
+          "group": 0,
+          "kind": "constant buffer",
+          "name": "frame",
+          "register": "b0"
+        },
+        {
+          "binding": 9,
+          "group": 1,
+          "kind": "constant buffer",
+          "name": "world",
+          "register": "b1"
+        }
+      ],
+      "entryPoint": "vertex_shadow",
+      "file": "trees/vertex_shadow.hlsl",
+      "hazards": [
+        "reads vertex_index: SV_VertexID does not include BaseVertexLocation in Direct3D 11. Draw with base vertex 0, or add it from a constant buffer."
+      ],
+      "module": "trees",
+      "overrides": {
+        "LIGHT": false
+      },
+      "profile": "vs_5_0",
+      "stage": "vertex",
+      "wgslEntryPoint": "vertex_shadow",
+      "workgroupSize": null
+    },
+    {
+      "bindings": [
+        {
+          "binding": 0,
+          "group": 1,
+          "kind": "SamplerState",
+          "name": "linear_sampler",
+          "register": "s0"
+        },
+        {
+          "binding": 4,
+          "group": 1,
+          "kind": "Texture2DArray (Sampled { kind: Float, multi: false })",
+          "name": "impostor_texture",
+          "register": "t0"
+        }
+      ],
+      "entryPoint": "fragment_shadow",
+      "file": "trees/fragment_shadow.hlsl",
+      "hazards": [],
+      "module": "trees",
+      "overrides": {
+        "LIGHT": false
+      },
+      "profile": "ps_5_0",
+      "stage": "fragment",
+      "wgslEntryPoint": "fragment_shadow",
+      "workgroupSize": null
+    },
+    {
+      "bindings": [
+        {
+          "binding": 9,
+          "group": 1,
+          "kind": "constant buffer",
+          "name": "world",
+          "register": "b0"
+        }
+      ],
+      "entryPoint": "vertex_bake",
+      "file": "trees/vertex_bake.hlsl",
+      "hazards": [
+        "reads instance_index: SV_InstanceID does not include StartInstanceLocation in Direct3D 11, unlike WebGPU's first_instance. Draw with StartInstanceLocation 0, or add the offset from a constant buffer."
+      ],
+      "module": "trees",
+      "overrides": {
+        "LIGHT": false
+      },
+      "profile": "vs_5_0",
+      "stage": "vertex",
+      "wgslEntryPoint": "vertex_bake",
+      "workgroupSize": null
+    },
+    {
+      "bindings": [
+        {
+          "binding": 0,
+          "group": 0,
+          "kind": "constant buffer",
+          "name": "frame",
+          "register": "b0"
+        },
+        {
+          "binding": 0,
+          "group": 1,
+          "kind": "SamplerState",
+          "name": "linear_sampler",
+          "register": "s0"
+        },
+        {
+          "binding": 3,
+          "group": 1,
+          "kind": "Texture2DArray (Sampled { kind: Float, multi: false })",
+          "name": "flora_texture",
+          "register": "t0"
+        },
+        {
+          "binding": 9,
+          "group": 1,
+          "kind": "constant buffer",
+          "name": "world",
+          "register": "b1"
+        }
+      ],
+      "entryPoint": "fragment_bake",
+      "file": "trees/fragment_bake.hlsl",
+      "hazards": [],
+      "module": "trees",
+      "overrides": {
+        "LIGHT": false
+      },
+      "profile": "ps_5_0",
+      "stage": "fragment",
+      "wgslEntryPoint": "fragment_bake",
+      "workgroupSize": null
+    },
+    {
+      "bindings": [
+        {
+          "binding": 0,
+          "group": 0,
+          "kind": "constant buffer",
+          "name": "frame",
+          "register": "b0"
+        },
+        {
+          "binding": 0,
+          "group": 1,
+          "kind": "SamplerState",
+          "name": "linear_sampler",
+          "register": "s0"
+        },
+        {
+          "binding": 5,
+          "group": 1,
+          "kind": "Texture2D (Sampled { kind: Float, multi: false })",
+          "name": "noise_texture",
+          "register": "t0"
+        },
+        {
+          "binding": 9,
+          "group": 1,
+          "kind": "constant buffer",
+          "name": "world",
+          "register": "b1"
+        },
+        {
+          "binding": 10,
+          "group": 1,
+          "kind": "Texture2D (Sampled { kind: Float, multi: false })",
+          "name": "terrain_shadow_texture",
+          "register": "t1"
+        },
+        {
+          "binding": 11,
+          "group": 1,
+          "kind": "SamplerState",
+          "name": "clamp_sampler",
+          "register": "s1"
+        },
+        {
+          "binding": 12,
+          "group": 1,
+          "kind": "Texture2DArray (Sampled { kind: Float, multi: false })",
+          "name": "ground_layers",
+          "register": "t2"
+        },
+        {
+          "binding": 13,
+          "group": 1,
+          "kind": "Texture2D (Sampled { kind: Float, multi: false })",
+          "name": "regional_texture",
+          "register": "t3"
+        },
+        {
+          "binding": 14,
+          "group": 1,
+          "kind": "Texture2D (Sampled { kind: Float, multi: false })",
+          "name": "surface_weather_texture",
+          "register": "t4"
+        },
+        {
+          "binding": 0,
+          "group": 2,
+          "kind": "Texture2D (Depth { multi: false })",
+          "name": "tree_shadow_map",
+          "register": "t5"
+        },
+        {
+          "binding": 1,
+          "group": 2,
+          "kind": "SamplerComparisonState",
+          "name": "shadow_sampler",
+          "register": "s2"
+        }
+      ],
+      "entryPoint": "vertex_mesh",
+      "file": "trees/vertex_mesh.LIGHT-1.hlsl",
+      "hazards": [],
+      "module": "trees",
+      "overrides": {
+        "LIGHT": true
+      },
+      "profile": "vs_5_0",
+      "stage": "vertex",
+      "wgslEntryPoint": "vertex_mesh",
+      "workgroupSize": null
+    },
+    {
+      "bindings": [
+        {
+          "binding": 0,
+          "group": 0,
+          "kind": "constant buffer",
+          "name": "frame",
+          "register": "b0"
+        },
+        {
+          "binding": 0,
+          "group": 1,
+          "kind": "SamplerState",
+          "name": "linear_sampler",
+          "register": "s0"
+        },
+        {
+          "binding": 3,
+          "group": 1,
+          "kind": "Texture2DArray (Sampled { kind: Float, multi: false })",
+          "name": "flora_texture",
+          "register": "t0"
+        },
+        {
+          "binding": 9,
+          "group": 1,
+          "kind": "constant buffer",
+          "name": "world",
+          "register": "b1"
+        },
+        {
+          "binding": 0,
+          "group": 2,
+          "kind": "Texture2D (Depth { multi: false })",
+          "name": "tree_shadow_map",
+          "register": "t1"
+        },
+        {
+          "binding": 1,
+          "group": 2,
+          "kind": "SamplerComparisonState",
+          "name": "shadow_sampler",
+          "register": "s1"
+        }
+      ],
+      "entryPoint": "fragment_mesh",
+      "file": "trees/fragment_mesh.LIGHT-1.hlsl",
+      "hazards": [],
+      "module": "trees",
+      "overrides": {
+        "LIGHT": true
+      },
+      "profile": "ps_5_0",
+      "stage": "fragment",
+      "wgslEntryPoint": "fragment_mesh",
+      "workgroupSize": null
+    },
+    {
+      "bindings": [
+        {
+          "binding": 0,
+          "group": 0,
+          "kind": "constant buffer",
+          "name": "frame",
+          "register": "b0"
+        },
+        {
+          "binding": 0,
+          "group": 1,
+          "kind": "SamplerState",
+          "name": "linear_sampler",
+          "register": "s0"
+        },
+        {
+          "binding": 5,
+          "group": 1,
+          "kind": "Texture2D (Sampled { kind: Float, multi: false })",
+          "name": "noise_texture",
+          "register": "t0"
+        },
+        {
+          "binding": 9,
+          "group": 1,
+          "kind": "constant buffer",
+          "name": "world",
+          "register": "b1"
+        },
+        {
+          "binding": 10,
+          "group": 1,
+          "kind": "Texture2D (Sampled { kind: Float, multi: false })",
+          "name": "terrain_shadow_texture",
+          "register": "t1"
+        },
+        {
+          "binding": 11,
+          "group": 1,
+          "kind": "SamplerState",
+          "name": "clamp_sampler",
+          "register": "s1"
+        },
+        {
+          "binding": 12,
+          "group": 1,
+          "kind": "Texture2DArray (Sampled { kind: Float, multi: false })",
+          "name": "ground_layers",
+          "register": "t2"
+        },
+        {
+          "binding": 13,
+          "group": 1,
+          "kind": "Texture2D (Sampled { kind: Float, multi: false })",
+          "name": "regional_texture",
+          "register": "t3"
+        },
+        {
+          "binding": 14,
+          "group": 1,
+          "kind": "Texture2D (Sampled { kind: Float, multi: false })",
+          "name": "surface_weather_texture",
+          "register": "t4"
+        }
+      ],
+      "entryPoint": "vertex_impostor",
+      "file": "trees/vertex_impostor.LIGHT-1.hlsl",
+      "hazards": [
+        "reads vertex_index: SV_VertexID does not include BaseVertexLocation in Direct3D 11. Draw with base vertex 0, or add it from a constant buffer."
+      ],
+      "module": "trees",
+      "overrides": {
+        "LIGHT": true
+      },
+      "profile": "vs_5_0",
+      "stage": "vertex",
+      "wgslEntryPoint": "vertex_impostor",
+      "workgroupSize": null
+    },
+    {
+      "bindings": [
+        {
+          "binding": 0,
+          "group": 0,
+          "kind": "constant buffer",
+          "name": "frame",
+          "register": "b0"
+        },
+        {
+          "binding": 0,
+          "group": 1,
+          "kind": "SamplerState",
+          "name": "linear_sampler",
+          "register": "s0"
+        },
+        {
+          "binding": 4,
+          "group": 1,
+          "kind": "Texture2DArray (Sampled { kind: Float, multi: false })",
+          "name": "impostor_texture",
+          "register": "t0"
+        },
+        {
+          "binding": 0,
+          "group": 2,
+          "kind": "Texture2D (Depth { multi: false })",
+          "name": "tree_shadow_map",
+          "register": "t1"
+        },
+        {
+          "binding": 1,
+          "group": 2,
+          "kind": "SamplerComparisonState",
+          "name": "shadow_sampler",
+          "register": "s1"
+        }
+      ],
+      "entryPoint": "fragment_impostor",
+      "file": "trees/fragment_impostor.LIGHT-1.hlsl",
+      "hazards": [],
+      "module": "trees",
+      "overrides": {
+        "LIGHT": true
+      },
+      "profile": "ps_5_0",
+      "stage": "fragment",
+      "wgslEntryPoint": "fragment_impostor",
+      "workgroupSize": null
+    },
+    {
+      "bindings": [
+        {
+          "binding": 0,
+          "group": 0,
+          "kind": "constant buffer",
+          "name": "frame",
+          "register": "b0"
+        },
+        {
+          "binding": 9,
+          "group": 1,
+          "kind": "constant buffer",
+          "name": "world",
+          "register": "b1"
+        }
+      ],
+      "entryPoint": "vertex_shadow",
+      "file": "trees/vertex_shadow.LIGHT-1.hlsl",
+      "hazards": [
+        "reads vertex_index: SV_VertexID does not include BaseVertexLocation in Direct3D 11. Draw with base vertex 0, or add it from a constant buffer."
+      ],
+      "module": "trees",
+      "overrides": {
+        "LIGHT": true
+      },
+      "profile": "vs_5_0",
+      "stage": "vertex",
+      "wgslEntryPoint": "vertex_shadow",
+      "workgroupSize": null
+    },
+    {
+      "bindings": [
+        {
+          "binding": 0,
+          "group": 1,
+          "kind": "SamplerState",
+          "name": "linear_sampler",
+          "register": "s0"
+        },
+        {
+          "binding": 4,
+          "group": 1,
+          "kind": "Texture2DArray (Sampled { kind: Float, multi: false })",
+          "name": "impostor_texture",
+          "register": "t0"
+        }
+      ],
+      "entryPoint": "fragment_shadow",
+      "file": "trees/fragment_shadow.LIGHT-1.hlsl",
+      "hazards": [],
+      "module": "trees",
+      "overrides": {
+        "LIGHT": true
+      },
+      "profile": "ps_5_0",
+      "stage": "fragment",
+      "wgslEntryPoint": "fragment_shadow",
+      "workgroupSize": null
+    },
+    {
+      "bindings": [
+        {
+          "binding": 9,
+          "group": 1,
+          "kind": "constant buffer",
+          "name": "world",
+          "register": "b0"
+        }
+      ],
+      "entryPoint": "vertex_bake",
+      "file": "trees/vertex_bake.LIGHT-1.hlsl",
+      "hazards": [
+        "reads instance_index: SV_InstanceID does not include StartInstanceLocation in Direct3D 11, unlike WebGPU's first_instance. Draw with StartInstanceLocation 0, or add the offset from a constant buffer."
+      ],
+      "module": "trees",
+      "overrides": {
+        "LIGHT": true
+      },
+      "profile": "vs_5_0",
+      "stage": "vertex",
+      "wgslEntryPoint": "vertex_bake",
+      "workgroupSize": null
+    },
+    {
+      "bindings": [
+        {
+          "binding": 0,
+          "group": 0,
+          "kind": "constant buffer",
+          "name": "frame",
+          "register": "b0"
+        },
+        {
+          "binding": 0,
+          "group": 1,
+          "kind": "SamplerState",
+          "name": "linear_sampler",
+          "register": "s0"
+        },
+        {
+          "binding": 3,
+          "group": 1,
+          "kind": "Texture2DArray (Sampled { kind: Float, multi: false })",
+          "name": "flora_texture",
+          "register": "t0"
+        },
+        {
+          "binding": 9,
+          "group": 1,
+          "kind": "constant buffer",
+          "name": "world",
+          "register": "b1"
+        }
+      ],
+      "entryPoint": "fragment_bake",
+      "file": "trees/fragment_bake.LIGHT-1.hlsl",
+      "hazards": [],
+      "module": "trees",
+      "overrides": {
+        "LIGHT": true
+      },
+      "profile": "ps_5_0",
+      "stage": "fragment",
+      "wgslEntryPoint": "fragment_bake",
+      "workgroupSize": null
+    },
+    {
+      "bindings": [
+        {
+          "binding": 0,
+          "group": 0,
+          "kind": "constant buffer",
+          "name": "frame",
+          "register": "b0"
+        },
+        {
+          "binding": 0,
+          "group": 1,
+          "kind": "SamplerState",
+          "name": "linear_sampler",
+          "register": "s0"
+        },
+        {
+          "binding": 5,
+          "group": 1,
+          "kind": "Texture2D (Sampled { kind: Float, multi: false })",
+          "name": "noise_texture",
+          "register": "t0"
+        },
+        {
+          "binding": 9,
+          "group": 1,
+          "kind": "constant buffer",
+          "name": "world",
+          "register": "b1"
+        },
+        {
+          "binding": 10,
+          "group": 1,
+          "kind": "Texture2D (Sampled { kind: Float, multi: false })",
+          "name": "terrain_shadow_texture",
+          "register": "t1"
+        },
+        {
+          "binding": 11,
+          "group": 1,
+          "kind": "SamplerState",
+          "name": "clamp_sampler",
+          "register": "s1"
+        },
+        {
+          "binding": 12,
+          "group": 1,
+          "kind": "Texture2DArray (Sampled { kind: Float, multi: false })",
+          "name": "ground_layers",
+          "register": "t2"
+        },
+        {
+          "binding": 13,
+          "group": 1,
+          "kind": "Texture2D (Sampled { kind: Float, multi: false })",
+          "name": "regional_texture",
+          "register": "t3"
+        },
+        {
+          "binding": 14,
+          "group": 1,
+          "kind": "Texture2D (Sampled { kind: Float, multi: false })",
+          "name": "surface_weather_texture",
+          "register": "t4"
+        },
+        {
+          "binding": 0,
+          "group": 2,
+          "kind": "Texture2D (Depth { multi: false })",
+          "name": "tree_shadow_map",
+          "register": "t5"
+        },
+        {
+          "binding": 1,
+          "group": 2,
+          "kind": "SamplerComparisonState",
+          "name": "shadow_sampler",
+          "register": "s2"
+        }
+      ],
+      "entryPoint": "vertex_main",
+      "file": "grass_instances/vertex_main.hlsl",
+      "hazards": [
+        "reads vertex_index: SV_VertexID does not include BaseVertexLocation in Direct3D 11. Draw with base vertex 0, or add it from a constant buffer."
+      ],
+      "module": "grass_instances",
+      "overrides": {},
+      "profile": "vs_5_0",
+      "stage": "vertex",
+      "wgslEntryPoint": "vertex_main",
+      "workgroupSize": null
+    },
+    {
+      "bindings": [
+        {
+          "binding": 0,
+          "group": 1,
+          "kind": "SamplerState",
+          "name": "linear_sampler",
+          "register": "s0"
+        },
+        {
+          "binding": 3,
+          "group": 1,
+          "kind": "Texture2DArray (Sampled { kind: Float, multi: false })",
+          "name": "flora_texture",
+          "register": "t0"
+        }
+      ],
+      "entryPoint": "fragment_main",
+      "file": "grass_instances/fragment_main.hlsl",
+      "hazards": [],
+      "module": "grass_instances",
+      "overrides": {},
+      "profile": "ps_5_0",
+      "stage": "fragment",
+      "wgslEntryPoint": "fragment_main",
+      "workgroupSize": null
+    },
+    {
+      "bindings": [],
+      "entryPoint": "vertex_main",
+      "file": "atmosphere/vertex_main.hlsl",
+      "hazards": [
+        "reads vertex_index: SV_VertexID does not include BaseVertexLocation in Direct3D 11. Draw with base vertex 0, or add it from a constant buffer."
+      ],
+      "module": "atmosphere",
+      "overrides": {},
+      "profile": "vs_5_0",
+      "stage": "vertex",
+      "wgslEntryPoint": "vertex_main",
+      "workgroupSize": null
+    },
+    {
+      "bindings": [
+        {
+          "binding": 0,
+          "group": 0,
+          "kind": "constant buffer",
+          "name": "frame",
+          "register": "b0"
+        },
+        {
+          "binding": 0,
+          "group": 1,
+          "kind": "SamplerState",
+          "name": "linear_sampler",
+          "register": "s0"
+        },
+        {
+          "binding": 5,
+          "group": 1,
+          "kind": "Texture2D (Sampled { kind: Float, multi: false })",
+          "name": "noise_texture",
+          "register": "t0"
+        },
+        {
+          "binding": 6,
+          "group": 1,
+          "kind": "Texture3D (Sampled { kind: Float, multi: false })",
+          "name": "cloud_texture",
+          "register": "t1"
+        },
+        {
+          "binding": 11,
+          "group": 1,
+          "kind": "SamplerState",
+          "name": "clamp_sampler",
+          "register": "s1"
+        },
+        {
+          "binding": 13,
+          "group": 1,
+          "kind": "Texture2D (Sampled { kind: Float, multi: false })",
+          "name": "regional_texture",
+          "register": "t2"
+        },
+        {
+          "binding": 1,
+          "group": 3,
+          "kind": "Texture2D (Depth { multi: false })",
+          "name": "depth_texture",
+          "register": "t3"
+        }
+      ],
+      "entryPoint": "cloud_quarter_main",
+      "file": "atmosphere/cloud_quarter_main.hlsl",
+      "hazards": [],
+      "module": "atmosphere",
+      "overrides": {},
+      "profile": "ps_5_0",
+      "stage": "fragment",
+      "wgslEntryPoint": "cloud_quarter_main",
+      "workgroupSize": null
+    },
+    {
+      "bindings": [
+        {
+          "binding": 0,
+          "group": 0,
+          "kind": "constant buffer",
+          "name": "frame",
+          "register": "b0"
+        },
+        {
+          "binding": 0,
+          "group": 1,
+          "kind": "SamplerState",
+          "name": "linear_sampler",
+          "register": "s0"
+        },
+        {
+          "binding": 5,
+          "group": 1,
+          "kind": "Texture2D (Sampled { kind: Float, multi: false })",
+          "name": "noise_texture",
+          "register": "t0"
+        },
+        {
+          "binding": 6,
+          "group": 1,
+          "kind": "Texture3D (Sampled { kind: Float, multi: false })",
+          "name": "cloud_texture",
+          "register": "t1"
+        },
+        {
+          "binding": 11,
+          "group": 1,
+          "kind": "SamplerState",
+          "name": "clamp_sampler",
+          "register": "s1"
+        },
+        {
+          "binding": 13,
+          "group": 1,
+          "kind": "Texture2D (Sampled { kind: Float, multi: false })",
+          "name": "regional_texture",
+          "register": "t2"
+        },
+        {
+          "binding": 1,
+          "group": 3,
+          "kind": "Texture2D (Depth { multi: false })",
+          "name": "depth_texture",
+          "register": "t3"
+        },
+        {
+          "binding": 4,
+          "group": 3,
+          "kind": "Texture2D (Sampled { kind: Float, multi: false })",
+          "name": "cloud_history",
+          "register": "t4"
+        },
+        {
+          "binding": 5,
+          "group": 3,
+          "kind": "Texture2D (Sampled { kind: Float, multi: false })",
+          "name": "cloud_quarter",
+          "register": "t5"
+        }
+      ],
+      "entryPoint": "cloud_main",
+      "file": "atmosphere/cloud_main.hlsl",
+      "hazards": [],
+      "module": "atmosphere",
+      "overrides": {},
+      "profile": "ps_5_0",
+      "stage": "fragment",
+      "wgslEntryPoint": "cloud_main",
+      "workgroupSize": null
+    },
+    {
+      "bindings": [
+        {
+          "binding": 0,
+          "group": 0,
+          "kind": "constant buffer",
+          "name": "frame",
+          "register": "b0"
+        },
+        {
+          "binding": 0,
+          "group": 1,
+          "kind": "SamplerState",
+          "name": "linear_sampler",
+          "register": "s0"
+        },
+        {
+          "binding": 5,
+          "group": 1,
+          "kind": "Texture2D (Sampled { kind: Float, multi: false })",
+          "name": "noise_texture",
+          "register": "t0"
+        },
+        {
+          "binding": 6,
+          "group": 1,
+          "kind": "Texture3D (Sampled { kind: Float, multi: false })",
+          "name": "cloud_texture",
+          "register": "t1"
+        },
+        {
+          "binding": 8,
+          "group": 1,
+          "kind": "Texture2D (Sampled { kind: Float, multi: false })",
+          "name": "height_texture",
+          "register": "t2"
+        },
+        {
+          "binding": 9,
+          "group": 1,
+          "kind": "constant buffer",
+          "name": "world",
+          "register": "b1"
+        },
+        {
+          "binding": 11,
+          "group": 1,
+          "kind": "SamplerState",
+          "name": "clamp_sampler",
+          "register": "s1"
+        },
+        {
+          "binding": 12,
+          "group": 1,
+          "kind": "Texture2DArray (Sampled { kind: Float, multi: false })",
+          "name": "ground_layers",
+          "register": "t3"
+        },
+        {
+          "binding": 13,
+          "group": 1,
+          "kind": "Texture2D (Sampled { kind: Float, multi: false })",
+          "name": "regional_texture",
+          "register": "t4"
+        },
+        {
+          "binding": 0,
+          "group": 3,
+          "kind": "Texture2D (Sampled { kind: Float, multi: false })",
+          "name": "scene_texture",
+          "register": "t5"
+        },
+        {
+          "binding": 1,
+          "group": 3,
+          "kind": "Texture2D (Depth { multi: false })",
+          "name": "depth_texture",
+          "register": "t6"
+        },
+        {
+          "binding": 2,
+          "group": 3,
+          "kind": "Texture2D (Sampled { kind: Float, multi: false })",
+          "name": "cloud_texture_low",
+          "register": "t7"
+        }
+      ],
+      "entryPoint": "fragment_main",
+      "file": "atmosphere/fragment_main.hlsl",
+      "hazards": [],
+      "module": "atmosphere",
+      "overrides": {},
+      "profile": "ps_5_0",
+      "stage": "fragment",
+      "wgslEntryPoint": "fragment_main",
+      "workgroupSize": null
+    },
+    {
+      "bindings": [
+        {
+          "binding": 0,
+          "group": 0,
+          "kind": "constant buffer",
+          "name": "frame",
+          "register": "b0"
+        },
+        {
+          "binding": 0,
+          "group": 3,
+          "kind": "Texture2D (Sampled { kind: Float, multi: false })",
+          "name": "scene_texture",
+          "register": "t0"
+        },
+        {
+          "binding": 1,
+          "group": 3,
+          "kind": "Texture2D (Depth { multi: false })",
+          "name": "depth_texture",
+          "register": "t1"
+        }
+      ],
+      "entryPoint": "scene_copy_main",
+      "file": "atmosphere/scene_copy_main.hlsl",
+      "hazards": [],
+      "module": "atmosphere",
+      "overrides": {},
+      "profile": "ps_5_0",
+      "stage": "fragment",
+      "wgslEntryPoint": "scene_copy_main",
+      "workgroupSize": null
+    },
+    {
+      "bindings": [
+        {
+          "binding": 0,
+          "group": 0,
+          "kind": "constant buffer",
+          "name": "frame",
+          "register": "b0"
+        },
+        {
+          "binding": 0,
+          "group": 1,
+          "kind": "SamplerState",
+          "name": "linear_sampler",
+          "register": "s0"
+        },
+        {
+          "binding": 3,
+          "group": 3,
+          "kind": "Texture2D (Sampled { kind: Float, multi: false })",
+          "name": "lens_source",
+          "register": "t0"
+        },
+        {
+          "binding": 6,
+          "group": 3,
+          "kind": "ByteAddressBuffer",
+          "name": "lens_drops",
+          "register": "t1"
+        },
+        {
+          "binding": 7,
+          "group": 3,
+          "kind": "ByteAddressBuffer",
+          "name": "lens_bins",
+          "register": "t2"
+        }
+      ],
+      "entryPoint": "present_main",
+      "file": "atmosphere/present_main.hlsl",
+      "hazards": [],
+      "module": "atmosphere",
+      "overrides": {},
+      "profile": "ps_5_0",
+      "stage": "fragment",
+      "wgslEntryPoint": "present_main",
+      "workgroupSize": null
+    },
+    {
+      "bindings": [
+        {
+          "binding": 0,
+          "group": 0,
+          "kind": "constant buffer",
+          "name": "cull",
+          "register": "b0"
+        },
+        {
+          "binding": 1,
+          "group": 0,
+          "kind": "ByteAddressBuffer",
+          "name": "instances",
+          "register": "t0"
+        },
+        {
+          "binding": 2,
+          "group": 0,
+          "kind": "RWByteAddressBuffer",
+          "name": "mesh_out",
+          "register": "u0"
+        },
+        {
+          "binding": 3,
+          "group": 0,
+          "kind": "RWByteAddressBuffer",
+          "name": "impostor_out",
+          "register": "u1"
+        },
+        {
+          "binding": 4,
+          "group": 0,
+          "kind": "RWByteAddressBuffer",
+          "name": "args",
+          "register": "u2"
+        },
+        {
+          "binding": 5,
+          "group": 0,
+          "kind": "RWByteAddressBuffer",
+          "name": "shadow_out",
+          "register": "u3"
+        },
+        {
+          "binding": 6,
+          "group": 0,
+          "kind": "RWByteAddressBuffer",
+          "name": "counts",
+          "register": "u4"
+        },
+        {
+          "binding": 7,
+          "group": 0,
+          "kind": "ByteAddressBuffer",
+          "name": "lists",
+          "register": "t1"
+        }
+      ],
+      "entryPoint": "cull_main",
+      "file": "tree_cull/cull_main.hlsl",
+      "hazards": [],
+      "module": "tree_cull",
+      "overrides": {},
+      "profile": "cs_5_0",
+      "stage": "compute",
+      "wgslEntryPoint": "cull_main",
+      "workgroupSize": [
+        64,
+        1,
+        1
+      ]
+    },
+    {
+      "bindings": [
+        {
+          "binding": 0,
+          "group": 0,
+          "kind": "constant buffer",
+          "name": "params",
+          "register": "b0"
+        },
+        {
+          "binding": 1,
+          "group": 0,
+          "kind": "Texture2D (Sampled { kind: Float, multi: false })",
+          "name": "heights",
+          "register": "t0"
+        },
+        {
+          "binding": 2,
+          "group": 0,
+          "kind": "Texture2D (Sampled { kind: Float, multi: false })",
+          "name": "surface_texture",
+          "register": "t1"
+        },
+        {
+          "binding": 3,
+          "group": 0,
+          "kind": "Texture2D (Sampled { kind: Float, multi: false })",
+          "name": "banks_texture",
+          "register": "t2"
+        },
+        {
+          "binding": 4,
+          "group": 0,
+          "kind": "Texture2D (Sampled { kind: Float, multi: false })",
+          "name": "cover_texture",
+          "register": "t3"
+        },
+        {
+          "binding": 5,
+          "group": 0,
+          "kind": "ByteAddressBuffer",
+          "name": "bins",
+          "register": "t4"
+        },
+        {
+          "binding": 6,
+          "group": 0,
+          "kind": "ByteAddressBuffer",
+          "name": "jobs",
+          "register": "t5"
+        },
+        {
+          "binding": 7,
+          "group": 0,
+          "kind": "RWByteAddressBuffer",
+          "name": "trees",
+          "register": "u0"
+        },
+        {
+          "binding": 8,
+          "group": 0,
+          "kind": "RWByteAddressBuffer",
+          "name": "counts",
+          "register": "u1"
+        }
+      ],
+      "entryPoint": "generate_main",
+      "file": "tree_generate/generate_main.hlsl",
+      "hazards": [],
+      "module": "tree_generate",
+      "overrides": {},
+      "profile": "cs_5_0",
+      "stage": "compute",
+      "wgslEntryPoint": "generate_main",
+      "workgroupSize": [
+        8,
+        8,
+        1
+      ]
+    },
+    {
+      "bindings": [
+        {
+          "binding": 0,
+          "group": 0,
+          "kind": "constant buffer",
+          "name": "params",
+          "register": "b0"
+        },
+        {
+          "binding": 1,
+          "group": 0,
+          "kind": "Texture2D (Sampled { kind: Float, multi: false })",
+          "name": "heights",
+          "register": "t0"
+        },
+        {
+          "binding": 2,
+          "group": 0,
+          "kind": "Texture2D (Sampled { kind: Float, multi: false })",
+          "name": "surface_texture",
+          "register": "t1"
+        },
+        {
+          "binding": 3,
+          "group": 0,
+          "kind": "Texture2D (Sampled { kind: Float, multi: false })",
+          "name": "banks_texture",
+          "register": "t2"
+        },
+        {
+          "binding": 4,
+          "group": 0,
+          "kind": "Texture2D (Sampled { kind: Float, multi: false })",
+          "name": "cover_texture",
+          "register": "t3"
+        },
+        {
+          "binding": 5,
+          "group": 0,
+          "kind": "ByteAddressBuffer",
+          "name": "bins",
+          "register": "t4"
+        },
+        {
+          "binding": 6,
+          "group": 0,
+          "kind": "ByteAddressBuffer",
+          "name": "jobs",
+          "register": "t5"
+        },
+        {
+          "binding": 7,
+          "group": 0,
+          "kind": "RWByteAddressBuffer",
+          "name": "tufts",
+          "register": "u0"
+        },
+        {
+          "binding": 8,
+          "group": 0,
+          "kind": "RWByteAddressBuffer",
+          "name": "counts",
+          "register": "u1"
+        },
+        {
+          "binding": 9,
+          "group": 0,
+          "kind": "Texture2D (Sampled { kind: Float, multi: false })",
+          "name": "grass_texture",
+          "register": "t6"
+        },
+        {
+          "binding": 12,
+          "group": 0,
+          "kind": "Texture2D (Sampled { kind: Float, multi: false })",
+          "name": "grass_mask",
+          "register": "t7"
+        },
+        {
+          "binding": 13,
+          "group": 0,
+          "kind": "SamplerState",
+          "name": "mask_sampler",
+          "register": "s0"
+        }
+      ],
+      "entryPoint": "generate_main",
+      "file": "grass_generate/generate_main.hlsl",
+      "hazards": [],
+      "module": "grass_generate",
+      "overrides": {},
+      "profile": "cs_5_0",
+      "stage": "compute",
+      "wgslEntryPoint": "generate_main",
+      "workgroupSize": [
+        8,
+        8,
+        1
+      ]
+    },
+    {
+      "bindings": [
+        {
+          "binding": 0,
+          "group": 0,
+          "kind": "constant buffer",
+          "name": "params",
+          "register": "b0"
+        },
+        {
+          "binding": 7,
+          "group": 0,
+          "kind": "RWByteAddressBuffer",
+          "name": "tufts",
+          "register": "u0"
+        },
+        {
+          "binding": 8,
+          "group": 0,
+          "kind": "RWByteAddressBuffer",
+          "name": "counts",
+          "register": "u1"
+        },
+        {
+          "binding": 10,
+          "group": 0,
+          "kind": "RWByteAddressBuffer",
+          "name": "drawn",
+          "register": "u2"
+        },
+        {
+          "binding": 11,
+          "group": 0,
+          "kind": "RWByteAddressBuffer",
+          "name": "args",
+          "register": "u3"
+        }
+      ],
+      "entryPoint": "cull_main",
+      "file": "grass_generate/cull_main.hlsl",
+      "hazards": [],
+      "module": "grass_generate",
+      "overrides": {},
+      "profile": "cs_5_0",
+      "stage": "compute",
+      "wgslEntryPoint": "cull_main",
+      "workgroupSize": [
+        64,
+        1,
+        1
+      ]
+    },
+    {
+      "bindings": [
+        {
+          "binding": 0,
+          "group": 0,
+          "kind": "constant buffer",
+          "name": "params",
+          "register": "b0"
+        },
+        {
+          "binding": 1,
+          "group": 0,
+          "kind": "Texture2D (Sampled { kind: Float, multi: false })",
+          "name": "heights",
+          "register": "t0"
+        },
+        {
+          "binding": 3,
+          "group": 0,
+          "kind": "Texture2D (Sampled { kind: Float, multi: false })",
+          "name": "banks_texture",
+          "register": "t1"
+        },
+        {
+          "binding": 5,
+          "group": 0,
+          "kind": "ByteAddressBuffer",
+          "name": "bins",
+          "register": "t2"
+        },
+        {
+          "binding": 6,
+          "group": 0,
+          "kind": "ByteAddressBuffer",
+          "name": "jobs",
+          "register": "t3"
+        },
+        {
+          "binding": 7,
+          "group": 0,
+          "kind": "RWByteAddressBuffer",
+          "name": "pool",
+          "register": "u0"
+        },
+        {
+          "binding": 8,
+          "group": 0,
+          "kind": "RWByteAddressBuffer",
+          "name": "counts",
+          "register": "u1"
+        }
+      ],
+      "entryPoint": "generate_main",
+      "file": "boulder_generate/generate_main.hlsl",
+      "hazards": [],
+      "module": "boulder_generate",
+      "overrides": {},
+      "profile": "cs_5_0",
+      "stage": "compute",
+      "wgslEntryPoint": "generate_main",
+      "workgroupSize": [
+        8,
+        8,
+        1
+      ]
+    },
+    {
+      "bindings": [
+        {
+          "binding": 0,
+          "group": 0,
+          "kind": "constant buffer",
+          "name": "params",
+          "register": "b0"
+        },
+        {
+          "binding": 7,
+          "group": 0,
+          "kind": "RWByteAddressBuffer",
+          "name": "pool",
+          "register": "u0"
+        },
+        {
+          "binding": 8,
+          "group": 0,
+          "kind": "RWByteAddressBuffer",
+          "name": "counts",
+          "register": "u1"
+        },
+        {
+          "binding": 10,
+          "group": 0,
+          "kind": "RWByteAddressBuffer",
+          "name": "drawn",
+          "register": "u2"
+        },
+        {
+          "binding": 11,
+          "group": 0,
+          "kind": "RWByteAddressBuffer",
+          "name": "args",
+          "register": "u3"
+        }
+      ],
+      "entryPoint": "cull_main",
+      "file": "boulder_generate/cull_main.hlsl",
+      "hazards": [],
+      "module": "boulder_generate",
+      "overrides": {},
+      "profile": "cs_5_0",
+      "stage": "compute",
+      "wgslEntryPoint": "cull_main",
+      "workgroupSize": [
+        64,
+        1,
+        1
+      ]
+    },
+    {
+      "bindings": [
+        {
+          "binding": 0,
+          "group": 0,
+          "kind": "constant buffer",
+          "name": "params",
+          "register": "b0"
+        },
+        {
+          "binding": 1,
+          "group": 0,
+          "kind": "RWByteAddressBuffer",
+          "name": "items",
+          "register": "u0"
+        },
+        {
+          "binding": 2,
+          "group": 0,
+          "kind": "Texture2D (Sampled { kind: Float, multi: false })",
+          "name": "heights",
+          "register": "t0"
+        }
+      ],
+      "entryPoint": "ground_main",
+      "file": "grounding/ground_main.hlsl",
+      "hazards": [],
+      "module": "grounding",
+      "overrides": {},
+      "profile": "cs_5_0",
+      "stage": "compute",
+      "wgslEntryPoint": "ground_main",
+      "workgroupSize": [
+        64,
+        1,
+        1
+      ]
+    },
+    {
+      "bindings": [
+        {
+          "binding": 0,
+          "group": 0,
+          "kind": "Texture2D (Sampled { kind: Float, multi: false })",
+          "name": "heights",
+          "register": "t0"
+        },
+        {
+          "binding": 1,
+          "group": 0,
+          "kind": "RWTexture2D (Rgba8Unorm)",
+          "name": "output",
+          "register": "u0"
+        },
+        {
+          "binding": 2,
+          "group": 0,
+          "kind": "constant buffer",
+          "name": "params",
+          "register": "b0"
+        }
+      ],
+      "entryPoint": "bake",
+      "file": "terrain_shadow/bake.hlsl",
+      "hazards": [],
+      "module": "terrain_shadow",
+      "overrides": {},
+      "profile": "cs_5_0",
+      "stage": "compute",
+      "wgslEntryPoint": "bake",
+      "workgroupSize": [
+        8,
+        8,
+        1
+      ]
+    },
+    {
+      "bindings": [
+        {
+          "binding": 0,
+          "group": 0,
+          "kind": "Texture2D (Sampled { kind: Float, multi: false })",
+          "name": "previous",
+          "register": "t0"
+        },
+        {
+          "binding": 1,
+          "group": 0,
+          "kind": "RWTexture2D (Rgba8Unorm)",
+          "name": "output",
+          "register": "u0"
+        },
+        {
+          "binding": 2,
+          "group": 0,
+          "kind": "Texture2D (Sampled { kind: Float, multi: false })",
+          "name": "heights",
+          "register": "t1"
+        },
+        {
+          "binding": 3,
+          "group": 0,
+          "kind": "Texture2DArray (Sampled { kind: Float, multi: false })",
+          "name": "ground",
+          "register": "t2"
+        },
+        {
+          "binding": 4,
+          "group": 0,
+          "kind": "Texture2D (Sampled { kind: Float, multi: false })",
+          "name": "regional",
+          "register": "t3"
+        },
+        {
+          "binding": 5,
+          "group": 0,
+          "kind": "constant buffer",
+          "name": "params",
+          "register": "b0"
+        }
+      ],
+      "entryPoint": "step_main",
+      "file": "surface_weather/step_main.hlsl",
+      "hazards": [],
+      "module": "surface_weather",
+      "overrides": {},
+      "profile": "cs_5_0",
+      "stage": "compute",
+      "wgslEntryPoint": "step_main",
+      "workgroupSize": [
+        8,
+        8,
+        1
+      ]
+    },
+    {
+      "bindings": [
+        {
+          "binding": 0,
+          "group": 0,
+          "kind": "RWTexture2DArray (Rgba8Unorm)",
+          "name": "terrain_albedo_out",
+          "register": "u0"
+        },
+        {
+          "binding": 6,
+          "group": 0,
+          "kind": "RWByteAddressBuffer",
+          "name": "terrain_heights",
+          "register": "u1"
+        },
+        {
+          "binding": 7,
+          "group": 0,
+          "kind": "constant buffer",
+          "name": "bake_layers",
+          "register": "b0"
+        }
+      ],
+      "entryPoint": "gen_terrain",
+      "file": "texture_gen/gen_terrain.hlsl",
+      "hazards": [],
+      "module": "texture_gen",
+      "overrides": {},
+      "profile": "cs_5_0",
+      "stage": "compute",
+      "wgslEntryPoint": "gen_terrain",
+      "workgroupSize": [
+        8,
+        8,
+        1
+      ]
+    },
+    {
+      "bindings": [
+        {
+          "binding": 1,
+          "group": 0,
+          "kind": "RWTexture2DArray (Rgba8Unorm)",
+          "name": "terrain_normal_out",
+          "register": "u0"
+        },
+        {
+          "binding": 6,
+          "group": 0,
+          "kind": "RWByteAddressBuffer",
+          "name": "terrain_heights",
+          "register": "u1"
+        },
+        {
+          "binding": 7,
+          "group": 0,
+          "kind": "constant buffer",
+          "name": "bake_layers",
+          "register": "b0"
+        }
+      ],
+      "entryPoint": "gen_terrain_normals",
+      "file": "texture_gen/gen_terrain_normals.hlsl",
+      "hazards": [],
+      "module": "texture_gen",
+      "overrides": {},
+      "profile": "cs_5_0",
+      "stage": "compute",
+      "wgslEntryPoint": "gen_terrain_normals",
+      "workgroupSize": [
+        8,
+        8,
+        1
+      ]
+    },
+    {
+      "bindings": [
+        {
+          "binding": 2,
+          "group": 0,
+          "kind": "RWTexture2DArray (Rgba8Unorm)",
+          "name": "flora_out",
+          "register": "u0"
+        },
+        {
+          "binding": 7,
+          "group": 0,
+          "kind": "constant buffer",
+          "name": "bake_layers",
+          "register": "b0"
+        },
+        {
+          "binding": 8,
+          "group": 0,
+          "kind": "constant buffer",
+          "name": "leaf_placements",
+          "register": "b1"
+        }
+      ],
+      "entryPoint": "gen_flora",
+      "file": "texture_gen/gen_flora.hlsl",
+      "hazards": [],
+      "module": "texture_gen",
+      "overrides": {},
+      "profile": "cs_5_0",
+      "stage": "compute",
+      "wgslEntryPoint": "gen_flora",
+      "workgroupSize": [
+        8,
+        8,
+        1
+      ]
+    },
+    {
+      "bindings": [
+        {
+          "binding": 3,
+          "group": 0,
+          "kind": "RWTexture2D (Rgba8Unorm)",
+          "name": "water_out",
+          "register": "u0"
+        }
+      ],
+      "entryPoint": "gen_water",
+      "file": "texture_gen/gen_water.hlsl",
+      "hazards": [],
+      "module": "texture_gen",
+      "overrides": {},
+      "profile": "cs_5_0",
+      "stage": "compute",
+      "wgslEntryPoint": "gen_water",
+      "workgroupSize": [
+        8,
+        8,
+        1
+      ]
+    },
+    {
+      "bindings": [
+        {
+          "binding": 4,
+          "group": 0,
+          "kind": "RWTexture2D (Rgba8Unorm)",
+          "name": "noise_out",
+          "register": "u0"
+        }
+      ],
+      "entryPoint": "gen_noise",
+      "file": "texture_gen/gen_noise.hlsl",
+      "hazards": [],
+      "module": "texture_gen",
+      "overrides": {},
+      "profile": "cs_5_0",
+      "stage": "compute",
+      "wgslEntryPoint": "gen_noise",
+      "workgroupSize": [
+        8,
+        8,
+        1
+      ]
+    },
+    {
+      "bindings": [
+        {
+          "binding": 5,
+          "group": 0,
+          "kind": "RWTexture3D (Rgba8Unorm)",
+          "name": "cloud_out",
+          "register": "u0"
+        }
+      ],
+      "entryPoint": "gen_cloud",
+      "file": "texture_gen/gen_cloud.hlsl",
+      "hazards": [],
+      "module": "texture_gen",
+      "overrides": {},
+      "profile": "cs_5_0",
+      "stage": "compute",
+      "wgslEntryPoint": "gen_cloud",
+      "workgroupSize": [
+        4,
+        4,
+        4
+      ]
+    },
+    {
+      "bindings": [
+        {
+          "binding": 0,
+          "group": 0,
+          "kind": "Texture2DArray (Sampled { kind: Float, multi: false })",
+          "name": "source",
+          "register": "t0"
+        },
+        {
+          "binding": 2,
+          "group": 0,
+          "kind": "constant buffer",
+          "name": "params",
+          "register": "b0"
+        },
+        {
+          "binding": 3,
+          "group": 0,
+          "kind": "RWByteAddressBuffer",
+          "name": "counts",
+          "register": "u0"
+        }
+      ],
+      "entryPoint": "count",
+      "file": "mipgen/count.hlsl",
+      "hazards": [],
+      "module": "mipgen",
+      "overrides": {},
+      "profile": "cs_5_0",
+      "stage": "compute",
+      "wgslEntryPoint": "count",
+      "workgroupSize": [
+        8,
+        8,
+        1
+      ]
+    },
+    {
+      "bindings": [
+        {
+          "binding": 0,
+          "group": 0,
+          "kind": "Texture2DArray (Sampled { kind: Float, multi: false })",
+          "name": "source",
+          "register": "t0"
+        },
+        {
+          "binding": 1,
+          "group": 0,
+          "kind": "RWTexture2DArray (Rgba8Unorm)",
+          "name": "destination",
+          "register": "u0"
+        },
+        {
+          "binding": 2,
+          "group": 0,
+          "kind": "constant buffer",
+          "name": "params",
+          "register": "b0"
+        },
+        {
+          "binding": 3,
+          "group": 0,
+          "kind": "RWByteAddressBuffer",
+          "name": "counts",
+          "register": "u1"
+        }
+      ],
+      "entryPoint": "downsample",
+      "file": "mipgen/downsample.hlsl",
+      "hazards": [],
+      "module": "mipgen",
+      "overrides": {},
+      "profile": "cs_5_0",
+      "stage": "compute",
+      "wgslEntryPoint": "downsample",
+      "workgroupSize": [
+        8,
+        8,
+        1
+      ]
+    },
+    {
+      "bindings": [
+        {
+          "binding": 0,
+          "group": 0,
+          "kind": "Texture2DArray (Sampled { kind: Float, multi: false })",
+          "name": "source",
+          "register": "t0"
+        },
+        {
+          "binding": 2,
+          "group": 0,
+          "kind": "constant buffer",
+          "name": "params",
+          "register": "b0"
+        },
+        {
+          "binding": 4,
+          "group": 0,
+          "kind": "RWByteAddressBuffer",
+          "name": "canopy",
+          "register": "u0"
+        }
+      ],
+      "entryPoint": "average_canopy",
+      "file": "mipgen/average_canopy.hlsl",
+      "hazards": [],
+      "module": "mipgen",
+      "overrides": {},
+      "profile": "cs_5_0",
+      "stage": "compute",
+      "wgslEntryPoint": "average_canopy",
+      "workgroupSize": [
+        1,
+        1,
+        1
+      ]
+    },
+    {
+      "bindings": [
+        {
+          "binding": 0,
+          "group": 0,
+          "kind": "constant buffer",
+          "name": "params",
+          "register": "b0"
+        },
+        {
+          "binding": 2,
+          "group": 0,
+          "kind": "RWByteAddressBuffer",
+          "name": "water",
+          "register": "u0"
+        },
+        {
+          "binding": 6,
+          "group": 0,
+          "kind": "RWByteAddressBuffer",
+          "name": "velocity",
+          "register": "u1"
+        }
+      ],
+      "entryPoint": "rain",
+      "file": "hydraulic_erosion/rain.hlsl",
+      "hazards": [],
+      "module": "hydraulic_erosion",
+      "overrides": {},
+      "profile": "cs_5_0",
+      "stage": "compute",
+      "wgslEntryPoint": "rain",
+      "workgroupSize": [
+        8,
+        8,
+        1
+      ]
+    },
+    {
+      "bindings": [
+        {
+          "binding": 0,
+          "group": 0,
+          "kind": "constant buffer",
+          "name": "params",
+          "register": "b0"
+        },
+        {
+          "binding": 1,
+          "group": 0,
+          "kind": "RWByteAddressBuffer",
+          "name": "terrain",
+          "register": "u0"
+        },
+        {
+          "binding": 2,
+          "group": 0,
+          "kind": "RWByteAddressBuffer",
+          "name": "water",
+          "register": "u1"
+        },
+        {
+          "binding": 5,
+          "group": 0,
+          "kind": "RWByteAddressBuffer",
+          "name": "flux",
+          "register": "u2"
+        }
+      ],
+      "entryPoint": "outflow",
+      "file": "hydraulic_erosion/outflow.hlsl",
+      "hazards": [],
+      "module": "hydraulic_erosion",
+      "overrides": {},
+      "profile": "cs_5_0",
+      "stage": "compute",
+      "wgslEntryPoint": "outflow",
+      "workgroupSize": [
+        8,
+        8,
+        1
+      ]
+    },
+    {
+      "bindings": [
+        {
+          "binding": 0,
+          "group": 0,
+          "kind": "constant buffer",
+          "name": "params",
+          "register": "b0"
+        },
+        {
+          "binding": 1,
+          "group": 0,
+          "kind": "RWByteAddressBuffer",
+          "name": "terrain",
+          "register": "u0"
+        },
+        {
+          "binding": 2,
+          "group": 0,
+          "kind": "RWByteAddressBuffer",
+          "name": "water",
+          "register": "u1"
+        },
+        {
+          "binding": 5,
+          "group": 0,
+          "kind": "RWByteAddressBuffer",
+          "name": "flux",
+          "register": "u2"
+        },
+        {
+          "binding": 6,
+          "group": 0,
+          "kind": "RWByteAddressBuffer",
+          "name": "velocity",
+          "register": "u3"
+        }
+      ],
+      "entryPoint": "update_water",
+      "file": "hydraulic_erosion/update_water.hlsl",
+      "hazards": [],
+      "module": "hydraulic_erosion",
+      "overrides": {},
+      "profile": "cs_5_0",
+      "stage": "compute",
+      "wgslEntryPoint": "update_water",
+      "workgroupSize": [
+        8,
+        8,
+        1
+      ]
+    },
+    {
+      "bindings": [
+        {
+          "binding": 0,
+          "group": 0,
+          "kind": "constant buffer",
+          "name": "params",
+          "register": "b0"
+        },
+        {
+          "binding": 1,
+          "group": 0,
+          "kind": "RWByteAddressBuffer",
+          "name": "terrain",
+          "register": "u0"
+        },
+        {
+          "binding": 2,
+          "group": 0,
+          "kind": "RWByteAddressBuffer",
+          "name": "water",
+          "register": "u1"
+        },
+        {
+          "binding": 3,
+          "group": 0,
+          "kind": "RWByteAddressBuffer",
+          "name": "sediment",
+          "register": "u2"
+        },
+        {
+          "binding": 6,
+          "group": 0,
+          "kind": "RWByteAddressBuffer",
+          "name": "velocity",
+          "register": "u3"
+        }
+      ],
+      "entryPoint": "erode",
+      "file": "hydraulic_erosion/erode.hlsl",
+      "hazards": [],
+      "module": "hydraulic_erosion",
+      "overrides": {},
+      "profile": "cs_5_0",
+      "stage": "compute",
+      "wgslEntryPoint": "erode",
+      "workgroupSize": [
+        8,
+        8,
+        1
+      ]
+    },
+    {
+      "bindings": [
+        {
+          "binding": 0,
+          "group": 0,
+          "kind": "constant buffer",
+          "name": "params",
+          "register": "b0"
+        },
+        {
+          "binding": 3,
+          "group": 0,
+          "kind": "RWByteAddressBuffer",
+          "name": "sediment",
+          "register": "u0"
+        },
+        {
+          "binding": 4,
+          "group": 0,
+          "kind": "RWByteAddressBuffer",
+          "name": "scratch",
+          "register": "u1"
+        },
+        {
+          "binding": 6,
+          "group": 0,
+          "kind": "RWByteAddressBuffer",
+          "name": "velocity",
+          "register": "u2"
+        }
+      ],
+      "entryPoint": "advect",
+      "file": "hydraulic_erosion/advect.hlsl",
+      "hazards": [],
+      "module": "hydraulic_erosion",
+      "overrides": {},
+      "profile": "cs_5_0",
+      "stage": "compute",
+      "wgslEntryPoint": "advect",
+      "workgroupSize": [
+        8,
+        8,
+        1
+      ]
+    },
+    {
+      "bindings": [
+        {
+          "binding": 0,
+          "group": 0,
+          "kind": "constant buffer",
+          "name": "params",
+          "register": "b0"
+        },
+        {
+          "binding": 2,
+          "group": 0,
+          "kind": "RWByteAddressBuffer",
+          "name": "water",
+          "register": "u0"
+        },
+        {
+          "binding": 3,
+          "group": 0,
+          "kind": "RWByteAddressBuffer",
+          "name": "sediment",
+          "register": "u1"
+        },
+        {
+          "binding": 4,
+          "group": 0,
+          "kind": "RWByteAddressBuffer",
+          "name": "scratch",
+          "register": "u2"
+        }
+      ],
+      "entryPoint": "evaporate",
+      "file": "hydraulic_erosion/evaporate.hlsl",
+      "hazards": [],
+      "module": "hydraulic_erosion",
+      "overrides": {},
+      "profile": "cs_5_0",
+      "stage": "compute",
+      "wgslEntryPoint": "evaporate",
+      "workgroupSize": [
+        8,
+        8,
+        1
+      ]
+    },
+    {
+      "bindings": [
+        {
+          "binding": 0,
+          "group": 0,
+          "kind": "constant buffer",
+          "name": "params",
+          "register": "b0"
+        },
+        {
+          "binding": 1,
+          "group": 0,
+          "kind": "RWByteAddressBuffer",
+          "name": "terrain",
+          "register": "u0"
+        },
+        {
+          "binding": 2,
+          "group": 0,
+          "kind": "RWByteAddressBuffer",
+          "name": "water",
+          "register": "u1"
+        },
+        {
+          "binding": 3,
+          "group": 0,
+          "kind": "RWByteAddressBuffer",
+          "name": "sediment",
+          "register": "u2"
+        },
+        {
+          "binding": 5,
+          "group": 0,
+          "kind": "RWByteAddressBuffer",
+          "name": "flux",
+          "register": "u3"
+        }
+      ],
+      "entryPoint": "settle",
+      "file": "hydraulic_erosion/settle.hlsl",
+      "hazards": [],
+      "module": "hydraulic_erosion",
+      "overrides": {},
+      "profile": "cs_5_0",
+      "stage": "compute",
+      "wgslEntryPoint": "settle",
+      "workgroupSize": [
+        8,
+        8,
+        1
+      ]
+    },
+    {
+      "bindings": [
+        {
+          "binding": 0,
+          "group": 0,
+          "kind": "constant buffer",
+          "name": "params",
+          "register": "b0"
+        },
+        {
+          "binding": 1,
+          "group": 0,
+          "kind": "RWByteAddressBuffer",
+          "name": "terrain",
+          "register": "u0"
+        },
+        {
+          "binding": 4,
+          "group": 0,
+          "kind": "RWByteAddressBuffer",
+          "name": "scratch",
+          "register": "u1"
+        }
+      ],
+      "entryPoint": "exchange",
+      "file": "thermal_erosion/exchange.hlsl",
+      "hazards": [],
+      "module": "thermal_erosion",
+      "overrides": {},
+      "profile": "cs_5_0",
+      "stage": "compute",
+      "wgslEntryPoint": "exchange",
+      "workgroupSize": [
+        8,
+        8,
+        1
+      ]
+    },
+    {
+      "bindings": [
+        {
+          "binding": 0,
+          "group": 0,
+          "kind": "constant buffer",
+          "name": "params",
+          "register": "b0"
+        },
+        {
+          "binding": 1,
+          "group": 0,
+          "kind": "RWByteAddressBuffer",
+          "name": "terrain",
+          "register": "u0"
+        },
+        {
+          "binding": 4,
+          "group": 0,
+          "kind": "RWByteAddressBuffer",
+          "name": "scratch",
+          "register": "u1"
+        }
+      ],
+      "entryPoint": "apply",
+      "file": "thermal_erosion/apply.hlsl",
+      "hazards": [],
+      "module": "thermal_erosion",
+      "overrides": {},
+      "profile": "cs_5_0",
+      "stage": "compute",
+      "wgslEntryPoint": "apply",
+      "workgroupSize": [
+        8,
+        8,
+        1
+      ]
+    },
+    {
+      "bindings": [
+        {
+          "binding": 1,
+          "group": 0,
+          "kind": "RWByteAddressBuffer",
+          "name": "normals",
+          "register": "u0"
+        }
+      ],
+      "entryPoint": "main",
+      "file": "normals/main.hlsl",
+      "hazards": [],
+      "module": "normals",
+      "overrides": {},
+      "profile": "cs_5_0",
+      "stage": "compute",
+      "wgslEntryPoint": "main",
+      "workgroupSize": [
+        8,
+        8,
+        1
+      ]
+    }
+  ],
+  "generator": "vista_hlsl",
+  "naga": "30",
+  "shaderModel": "5.0"
+}
