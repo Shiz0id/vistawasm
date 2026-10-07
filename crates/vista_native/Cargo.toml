@@ -1,0 +1,32 @@
+[package]
+name = "vista_native"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+description = "A C API for VistaWASM's terrain and world generation, for native engines."
+publish = false
+
+# `staticlib` and `cdylib` are what C and C++ hosts link; `rlib` lets the
+# crate's own tests call the API.
+[lib]
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[dependencies]
+bytemuck = "1"
+serde.workspace = true
+serde_json = "1"
+vista_types.workspace = true
+vista_wasm = { path = "../vista_wasm" }
+
+# The workspace denies `unsafe`. A C API cannot avoid it: every pointer a
+# host passes is read through `unsafe`, so this crate allows it and keeps
+# each use to one checked helper in `src/ffi.rs`.
+[lints.rust]
+unsafe_code = "allow"
+
+[lints.clippy]
+panic = "warn"
+unwrap_used = "warn"
+expect_used = "warn"

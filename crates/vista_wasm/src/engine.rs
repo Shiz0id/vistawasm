@@ -1508,6 +1508,18 @@ impl EngineCore {
     Ok(terrain.export_f32_le())
   }
 
+  /// The active terrain's heights and metadata, or `None` before one is
+  /// generated or loaded. Native hosts read it through `vista_native`.
+  pub fn terrain(&self) -> Option<&HeightMap> {
+    self.terrain.as_ref()
+  }
+
+  /// The active terrain's rivers, lakes and waterfalls, with their
+  /// meshes. Native hosts read it through `vista_native`.
+  pub fn river_network(&self) -> &RiverNetwork {
+    &self.rivers
+  }
+
   /// Export one of the maps the renderer builds (see `export.rs`), at the
   /// terrain's own size or resampled to `size`.
   pub fn export_map(
