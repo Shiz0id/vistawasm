@@ -9,7 +9,10 @@
 // SECTION=JSON sets one option group (vista_engine_set) after the terrain
 // is generated, such as 'surface={"boulders":false}'. A TERRAIN_JSON of
 // raw:FILE:OPTIONS_JSON loads FILE (uncompressed) with
-// vista_engine_load_raw_heightmap instead of generating a terrain. It prints the
+// vista_engine_load_raw_heightmap instead of generating a terrain.
+// RENDER_TEST_FRAME_MS sets the clock's step between frames (default a
+// sixtieth of a second): the browser check's software frames take about
+// a second each, which weather transitions notice. It prints the
 // frame's statistics and exits non-zero if the executor or the engine
 // reported an error. ports/d3d11/executor/test/run.sh builds it with MinGW
 // and runs it under Wine.
@@ -227,10 +230,12 @@ int main(int argc, char** argv) {
     }
 
     std::string error;
+    const char* step = std::getenv("RENDER_TEST_FRAME_MS");
+    const double frameMs = step ? std::atof(step) : 1000.0 / 60.0;
 
     for (int frame = 0; frame < frames; ++frame) {
       // Let the GPU finish each frame, as the browser check waits for it.
-      if (!renderer.Frame(frame * 1000.0 / 60.0, target.Get(), &error)) {
+      if (!renderer.Frame(frame * frameMs, target.Get(), &error)) {
         std::fprintf(stderr, "frame %d: %s\n", frame, error.c_str());
         status = 1;
         error.clear();
