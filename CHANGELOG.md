@@ -16,6 +16,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `crates/vista_hlsl`: translates the WGSL shaders to Shader Model 5.0
   HLSL for Direct3D 11, in `ports/d3d11/hlsl`, with a binding manifest.
 - [Porting to Direct3D 11](docs/porting-d3d11.md).
+- `integrations/selotape`: VistaWASM worlds as Selotape map editor
+  terrains: heights, splat layers, trees and water, with a test.
 - `EngineCore::terrain()` and `EngineCore::river_network()`, read-only
   accessors for native hosts.
 
