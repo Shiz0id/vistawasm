@@ -182,8 +182,8 @@ float OverallProgress(const std::string& phase, float progress);
 // empty). False with *error, and `t` unchanged. The editor records the old
 // terrain for undo first, as for Regenerate.
 bool RegenerateInPlace(SelotapeTerrain::Terrain_s* t, Settings_s settings, const LayerMap_s& layers,
-                       std::string* error, const Progress_t& progress = Progress_t(),
-                       bool* cancelled = nullptr, Result_s* rest = nullptr);
+                        std::string* error, const Progress_t& progress = Progress_t(),
+                        bool* cancelled = nullptr, Result_s* rest = nullptr);
 
 // AutoSplat: the splat of `region` (all of `t` when empty) from Vista's own
 // ground classification of `t`'s heights as they now are, sculpting

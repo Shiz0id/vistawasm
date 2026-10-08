@@ -44,7 +44,7 @@ void FadeEdges(Terrain_s* t, float width, float height) {
   for (uint32_t z = 0; z < t->samplesZ; ++z) {
     for (uint32_t x = 0; x < t->samplesX; ++x) {
       const float fromEdge = std::fmin(std::fmin(float(x), float(t->samplesX - 1 - x)),
-                                       std::fmin(float(z), float(t->samplesZ - 1 - z))) * t->spacing;
+                                        std::fmin(float(z), float(t->samplesZ - 1 - z))) * t->spacing;
 
       if (fromEdge < width) {
         const float k = fromEdge / width;

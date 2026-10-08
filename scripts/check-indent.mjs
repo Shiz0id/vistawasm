@@ -2,7 +2,11 @@ import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
 const extensions = new Set([
+  ".c",
+  ".cpp",
   ".css",
+  ".h",
+  ".hlsl",
   ".html",
   ".js",
   ".json",

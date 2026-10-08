@@ -147,7 +147,7 @@ double SourceCoordinate(uint32_t i, uint32_t size, uint32_t out) {
 // sample, spanning the terrain corner to corner) onto the splat of
 // `region`, bilinearly at each terrain sample.
 void FoldMaterials(const uint8_t* source, uint32_t sourceX, uint32_t sourceZ, const LayerMap_s& layers,
-                   const SelotapeTerrain::Rect_s& region, SelotapeTerrain::Terrain_s* t) {
+                    const SelotapeTerrain::Rect_s& region, SelotapeTerrain::Terrain_s* t) {
   const uint32_t x0r = uint32_t(std::max(region.x0, 0));
   const uint32_t z0r = uint32_t(std::max(region.z0, 0));
   const uint32_t x1r = std::min(uint32_t(std::max(region.x1, 0)), t->samplesX - 1);
@@ -171,7 +171,7 @@ void FoldMaterials(const uint8_t* source, uint32_t sourceX, uint32_t sourceZ, co
         const uint32_t x1 = std::min(x0 + 1, sourceX - 1);
         const float fx = float(sx - double(x0));
         const size_t taps[4] = { size_t(z0) * sourceX + x0, size_t(z0) * sourceX + x1,
-                                 size_t(z1) * sourceX + x0, size_t(z1) * sourceX + x1 };
+                                  size_t(z1) * sourceX + x0, size_t(z1) * sourceX + x1 };
         const float weight[4] = { (1 - fx) * (1 - fz), fx * (1 - fz), (1 - fx) * fz, fx * fz };
         float w[SelotapeTerrain::k_layers] = {};
 
@@ -305,23 +305,23 @@ EnginePtr CreateEngine(const Settings_s& s, std::string* error) {
 bool CheckSettings(const Settings_s& s, std::string* error) {
   if (!(s.spacing >= 1.0f && s.spacing <= SelotapeTerrain::k_maxSpacing) || std::floor(s.spacing) != s.spacing) {
     return Invalid("spacing must be a whole number of metres from 1 to 64, but it is " + Number(s.spacing) + ".",
-                   error);
+                    error);
   }
 
   const float quads = s.sizeMetres / s.spacing;
 
   if (!(quads >= 16.0f) || std::floor(quads) != quads || quads > float(SelotapeTerrain::k_maxQuadsPerSide)) {
     return Invalid("sizeMetres must be a whole number of spacings, 16 to " +
-                     std::to_string(SelotapeTerrain::k_maxQuadsPerSide) + " of them, but it is " +
-                     Number(s.sizeMetres) + " m at " + Number(s.spacing) + " m.",
-                   error);
+                      std::to_string(SelotapeTerrain::k_maxQuadsPerSide) + " of them, but it is " +
+                      Number(s.sizeMetres) + " m at " + Number(s.spacing) + " m.",
+                    error);
   }
 
   for (const std::string* name : { &s.landform, &s.edges, &s.erosionQuality }) {
     if (!IsIdentifier(*name)) {
       return Invalid("landform, edges and erosionQuality must be plain names, such as \"alpine\", but one is \"" +
-                       *name + "\".",
-                     error);
+                        *name + "\".",
+                      error);
     }
   }
 
@@ -382,9 +382,9 @@ std::string FractalJson(const Settings_s& s, uint32_t n) {
   // its corner samples onto the terrain's corner samples.
   const float metresPerSample = n > 1 ? s.sizeMetres / float(n - 1) : s.sizeMetres;
   json << "{ \"seed\": " << s.seed << ", \"size\": " << n << ", \"horizontalScaleMetres\": "
-       << Number(metresPerSample) << ", \"verticalScale\": " << Number(s.verticalScale)
-       << ", \"seaLevelMetres\": " << Number(s.seaLevelMetres) << ", \"landform\": \"" << s.landform
-       << "\", \"edges\": \"" << s.edges << "\"";
+        << Number(metresPerSample) << ", \"verticalScale\": " << Number(s.verticalScale)
+        << ", \"seaLevelMetres\": " << Number(s.seaLevelMetres) << ", \"landform\": \"" << s.landform
+        << "\", \"edges\": \"" << s.edges << "\"";
 
   if (s.erosion) {
     json << ", \"erosion\": { \"quality\": \"" << s.erosionQuality << "\" }";
@@ -691,7 +691,7 @@ bool Job_c::Take(Result_s* out, std::string* error, bool* cancelled) {
 // --- the editor's operations ------------------------------------------------
 
 bool RegenerateInPlace(SelotapeTerrain::Terrain_s* t, Settings_s s, const LayerMap_s& layers, std::string* error,
-                       const Progress_t& progress, bool* cancelled, Result_s* rest) {
+                        const Progress_t& progress, bool* cancelled, Result_s* rest) {
   if (t == nullptr || t->samplesX < 2 || t->samplesX != t->samplesZ) {
     return Invalid("RegenerateInPlace needs a square terrain; Vista generates only square maps.", error);
   }
@@ -740,8 +740,8 @@ bool AutoSplatVista(SelotapeTerrain::Terrain_s* t, const Settings_s& s, const La
   while (std::max((t->samplesX - 1) / stride + 1, (t->samplesZ - 1) / stride + 1) > k_maxVistaSamples) {
     if ((t->samplesX - 1) % (stride * 2) != 0 || (t->samplesZ - 1) % (stride * 2) != 0) {
       return Invalid("The terrain is too large for Vista and its sides (" + std::to_string(t->samplesX) + " x " +
-                       std::to_string(t->samplesZ) + " samples) share no stride that brings it to 2048 or fewer.",
-                     error);
+                        std::to_string(t->samplesZ) + " samples) share no stride that brings it to 2048 or fewer.",
+                      error);
     }
 
     stride *= 2;
@@ -940,19 +940,19 @@ std::string MetaLines(const Settings_s& s) {
   };
   std::ostringstream meta;
   meta << "vista.seed = " << s.seed << "\n"
-       << "vista.sizeMetres = " << Number(s.sizeMetres) << "\n"
-       << "vista.spacing = " << Number(s.spacing) << "\n"
-       << "vista.landform = " << s.landform << "\n"
-       << "vista.edges = " << s.edges << "\n"
-       << "vista.verticalScale = " << Number(s.verticalScale) << "\n"
-       << "vista.seaLevelMetres = " << Number(s.seaLevelMetres) << "\n"
-       << "vista.erosion = " << (s.erosion ? 1 : 0) << "\n"
-       << "vista.erosionQuality = " << s.erosionQuality << "\n"
-       << "vista.island = " << Number(s.island) << "\n"
-       << "vista.vistaSamples = " << s.vistaSamples << "\n"
-       << "vista.extraJson = " << line(s.extraJson) << "\n"
-       << "vista.biomesJson = " << line(s.biomesJson) << "\n"
-       << "vista.floraJson = " << line(s.floraJson) << "\n";
+        << "vista.sizeMetres = " << Number(s.sizeMetres) << "\n"
+        << "vista.spacing = " << Number(s.spacing) << "\n"
+        << "vista.landform = " << s.landform << "\n"
+        << "vista.edges = " << s.edges << "\n"
+        << "vista.verticalScale = " << Number(s.verticalScale) << "\n"
+        << "vista.seaLevelMetres = " << Number(s.seaLevelMetres) << "\n"
+        << "vista.erosion = " << (s.erosion ? 1 : 0) << "\n"
+        << "vista.erosionQuality = " << s.erosionQuality << "\n"
+        << "vista.island = " << Number(s.island) << "\n"
+        << "vista.vistaSamples = " << s.vistaSamples << "\n"
+        << "vista.extraJson = " << line(s.extraJson) << "\n"
+        << "vista.biomesJson = " << line(s.biomesJson) << "\n"
+        << "vista.floraJson = " << line(s.floraJson) << "\n";
   return meta.str();
 }
 

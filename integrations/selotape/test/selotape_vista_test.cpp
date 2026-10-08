@@ -264,7 +264,7 @@ void CheckEditorHelpers() {
     other.sizeMetres = 1.0f;   // taken from the terrain, so ignored
     SelotapeVista::Result_s rest;
     Check(SelotapeVista::RegenerateInPlace(&again, other, SelotapeVista::FourLayerMap(), &error,
-                                           SelotapeVista::Progress_t(), nullptr, &rest),
+                                            SelotapeVista::Progress_t(), nullptr, &rest),
           "RegenerateInPlace: " + error);
     Check(again.samplesX == t.samplesX && again.materials == "proc:snow" && again.originX == 100.0f,
           "RegenerateInPlace keeps the terrain's own fields");
