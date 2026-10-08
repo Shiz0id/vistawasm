@@ -125,11 +125,8 @@ void cull_main(uint3 id : SV_DispatchThreadID)
   if ((index >= _e5)) {
     return;
   }
-  uint2 loop_bound = uint2(4294967295u, 4294967295u);
   bool loop_init = true;
-  while(true) {
-    if (all(loop_bound == uint2(0u, 0u))) { break; }
-    loop_bound -= uint2(loop_bound.y == 0u, 1u);
+  [allow_uav_condition] while(true) {
     if (!loop_init) {
       uint _e25 = c;
       c = (_e25 + 1u);
@@ -197,11 +194,8 @@ void cull_main(uint3 id : SV_DispatchThreadID)
   float scale = ((_e127 * _e87) * _e85.z);
   float3 centre = (position + float3(0.0, (scale * 0.5), 0.0));
   float radius_1 = (((scale * 1.5) * _e85.w) + 0.5);
-  uint2 loop_bound_1 = uint2(4294967295u, 4294967295u);
   bool loop_init_1 = true;
-  while(true) {
-    if (all(loop_bound_1 == uint2(0u, 0u))) { break; }
-    loop_bound_1 -= uint2(loop_bound_1.y == 0u, 1u);
+  [allow_uav_condition] while(true) {
     if (!loop_init_1) {
       int _e159 = p;
       p = asint(asuint(_e159) + asuint(int(1)));

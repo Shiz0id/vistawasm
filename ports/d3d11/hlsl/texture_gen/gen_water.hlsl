@@ -95,11 +95,8 @@ float fbm2_(float2 uv, int period_6, int octaves, uint seed_5)
   int i = int(0);
 
   frequency = period_6;
-  uint2 loop_bound = uint2(4294967295u, 4294967295u);
   bool loop_init = true;
-  while(true) {
-    if (all(loop_bound == uint2(0u, 0u))) { break; }
-    loop_bound -= uint2(loop_bound.y == 0u, 1u);
+  [allow_uav_condition] [loop] while(true) {
     if (!loop_init) {
       int _e38 = i;
       i = asint(asuint(_e38) + asuint(int(1)));
@@ -142,11 +139,8 @@ float3 worley2_(float2 p_2, int period_7, uint seed_6)
 
   int2 i_3 = naga_f2i32(floor(p_2));
   float2 f_1 = frac(p_2);
-  uint2 loop_bound_1 = uint2(4294967295u, 4294967295u);
   bool loop_init_1 = true;
-  while(true) {
-    if (all(loop_bound_1 == uint2(0u, 0u))) { break; }
-    loop_bound_1 -= uint2(loop_bound_1.y == 0u, 1u);
+  [allow_uav_condition] [loop] while(true) {
     if (!loop_init_1) {
       int _e51 = y;
       y = asint(asuint(_e51) + asuint(int(1)));
@@ -159,11 +153,8 @@ float3 worley2_(float2 p_2, int period_7, uint seed_6)
     }
     {
       x = int(-1);
-      uint2 loop_bound_2 = uint2(4294967295u, 4294967295u);
       bool loop_init_2 = true;
-      while(true) {
-        if (all(loop_bound_2 == uint2(0u, 0u))) { break; }
-        loop_bound_2 -= uint2(loop_bound_2.y == 0u, 1u);
+      [allow_uav_condition] [loop] while(true) {
         if (!loop_init_2) {
           int _e48 = x;
           x = asint(asuint(_e48) + asuint(int(1)));
@@ -233,11 +224,8 @@ float strokes(float2 uv_1, int2 skew, int period_8, float stretch, uint seed_7)
   float2 q = float2(((uv_1.x * float(skew.x)) + (uv_1.y * float(skew.y))), ((uv_1.y * float(skew.x)) - (uv_1.x * float(skew.y))));
   int span = max(asint(asuint(naga_abs(skew.x)) + asuint(naga_abs(skew.y))), int(1));
   frequency_1 = int2(max(naga_div(period_8, span), int(1)), max(naga_f2i32((float(naga_div(period_8, span)) / stretch)), int(1)));
-  uint2 loop_bound_3 = uint2(4294967295u, 4294967295u);
   bool loop_init_3 = true;
-  while(true) {
-    if (all(loop_bound_3 == uint2(0u, 0u))) { break; }
-    loop_bound_3 -= uint2(loop_bound_3.y == 0u, 1u);
+  [allow_uav_condition] [loop] while(true) {
     if (!loop_init_3) {
       int _e76 = i_1;
       i_1 = asint(asuint(_e76) + asuint(int(1)));

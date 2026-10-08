@@ -130,11 +130,8 @@ float4 present_main(FragmentInput_present_main fragmentinput_present_main) : SV_
     uint row = min(naga_f2u32((screen.y * float(rows))), (rows - 1u));
     uint entry = asuint(lens_bins.Load(((2u + (row * columns)) + column)*4));
     uint first = ((2u + (columns * rows)) + (entry >> 8u));
-    uint2 loop_bound = uint2(4294967295u, 4294967295u);
     bool loop_init = true;
     while(true) {
-      if (all(loop_bound == uint2(0u, 0u))) { break; }
-      loop_bound -= uint2(loop_bound.y == 0u, 1u);
       if (!loop_init) {
         uint _e147 = k;
         k = (_e147 + 1u);

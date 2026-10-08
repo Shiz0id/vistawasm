@@ -13,7 +13,7 @@ licence lines in generated files.
 | Part | Size | How it is ported | State |
 | --- | --- | --- | --- |
 | World generation: terrain, erosion, rivers, lakes, glaciers, biomes, materials, tree and grass placement | about 22,000 lines of Rust | Not rewritten. `crates/vista_native` builds it as a C library. | Done |
-| Shaders | 23 WGSL files, 10,000 lines | Translated to Shader Model 5.0 HLSL by `crates/vista_hlsl`. | Done, not yet compiled with `fxc` |
+| Shaders | 23 WGSL files, 10,000 lines | Translated to Shader Model 5.0 HLSL by `crates/vista_hlsl`, and compiled with Microsoft's compiler. | Done: 74 of 74 compile |
 | Render orchestration: resources, passes, frame order | `render/gpu.rs` and friends, about 8,500 lines of Rust over wgpu | Rewritten by hand in C++ against Direct3D 11. | To do |
 | Host glue: camera, input, frame loop | `js/src`, small | Use the engine's own. | To do |
 
@@ -81,7 +81,8 @@ compiler).
   defaults, at every depth. Unknown keys are errors, with the list of valid
   keys in the message.
 - **Generation:** `vista_engine_generate_fractal()`, with an optional
-  progress callback. `vista_engine_load_raw_heightmap()` and
+  progress callback that can cancel (return non-zero; the call returns
+  `VISTA_CANCELLED` and the previous terrain stays). `vista_engine_load_raw_heightmap()` and
   `vista_engine_load_geotiff()` load real elevation data instead.
 - **Fifteen maps** through `vista_engine_export_map()`: heights, biomes,
   water and its depth, drainage, discharge, twelve material weights, slope,
@@ -132,10 +133,26 @@ the WGSL in `crates/vista_wasm/src/shaders` and run the tool again.
   uses the defaults.
 - **Samplers are plain `register(sN)` declarations.** Naga writes a
   Direct3D 12 sampler heap; the tool rewrites it for Direct3D 11.
-- **`compile-fxc.ps1`** compiles every file with `fxc` from the Windows
-  SDK and stops at the first failure. Run it before anything else: the
-  translation passes naga's validation, but no Direct3D compiler has
-  checked it yet.
+- **Compiled and checked.** All 74 files compile with Microsoft's own
+  HLSL compiler (`D3DCompiler_43.dll`, the DirectX SDK's, as `fxc /O3`).
+  The compiled bytecode is committed in `ports/d3d11/cso/<module>/<entry>.cso`,
+  so an engine loads it with `CreateVertexShader` and its kin and never
+  compiles at run time. That matters: the texture bake's two shaders take
+  3 minutes each to compile.
+- **`ports/d3d11/tools/check-hlsl.sh`** compiles every file on Linux,
+  through Wine, and rewrites `ports/d3d11/cso`. Run it after
+  `cargo run -p vista_hlsl`. On Windows, `hlsl/compile-fxc.ps1` does the
+  same with the SDK's `fxc`.
+- **What the translation adjusts for fxc**, all in `vista_hlsl`: no
+  64-bit loop guards (naga's, for Direct3D 12), `[allow_uav_condition]` on
+  compute loops whose exit reads a UAV, and `[loop]` throughout the
+  one-off texture bake so fxc does not spend 15 minutes unrolling it. One
+  WGSL line changed for fxc: `leaf_cluster` in `texture_gen.wgsl` reads its
+  loop count through a uniform that is always 0, because fxc folded the
+  count to a constant and then failed to unroll the loop.
+- **Warnings that remain** are WGSL's own arithmetic, which fxc flags but
+  compiles as written: integer division, `pow` of a possibly negative
+  base, negating an unsigned value, and a few gradients in branches.
 
 ### Buffers and layouts
 

@@ -653,8 +653,13 @@ fn clump_of(layer: i32) -> Clump {
 fn leaf_cluster(uvs: array<vec2<f32>, 4>, c: Clump) -> array<Leaf, 4> {
   var result = array<Leaf, 4>();
   let bend = (unit(pcg(c.seed)) - 0.5) * 0.25;
+  // bake_layers.w is always 0. Adding it keeps the count unknown when the
+  // shader is compiled: Direct3D 11's fxc otherwise folds clump_of's
+  // constants into each case, tries to unroll this loop for each, and
+  // fails (X3511).
+  let count = c.count + i32(bake_layers.w);
 
-  for (var i = 0; i < c.count; i = i + 1) {
+  for (var i = 0; i < count; i = i + 1) {
     let place = leaf_placements[(c.first + i) * 2];
     let look = leaf_placements[(c.first + i) * 2 + 1];
     let at = place.xy;

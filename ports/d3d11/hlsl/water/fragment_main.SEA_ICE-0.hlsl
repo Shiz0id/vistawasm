@@ -913,11 +913,8 @@ Fog atmospheric_fog(float3 ray, float distance_1, float2 pixel_1, bool include_h
     float _e115 = frame.mist_params.w;
     if ((_e115 > 0.001)) {
       const float _e120 = pixel_dither(pixel_1);
-      uint2 loop_bound = uint2(4294967295u, 4294967295u);
       bool loop_init = true;
       while(true) {
-        if (all(loop_bound == uint2(0u, 0u))) { break; }
-        loop_bound -= uint2(loop_bound.y == 0u, 1u);
         if (!loop_init) {
           int _e139 = i;
           i = asint(asuint(_e139) + asuint(int(1)));
@@ -1052,11 +1049,8 @@ float4 precipitation(float3 ray_2, float max_distance)
   float side_wind = dot(_e48.zw, float2(-(heading.y), heading.x));
   float angle = atan2(ray_2.z, ray_2.x);
   const float _e59 = terrain_height_at(camera_1.xz);
-  uint2 loop_bound_1 = uint2(4294967295u, 4294967295u);
   bool loop_init_1 = true;
   while(true) {
-    if (all(loop_bound_1 == uint2(0u, 0u))) { break; }
-    loop_bound_1 -= uint2(loop_bound_1.y == 0u, 1u);
     if (!loop_init_1) {
       int _e359 = layer_1;
       layer_1 = asint(asuint(_e359) + asuint(int(1)));
@@ -1305,11 +1299,8 @@ WaveSample sample_waves(float2 xz_15, float depth_2, float spacing_1)
     return wavesample;
   }
   const float _e31 = time_seconds();
-  uint2 loop_bound_2 = uint2(4294967295u, 4294967295u);
   bool loop_init_2 = true;
   while(true) {
-    if (all(loop_bound_2 == uint2(0u, 0u))) { break; }
-    loop_bound_2 -= uint2(loop_bound_2.y == 0u, 1u);
     if (!loop_init_2) {
       int _e105 = i_2;
       i_2 = asint(asuint(_e105) + asuint(int(1)));
@@ -1429,11 +1420,8 @@ FloeCell floe_cell(float2 p_1)
   int x_1 = (int)0;
 
   float2 base_3 = floor(p_1);
-  uint2 loop_bound_3 = uint2(4294967295u, 4294967295u);
   bool loop_init_3 = true;
   while(true) {
-    if (all(loop_bound_3 == uint2(0u, 0u))) { break; }
-    loop_bound_3 -= uint2(loop_bound_3.y == 0u, 1u);
     if (!loop_init_3) {
       int _e63 = y;
       y = asint(asuint(_e63) + asuint(int(1)));
@@ -1446,11 +1434,8 @@ FloeCell floe_cell(float2 p_1)
     }
     {
       x_1 = int(-1);
-      uint2 loop_bound_4 = uint2(4294967295u, 4294967295u);
       bool loop_init_4 = true;
       while(true) {
-        if (all(loop_bound_4 == uint2(0u, 0u))) { break; }
-        loop_bound_4 -= uint2(loop_bound_4.y == 0u, 1u);
         if (!loop_init_4) {
           int _e60 = x_1;
           x_1 = asint(asuint(_e60) + asuint(int(1)));
@@ -1711,11 +1696,8 @@ float4 trace_reflection(float3 origin, float3 ray_3, float reach_1, float level)
   float4x4 _e15 = frame.view_proj;
   float4 clip_ray = mul(float4(ray_3, 0.0), _e15);
   float growth = pow((reach_1 / 2.0), 0.0625);
-  uint2 loop_bound_5 = uint2(4294967295u, 4294967295u);
   bool loop_init_5 = true;
   while(true) {
-    if (all(loop_bound_5 == uint2(0u, 0u))) { break; }
-    loop_bound_5 -= uint2(loop_bound_5.y == 0u, 1u);
     if (!loop_init_5) {
       int _e111 = i_3;
       i_3 = asint(asuint(_e111) + asuint(int(1)));
@@ -1803,11 +1785,8 @@ float4 trace_reflection(float3 origin, float3 ray_3, float reach_1, float level)
   if ((_e114 < 0.0)) {
     return (0.0).xxxx;
   }
-  uint2 loop_bound_6 = uint2(4294967295u, 4294967295u);
   bool loop_init_6 = true;
   while(true) {
-    if (all(loop_bound_6 == uint2(0u, 0u))) { break; }
-    loop_bound_6 -= uint2(loop_bound_6.y == 0u, 1u);
     if (!loop_init_6) {
       int _e145 = k;
       k = asint(asuint(_e145) + asuint(int(1)));
@@ -1876,11 +1855,8 @@ float4 sea_plume(float2 xz_17)
   float4 plume_1 = (0.0).xxxx;
   int k_1 = int(0);
 
-  uint2 loop_bound_7 = uint2(4294967295u, 4294967295u);
   bool loop_init_7 = true;
   while(true) {
-    if (all(loop_bound_7 == uint2(0u, 0u))) { break; }
-    loop_bound_7 -= uint2(loop_bound_7.y == 0u, 1u);
     if (!loop_init_7) {
       int _e48 = k_1;
       k_1 = asint(asuint(_e48) + asuint(int(1)));
@@ -1942,11 +1918,8 @@ float3 stream_stone(float2 p_4, float2 bed, int reach_2)
   uint seed = (naga_f2u32(_e6) | (naga_f2u32(_e11) << 16u));
   int2 base_4 = naga_f2i32(floor(p_4));
   dy = naga_neg(reach_2);
-  uint2 loop_bound_8 = uint2(4294967295u, 4294967295u);
   bool loop_init_8 = true;
   while(true) {
-    if (all(loop_bound_8 == uint2(0u, 0u))) { break; }
-    loop_bound_8 -= uint2(loop_bound_8.y == 0u, 1u);
     if (!loop_init_8) {
       int _e64 = dy;
       dy = asint(asuint(_e64) + asuint(int(1)));
@@ -1959,11 +1932,8 @@ float3 stream_stone(float2 p_4, float2 bed, int reach_2)
     }
     {
       dx = naga_neg(reach_2);
-      uint2 loop_bound_9 = uint2(4294967295u, 4294967295u);
       bool loop_init_9 = true;
       while(true) {
-        if (all(loop_bound_9 == uint2(0u, 0u))) { break; }
-        loop_bound_9 -= uint2(loop_bound_9.y == 0u, 1u);
         if (!loop_init_9) {
           int _e61 = dx;
           dx = asint(asuint(_e61) + asuint(int(1)));

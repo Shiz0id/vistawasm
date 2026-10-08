@@ -402,11 +402,8 @@ WaveSample sample_waves(float2 xz_6, float depth_1, float spacing_1)
     return wavesample;
   }
   const float _e31 = time_seconds();
-  uint2 loop_bound = uint2(4294967295u, 4294967295u);
   bool loop_init = true;
   while(true) {
-    if (all(loop_bound == uint2(0u, 0u))) { break; }
-    loop_bound -= uint2(loop_bound.y == 0u, 1u);
     if (!loop_init) {
       int _e105 = i_1;
       i_1 = asint(asuint(_e105) + asuint(int(1)));

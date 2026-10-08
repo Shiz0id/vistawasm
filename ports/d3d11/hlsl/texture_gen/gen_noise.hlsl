@@ -95,11 +95,8 @@ float fbm2_(float2 uv, int period_6, int octaves, uint seed_5)
   int i = int(0);
 
   frequency = period_6;
-  uint2 loop_bound = uint2(4294967295u, 4294967295u);
   bool loop_init = true;
-  while(true) {
-    if (all(loop_bound == uint2(0u, 0u))) { break; }
-    loop_bound -= uint2(loop_bound.y == 0u, 1u);
+  [allow_uav_condition] [loop] while(true) {
     if (!loop_init) {
       int _e38 = i;
       i = asint(asuint(_e38) + asuint(int(1)));
@@ -142,11 +139,8 @@ float3 worley2_(float2 p_2, int period_7, uint seed_6)
 
   int2 i_2 = naga_f2i32(floor(p_2));
   float2 f_1 = frac(p_2);
-  uint2 loop_bound_1 = uint2(4294967295u, 4294967295u);
   bool loop_init_1 = true;
-  while(true) {
-    if (all(loop_bound_1 == uint2(0u, 0u))) { break; }
-    loop_bound_1 -= uint2(loop_bound_1.y == 0u, 1u);
+  [allow_uav_condition] [loop] while(true) {
     if (!loop_init_1) {
       int _e51 = y;
       y = asint(asuint(_e51) + asuint(int(1)));
@@ -159,11 +153,8 @@ float3 worley2_(float2 p_2, int period_7, uint seed_6)
     }
     {
       x = int(-1);
-      uint2 loop_bound_2 = uint2(4294967295u, 4294967295u);
       bool loop_init_2 = true;
-      while(true) {
-        if (all(loop_bound_2 == uint2(0u, 0u))) { break; }
-        loop_bound_2 -= uint2(loop_bound_2.y == 0u, 1u);
+      [allow_uav_condition] [loop] while(true) {
         if (!loop_init_2) {
           int _e48 = x;
           x = asint(asuint(_e48) + asuint(int(1)));

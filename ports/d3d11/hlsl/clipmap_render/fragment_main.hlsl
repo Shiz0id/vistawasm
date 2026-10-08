@@ -440,11 +440,8 @@ float canopy_clumps(float2 xz_6)
 
   float2 p_3 = (xz_6 / (9.0).xx);
   float2 cell_1 = floor(p_3);
-  uint2 loop_bound = uint2(4294967295u, 4294967295u);
   bool loop_init = true;
   while(true) {
-    if (all(loop_bound == uint2(0u, 0u))) { break; }
-    loop_bound -= uint2(loop_bound.y == 0u, 1u);
     if (!loop_init) {
       int _e46 = j;
       j = asint(asuint(_e46) + asuint(int(1)));
@@ -457,11 +454,8 @@ float canopy_clumps(float2 xz_6)
     }
     {
       i_5 = int(-1);
-      uint2 loop_bound_1 = uint2(4294967295u, 4294967295u);
       bool loop_init_1 = true;
       while(true) {
-        if (all(loop_bound_1 == uint2(0u, 0u))) { break; }
-        loop_bound_1 -= uint2(loop_bound_1.y == 0u, 1u);
         if (!loop_init_1) {
           int _e43 = i_5;
           i_5 = asint(asuint(_e43) + asuint(int(1)));
@@ -981,11 +975,8 @@ MaterialSample sample_projected(int material_4, float3 position_5, float3 ddx_p,
   MaterialSample result = ConstructMaterialSample((0.0).xxx, 0.0, (0.0).xx, 0.0, 0.0);
   int axis_1 = int(0);
 
-  uint2 loop_bound_2 = uint2(4294967295u, 4294967295u);
   bool loop_init_2 = true;
   while(true) {
-    if (all(loop_bound_2 == uint2(0u, 0u))) { break; }
-    loop_bound_2 -= uint2(loop_bound_2.y == 0u, 1u);
     if (!loop_init_2) {
       int _e66 = axis_1;
       axis_1 = asint(asuint(_e66) + asuint(int(1)));
@@ -1033,11 +1024,8 @@ float material_height(int material_5, float3 position_6, float3 ddx_p_1, float3 
   const float _e5 = material_scale(material_5);
   float _e9 = frame.surface.z;
   float inv_1 = (1.0 / (_e5 * max(_e9, 0.01)));
-  uint2 loop_bound_3 = uint2(4294967295u, 4294967295u);
   bool loop_init_3 = true;
   while(true) {
-    if (all(loop_bound_3 == uint2(0u, 0u))) { break; }
-    loop_bound_3 -= uint2(loop_bound_3.y == 0u, 1u);
     if (!loop_init_3) {
       int _e44 = axis_2;
       axis_2 = asint(asuint(_e44) + asuint(int(1)));
@@ -1080,11 +1068,8 @@ float3 parallax(float3 position_7, float3 ddx_p_2, float3 ddy_p_2, float3 normal
   float3 drift = (((normal_6 * dot(view_3, normal_6)) - view_3) / (facing).xxx);
   const float3 _e20 = projection_weights(material_6, normal_6);
   p_1 = position_7;
-  uint2 loop_bound_4 = uint2(4294967295u, 4294967295u);
   bool loop_init_4 = true;
   while(true) {
-    if (all(loop_bound_4 == uint2(0u, 0u))) { break; }
-    loop_bound_4 -= uint2(loop_bound_4.y == 0u, 1u);
     if (!loop_init_4) {
       int _e43 = step_;
       step_ = asint(asuint(_e43) + asuint(int(1)));
@@ -1124,11 +1109,8 @@ float3 rock_cells(float2 p_2)
   int i_6 = (int)0;
 
   float2 base = floor(p_2);
-  uint2 loop_bound_5 = uint2(4294967295u, 4294967295u);
   bool loop_init_5 = true;
   while(true) {
-    if (all(loop_bound_5 == uint2(0u, 0u))) { break; }
-    loop_bound_5 -= uint2(loop_bound_5.y == 0u, 1u);
     if (!loop_init_5) {
       int _e45 = j_1;
       j_1 = asint(asuint(_e45) + asuint(int(1)));
@@ -1141,11 +1123,8 @@ float3 rock_cells(float2 p_2)
     }
     {
       i_6 = int(-1);
-      uint2 loop_bound_6 = uint2(4294967295u, 4294967295u);
       bool loop_init_6 = true;
       while(true) {
-        if (all(loop_bound_6 == uint2(0u, 0u))) { break; }
-        loop_bound_6 -= uint2(loop_bound_6.y == 0u, 1u);
         if (!loop_init_6) {
           int _e42 = i_6;
           i_6 = asint(asuint(_e42) + asuint(int(1)));
@@ -1769,11 +1748,8 @@ float4 fragment_main(FragmentInput_fragment_main fragmentinput_fragment_main) : 
       float restore = (1.0 / max(((1.0 - stamped.x) - stamped.y), 0.2));
       float _e214[12] = weights;
       field_weights = _e214;
-      uint2 loop_bound_7 = uint2(4294967295u, 4294967295u);
       bool loop_init_7 = true;
       while(true) {
-        if (all(loop_bound_7 == uint2(0u, 0u))) { break; }
-        loop_bound_7 -= uint2(loop_bound_7.y == 0u, 1u);
         if (!loop_init_7) {
           int _e263 = i;
           i = asint(asuint(_e263) + asuint(int(1)));
@@ -1827,11 +1803,8 @@ float4 fragment_main(FragmentInput_fragment_main fragmentinput_fragment_main) : 
       field_weights[0] = (_e273 + (bare * saturate((in_.climate.x * 1.5))));
       float _e283 = field_weights[1];
       field_weights[1] = (_e283 + (bare * (1.0 - saturate((in_.climate.x * 1.5)))));
-      uint2 loop_bound_8 = uint2(4294967295u, 4294967295u);
       bool loop_init_8 = true;
       while(true) {
-        if (all(loop_bound_8 == uint2(0u, 0u))) { break; }
-        loop_bound_8 -= uint2(loop_bound_8.y == 0u, 1u);
         if (!loop_init_8) {
           int _e306 = i_1;
           i_1 = asint(asuint(_e306) + asuint(int(1)));
@@ -1857,11 +1830,8 @@ float4 fragment_main(FragmentInput_fragment_main fragmentinput_fragment_main) : 
       field_weights[3] = (_e321 + (loose * ((1.0 - gravel) - mud)));
       float _e329 = field_weights[4];
       field_weights[4] = (_e329 + rock);
-      uint2 loop_bound_9 = uint2(4294967295u, 4294967295u);
       bool loop_init_9 = true;
       while(true) {
-        if (all(loop_bound_9 == uint2(0u, 0u))) { break; }
-        loop_bound_9 -= uint2(loop_bound_9.y == 0u, 1u);
         if (!loop_init_9) {
           int _e345 = i_2;
           i_2 = asint(asuint(_e345) + asuint(int(1)));
@@ -1917,11 +1887,8 @@ float4 fragment_main(FragmentInput_fragment_main fragmentinput_fragment_main) : 
           debug_colour = ((geometric_normal * 0.5) + (0.5).xxx);
         } else {
           if ((debug_view == int(4))) {
-            uint2 loop_bound_10 = uint2(4294967295u, 4294967295u);
             bool loop_init_10 = true;
             while(true) {
-              if (all(loop_bound_10 == uint2(0u, 0u))) { break; }
-              loop_bound_10 -= uint2(loop_bound_10.y == 0u, 1u);
               if (!loop_init_10) {
                 int _e458 = i_3;
                 i_3 = asint(asuint(_e458) + asuint(int(1)));
@@ -1959,11 +1926,8 @@ float4 fragment_main(FragmentInput_fragment_main fragmentinput_fragment_main) : 
     const float3 _e473 = srgb_to_linear(_e472);
     return float4(((_e473 * light) * 1.6), 1.0);
   }
-  uint2 loop_bound_11 = uint2(4294967295u, 4294967295u);
   bool loop_init_11 = true;
   while(true) {
-    if (all(loop_bound_11 == uint2(0u, 0u))) { break; }
-    loop_bound_11 -= uint2(loop_bound_11.y == 0u, 1u);
     if (!loop_init_11) {
       int _e533 = i_4;
       i_4 = asint(asuint(_e533) + asuint(int(1)));
@@ -2042,11 +2006,8 @@ float4 fragment_main(FragmentInput_fragment_main fragmentinput_fragment_main) : 
     const float3 _e583 = parallax(position_14, ddx_p_9, ddy_p_9, geometric_normal, stone, (0.08 * (1.0 - smoothstep(80.0, 120.0, distance_6))));
     textured = _e583;
   }
-  uint2 loop_bound_12 = uint2(4294967295u, 4294967295u);
   bool loop_init_12 = true;
   while(true) {
-    if (all(loop_bound_12 == uint2(0u, 0u))) { break; }
-    loop_bound_12 -= uint2(loop_bound_12.y == 0u, 1u);
     if (!loop_init_12) {
       int _e632 = k;
       k = asint(asuint(_e632) + asuint(int(1)));
@@ -2088,11 +2049,8 @@ float4 fragment_main(FragmentInput_fragment_main fragmentinput_fragment_main) : 
       }
     }
   }
-  uint2 loop_bound_13 = uint2(4294967295u, 4294967295u);
   bool loop_init_13 = true;
   while(true) {
-    if (all(loop_bound_13 == uint2(0u, 0u))) { break; }
-    loop_bound_13 -= uint2(loop_bound_13.y == 0u, 1u);
     if (!loop_init_13) {
       int _e786 = k_1;
       k_1 = asint(asuint(_e786) + asuint(int(1)));
@@ -2392,11 +2350,8 @@ float4 fragment_main(FragmentInput_fragment_main fragmentinput_fragment_main) : 
       wetness = max(_e1271, stones);
     }
   }
-  uint2 loop_bound_14 = uint2(4294967295u, 4294967295u);
   bool loop_init_14 = true;
   while(true) {
-    if (all(loop_bound_14 == uint2(0u, 0u))) { break; }
-    loop_bound_14 -= uint2(loop_bound_14.y == 0u, 1u);
     if (!loop_init_14) {
       int _e1291 = k_2;
       k_2 = asint(asuint(_e1291) + asuint(int(1)));

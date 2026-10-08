@@ -64,11 +64,8 @@ void append(uint list, uint start, uint capacity, uint source, float scale)
     return;
   }
   uint out_ = ((start + _e12) * 8u);
-  uint2 loop_bound = uint2(4294967295u, 4294967295u);
   bool loop_init = true;
-  while(true) {
-    if (all(loop_bound == uint2(0u, 0u))) { break; }
-    loop_bound -= uint2(loop_bound.y == 0u, 1u);
+  [allow_uav_condition] while(true) {
     if (!loop_init) {
       uint _e39 = k;
       k = (_e39 + 1u);
@@ -150,11 +147,8 @@ void cull_main(uint3 id : SV_DispatchThreadID)
   if ((((scale_1 / max(distance_, 0.01)) * _e86) < 0.75)) {
     return;
   }
-  uint2 loop_bound_1 = uint2(4294967295u, 4294967295u);
   bool loop_init_1 = true;
-  while(true) {
-    if (all(loop_bound_1 == uint2(0u, 0u))) { break; }
-    loop_bound_1 -= uint2(loop_bound_1.y == 0u, 1u);
+  [allow_uav_condition] while(true) {
     if (!loop_init_1) {
       int _e106 = p;
       p = asint(asuint(_e106) + asuint(int(1)));

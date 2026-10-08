@@ -122,11 +122,8 @@ float fbm2_(float2 uv, int period_6, int octaves, uint seed_5)
   int i = int(0);
 
   frequency = period_6;
-  uint2 loop_bound = uint2(4294967295u, 4294967295u);
   bool loop_init = true;
-  while(true) {
-    if (all(loop_bound == uint2(0u, 0u))) { break; }
-    loop_bound -= uint2(loop_bound.y == 0u, 1u);
+  [allow_uav_condition] [loop] while(true) {
     if (!loop_init) {
       int _e38 = i;
       i = asint(asuint(_e38) + asuint(int(1)));
@@ -169,11 +166,8 @@ float3 worley2_(float2 p_2, int period_7, uint seed_6)
 
   int2 i_11 = naga_f2i32(floor(p_2));
   float2 f_1 = frac(p_2);
-  uint2 loop_bound_1 = uint2(4294967295u, 4294967295u);
   bool loop_init_1 = true;
-  while(true) {
-    if (all(loop_bound_1 == uint2(0u, 0u))) { break; }
-    loop_bound_1 -= uint2(loop_bound_1.y == 0u, 1u);
+  [allow_uav_condition] [loop] while(true) {
     if (!loop_init_1) {
       int _e51 = y;
       y = asint(asuint(_e51) + asuint(int(1)));
@@ -186,11 +180,8 @@ float3 worley2_(float2 p_2, int period_7, uint seed_6)
     }
     {
       x = int(-1);
-      uint2 loop_bound_2 = uint2(4294967295u, 4294967295u);
       bool loop_init_2 = true;
-      while(true) {
-        if (all(loop_bound_2 == uint2(0u, 0u))) { break; }
-        loop_bound_2 -= uint2(loop_bound_2.y == 0u, 1u);
+      [allow_uav_condition] [loop] while(true) {
         if (!loop_init_2) {
           int _e48 = x;
           x = asint(asuint(_e48) + asuint(int(1)));
@@ -260,11 +251,8 @@ float strokes(float2 uv_1, int2 skew, int period_8, float stretch, uint seed_7)
   float2 q = float2(((uv_1.x * float(skew.x)) + (uv_1.y * float(skew.y))), ((uv_1.y * float(skew.x)) - (uv_1.x * float(skew.y))));
   int span = max(asint(asuint(naga_abs(skew.x)) + asuint(naga_abs(skew.y))), int(1));
   frequency_1 = int2(max(naga_div(period_8, span), int(1)), max(naga_f2i32((float(naga_div(period_8, span)) / stretch)), int(1)));
-  uint2 loop_bound_3 = uint2(4294967295u, 4294967295u);
   bool loop_init_3 = true;
-  while(true) {
-    if (all(loop_bound_3 == uint2(0u, 0u))) { break; }
-    loop_bound_3 -= uint2(loop_bound_3.y == 0u, 1u);
+  [allow_uav_condition] [loop] while(true) {
     if (!loop_init_3) {
       int _e76 = i_1;
       i_1 = asint(asuint(_e76) + asuint(int(1)));
@@ -436,51 +424,47 @@ ret_leaf_cluster leaf_cluster(float2 uvs_1[4], Clump c)
   const uint _e5 = pcg(c.seed);
   const float _e6 = unit(_e5);
   float bend = ((_e6 - 0.5) * 0.25);
-  uint2 loop_bound_4 = uint2(4294967295u, 4294967295u);
+  uint _e14 = bake_layers.w;
+  int count_1 = asint(asuint(c.count) + asuint(int(_e14)));
   bool loop_init_4 = true;
-  while(true) {
-    if (all(loop_bound_4 == uint2(0u, 0u))) { break; }
-    loop_bound_4 -= uint2(loop_bound_4.y == 0u, 1u);
+  [allow_uav_condition] [loop] while(true) {
     if (!loop_init_4) {
-      int _e204 = i_2;
-      i_2 = asint(asuint(_e204) + asuint(int(1)));
+      int _e209 = i_2;
+      i_2 = asint(asuint(_e209) + asuint(int(1)));
     }
     loop_init_4 = false;
-    int _e13 = i_2;
-    if ((_e13 < c.count)) {
+    int _e19 = i_2;
+    if ((_e19 < count_1)) {
     } else {
       break;
     }
     {
-      int _e18 = i_2;
-      float4 place = leaf_placements[asint(asuint(asint(asuint(c.first) + asuint(_e18))) * asuint(int(2)))];
-      int _e26 = i_2;
-      float4 look = leaf_placements[asint(asuint(asint(asuint(asint(asuint(c.first) + asuint(_e26))) * asuint(int(2)))) + asuint(int(1)))];
+      int _e23 = i_2;
+      float4 place = leaf_placements[asint(asuint(asint(asuint(c.first) + asuint(_e23))) * asuint(int(2)))];
+      int _e31 = i_2;
+      float4 look = leaf_placements[asint(asuint(asint(asuint(asint(asuint(c.first) + asuint(_e31))) * asuint(int(2)))) + asuint(int(1)))];
       float2 at = place.xy;
       float2 direction = place.zw;
       float size = look.x;
       float3 leaf_colour = lerp(c.base, c.tip, look.y);
-      int _e41 = i_2;
-      float t_1 = ((float(_e41) + 0.5) / float(c.count));
+      int _e46 = i_2;
+      float t_1 = ((float(_e46) + 0.5) / float(c.count));
       s_2 = int(0);
-      uint2 loop_bound_5 = uint2(4294967295u, 4294967295u);
       bool loop_init_5 = true;
-      while(true) {
-        if (all(loop_bound_5 == uint2(0u, 0u))) { break; }
-        loop_bound_5 -= uint2(loop_bound_5.y == 0u, 1u);
+      [allow_uav_condition] [loop] while(true) {
         if (!loop_init_5) {
-          int _e201 = s_2;
-          s_2 = asint(asuint(_e201) + asuint(int(1)));
+          int _e206 = s_2;
+          s_2 = asint(asuint(_e206) + asuint(int(1)));
         }
         loop_init_5 = false;
-        int _e50 = s_2;
-        if ((_e50 < int(4))) {
+        int _e55 = s_2;
+        if ((_e55 < int(4))) {
         } else {
           break;
         }
         {
-          int _e53 = s_2;
-          float2 local_27 = (uvs_1[min(uint(_e53), 3u)] - at);
+          int _e58 = s_2;
+          float2 local_27 = (uvs_1[min(uint(_e58), 3u)] - at);
           float along = (dot(local_27, direction) / size);
           float across = (dot(local_27, float2(-(direction.y), direction.x)) / (size * c.leaf_width));
           if (!((along < 0.0))) {
@@ -488,69 +472,66 @@ ret_leaf_cluster leaf_cluster(float2 uvs_1[4], Clump c)
           } else {
             local_2 = true;
           }
-          bool _e74 = local_2;
-          if (_e74) {
+          bool _e79 = local_2;
+          if (_e79) {
             continue;
           }
           half_width = (sin((pow(along, 0.75) * 3.14159)) * 0.5);
           if ((c.shape == int(1))) {
-            float _e86 = half_width;
-            half_width = (_e86 * (1.0 - (0.14 * frac((along * 16.0)))));
+            float _e91 = half_width;
+            half_width = (_e91 * (1.0 - (0.14 * frac((along * 16.0)))));
           } else {
             if ((c.shape == int(2))) {
-              float _e98 = half_width;
-              half_width = (_e98 * (0.62 + (0.38 * abs(cos(((along * 4.5) * 3.14159))))));
+              float _e103 = half_width;
+              half_width = (_e103 * (0.62 + (0.38 * abs(cos(((along * 4.5) * 3.14159))))));
             }
           }
-          float _e111 = half_width;
-          float edge = (1.0 - (abs(across) / max(_e111, 0.001)));
+          float _e116 = half_width;
+          float edge = (1.0 - (abs(across) / max(_e116, 0.001)));
           if ((edge > 0.0)) {
             float midrib = (1.0 - smoothstep(0.0, 0.06, abs(across)));
             float veins = smoothstep(0.8, 1.0, sin((((along * 9.0) - (abs(across) * 3.0)) * 3.14159)));
             colour_4 = (leaf_colour * (0.75 + (0.25 * edge)));
-            float3 _e143 = colour_4;
-            float3 _e144 = colour_4;
-            colour_4 = (lerp(_e143, (_e144 * 1.3), (midrib * 0.5)) * (1.0 - (veins * 0.1)));
-            float3 _e155 = colour_4;
-            colour_4 = (_e155 + (((c.gloss * pow(edge, 3.0)) * (1.0 - along)) * float3(0.06, 0.08, 0.05)));
-            float3 _e169 = colour_4;
-            colour_4 = (_e169 * (0.78 + (0.22 * t_1)));
+            float3 _e148 = colour_4;
+            float3 _e149 = colour_4;
+            colour_4 = (lerp(_e148, (_e149 * 1.3), (midrib * 0.5)) * (1.0 - (veins * 0.1)));
+            float3 _e160 = colour_4;
+            colour_4 = (_e160 + (((c.gloss * pow(edge, 3.0)) * (1.0 - along)) * float3(0.06, 0.08, 0.05)));
+            float3 _e174 = colour_4;
+            colour_4 = (_e174 * (0.78 + (0.22 * t_1)));
             float relief = ((size * c.leaf_width) * ((0.12 * (1.0 - ((1.0 - edge) * (1.0 - edge)))) - (0.03 * midrib)));
-            int _e190 = s_2;
-            float3 _e192 = colour_4;
-            int _e195 = i_2;
-            result[min(uint(_e190), 3u)] = ConstructLeaf(float4(_e192, 1.0), (relief + (float(_e195) * 0.0001)));
+            int _e195 = s_2;
+            float3 _e197 = colour_4;
+            int _e200 = i_2;
+            result[min(uint(_e195), 3u)] = ConstructLeaf(float4(_e197, 1.0), (relief + (float(_e200) * 0.0001)));
           }
         }
       }
     }
   }
-  uint2 loop_bound_6 = uint2(4294967295u, 4294967295u);
   bool loop_init_6 = true;
-  while(true) {
-    if (all(loop_bound_6 == uint2(0u, 0u))) { break; }
-    loop_bound_6 -= uint2(loop_bound_6.y == 0u, 1u);
+  [allow_uav_condition] [loop] while(true) {
     if (!loop_init_6) {
-      int _e240 = s_3;
-      s_3 = asint(asuint(_e240) + asuint(int(1)));
+      int _e245 = s_3;
+      s_3 = asint(asuint(_e245) + asuint(int(1)));
     }
     loop_init_6 = false;
-    int _e209 = s_3;
-    if ((_e209 < int(4))) {
+    int _e214 = s_3;
+    if ((_e214 < int(4))) {
     } else {
       break;
     }
     {
-      int _e212 = s_3;
-      const float2 _e221 = segment_distance(uvs_1[min(uint(_e212), 3u)], float2(0.5, 0.0), float2((0.5 + bend), 0.66));
-      if ((_e221.x < (0.006 * (1.0 - (_e221.y * 0.5))))) {
-        int _e231 = s_3;
-        result[min(uint(_e231), 3u)] = ConstructLeaf(float4(0.22, 0.16, 0.1, 1.0), 0.004);
+      int _e217 = s_3;
+      const float2 _e226 = segment_distance(uvs_1[min(uint(_e217), 3u)], float2(0.5, 0.0), float2((0.5 + bend), 0.66));
+      if ((_e226.x < (0.006 * (1.0 - (_e226.y * 0.5))))) {
+        int _e236 = s_3;
+        result[min(uint(_e236), 3u)] = ConstructLeaf(float4(0.22, 0.16, 0.1, 1.0), 0.004);
       }
     }
   }
-  Leaf _e243[4] = result;
-  return _e243;
+  Leaf _e248[4] = result;
+  return _e248;
 }
 
 typedef Leaf ret_radial_cluster[4];
@@ -563,11 +544,8 @@ ret_radial_cluster radial_cluster(float2 uvs_2[4], int count, float leaf_length,
   float3 colour_5 = (float3)0;
 
   float2 centre = float2(0.5, 0.5);
-  uint2 loop_bound_7 = uint2(4294967295u, 4294967295u);
   bool loop_init_7 = true;
-  while(true) {
-    if (all(loop_bound_7 == uint2(0u, 0u))) { break; }
-    loop_bound_7 -= uint2(loop_bound_7.y == 0u, 1u);
+  [allow_uav_condition] [loop] while(true) {
     if (!loop_init_7) {
       int _e175 = i_3;
       i_3 = asint(asuint(_e175) + asuint(int(1)));
@@ -599,11 +577,8 @@ ret_radial_cluster radial_cluster(float2 uvs_2[4], int count, float leaf_length,
       const float _e71 = unit(_e70);
       float3 leaf_colour_1 = lerp(base, tip, _e71);
       s_4 = int(0);
-      uint2 loop_bound_8 = uint2(4294967295u, 4294967295u);
       bool loop_init_8 = true;
-      while(true) {
-        if (all(loop_bound_8 == uint2(0u, 0u))) { break; }
-        loop_bound_8 -= uint2(loop_bound_8.y == 0u, 1u);
+      [allow_uav_condition] [loop] while(true) {
         if (!loop_init_8) {
           int _e172 = s_4;
           s_4 = asint(asuint(_e172) + asuint(int(1)));
@@ -667,11 +642,8 @@ Leaf needle_bundles(float2 uv_6)
   bool local_5 = (bool)0;
 
   const float _e9 = fbm2_(uv_6, int(32), int(2), 144u);
-  uint2 loop_bound_9 = uint2(4294967295u, 4294967295u);
   bool loop_init_9 = true;
-  while(true) {
-    if (all(loop_bound_9 == uint2(0u, 0u))) { break; }
-    loop_bound_9 -= uint2(loop_bound_9.y == 0u, 1u);
+  [allow_uav_condition] [loop] while(true) {
     if (!loop_init_9) {
       int _e181 = i_4;
       i_4 = asint(asuint(_e181) + asuint(int(1)));
@@ -769,11 +741,8 @@ Leaf needle_sprays(float2 uv_7)
   bool local_12 = (bool)0;
   bool local_13 = (bool)0;
 
-  uint2 loop_bound_10 = uint2(4294967295u, 4294967295u);
   bool loop_init_10 = true;
-  while(true) {
-    if (all(loop_bound_10 == uint2(0u, 0u))) { break; }
-    loop_bound_10 -= uint2(loop_bound_10.y == 0u, 1u);
+  [allow_uav_condition] [loop] while(true) {
     if (!loop_init_10) {
       int _e263 = i_5;
       i_5 = asint(asuint(_e263) + asuint(int(1)));
@@ -895,11 +864,8 @@ Leaf scale_sprays(float2 uv_8)
   int i_6 = int(0);
   int j = (int)0;
 
-  uint2 loop_bound_11 = uint2(4294967295u, 4294967295u);
   bool loop_init_11 = true;
-  while(true) {
-    if (all(loop_bound_11 == uint2(0u, 0u))) { break; }
-    loop_bound_11 -= uint2(loop_bound_11.y == 0u, 1u);
+  [allow_uav_condition] [loop] while(true) {
     if (!loop_init_11) {
       int _e174 = i_6;
       i_6 = asint(asuint(_e174) + asuint(int(1)));
@@ -921,11 +887,8 @@ Leaf scale_sprays(float2 uv_8)
       const float2 _e39 = segment_distance(uv_8, a_3, b_3);
       float spray_length = length((b_3 - a_3));
       j = int(0);
-      uint2 loop_bound_12 = uint2(4294967295u, 4294967295u);
       bool loop_init_12 = true;
-      while(true) {
-        if (all(loop_bound_12 == uint2(0u, 0u))) { break; }
-        loop_bound_12 -= uint2(loop_bound_12.y == 0u, 1u);
+      [allow_uav_condition] [loop] while(true) {
         if (!loop_init_12) {
           int _e139 = j;
           j = asint(asuint(_e139) + asuint(int(1)));
@@ -1052,11 +1015,8 @@ Leaf fine_leaves(float2 uv_10)
   bool local_19 = (bool)0;
   bool local_20 = (bool)0;
 
-  uint2 loop_bound_13 = uint2(4294967295u, 4294967295u);
   bool loop_init_13 = true;
-  while(true) {
-    if (all(loop_bound_13 == uint2(0u, 0u))) { break; }
-    loop_bound_13 -= uint2(loop_bound_13.y == 0u, 1u);
+  [allow_uav_condition] [loop] while(true) {
     if (!loop_init_13) {
       int _e150 = i_7;
       i_7 = asint(asuint(_e150) + asuint(int(1)));
@@ -1136,11 +1096,8 @@ float4 moss(float2 uv_11)
   float4 result_6 = (0.0).xxxx;
   int i_8 = int(0);
 
-  uint2 loop_bound_14 = uint2(4294967295u, 4294967295u);
   bool loop_init_14 = true;
-  while(true) {
-    if (all(loop_bound_14 == uint2(0u, 0u))) { break; }
-    loop_bound_14 -= uint2(loop_bound_14.y == 0u, 1u);
+  [allow_uav_condition] [loop] while(true) {
     if (!loop_init_14) {
       int _e86 = i_8;
       i_8 = asint(asuint(_e86) + asuint(int(1)));
@@ -1190,11 +1147,8 @@ float4 fern(float2 uv_12)
   bool local_24 = (bool)0;
   bool local_25 = (bool)0;
 
-  uint2 loop_bound_15 = uint2(4294967295u, 4294967295u);
   bool loop_init_15 = true;
-  while(true) {
-    if (all(loop_bound_15 == uint2(0u, 0u))) { break; }
-    loop_bound_15 -= uint2(loop_bound_15.y == 0u, 1u);
+  [allow_uav_condition] [loop] while(true) {
     if (!loop_init_15) {
       int _e147 = i_9;
       i_9 = asint(asuint(_e147) + asuint(int(1)));
@@ -1322,11 +1276,8 @@ ret_flora flora(int layer_1, float2 uvs_3[4])
         break;
       }
     }
-    uint2 loop_bound_16 = uint2(4294967295u, 4294967295u);
     bool loop_init_16 = true;
-    while(true) {
-      if (all(loop_bound_16 == uint2(0u, 0u))) { break; }
-      loop_bound_16 -= uint2(loop_bound_16.y == 0u, 1u);
+    [allow_uav_condition] [loop] while(true) {
       if (!loop_init_16) {
         int _e46 = s_5;
         s_5 = asint(asuint(_e46) + asuint(int(1)));
@@ -1346,11 +1297,8 @@ ret_flora flora(int layer_1, float2 uvs_3[4])
     Leaf _e49[4] = result_8;
     return _e49;
   }
-  uint2 loop_bound_17 = uint2(4294967295u, 4294967295u);
   bool loop_init_17 = true;
-  while(true) {
-    if (all(loop_bound_17 == uint2(0u, 0u))) { break; }
-    loop_bound_17 -= uint2(loop_bound_17.y == 0u, 1u);
+  [allow_uav_condition] [loop] while(true) {
     if (!loop_init_17) {
       int _e82 = s_6;
       s_6 = asint(asuint(_e82) + asuint(int(1)));
@@ -1472,11 +1420,8 @@ void gen_flora(uint3 id : SV_DispatchThreadID)
     return;
   }
   int layer_3 = int(id.z);
-  uint2 loop_bound_18 = uint2(4294967295u, 4294967295u);
   bool loop_init_18 = true;
-  while(true) {
-    if (all(loop_bound_18 == uint2(0u, 0u))) { break; }
-    loop_bound_18 -= uint2(loop_bound_18.y == 0u, 1u);
+  [allow_uav_condition] [loop] while(true) {
     if (!loop_init_18) {
       int _e61 = s;
       s = asint(asuint(_e61) + asuint(int(1)));
@@ -1497,11 +1442,8 @@ void gen_flora(uint3 id : SV_DispatchThreadID)
   }
   float2 _e64[4] = uvs;
   const Leaf _e65[4] = flora(layer_3, _e64);
-  uint2 loop_bound_19 = uint2(4294967295u, 4294967295u);
   bool loop_init_19 = true;
-  while(true) {
-    if (all(loop_bound_19 == uint2(0u, 0u))) { break; }
-    loop_bound_19 -= uint2(loop_bound_19.y == 0u, 1u);
+  [allow_uav_condition] [loop] while(true) {
     if (!loop_init_19) {
       int _e91 = s_1;
       s_1 = asint(asuint(_e91) + asuint(int(1)));

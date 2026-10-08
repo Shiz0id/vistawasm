@@ -85,11 +85,8 @@ void bake(uint3 id : SV_DispatchThreadID)
     if ((flat_length > 0.001)) {
       float2 direction = (sun.xz / (flat_length).xx);
       float metres = params.grid.x;
-      uint2 loop_bound = uint2(4294967295u, 4294967295u);
       bool loop_init = true;
-      while(true) {
-        if (all(loop_bound == uint2(0u, 0u))) { break; }
-        loop_bound -= uint2(loop_bound.y == 0u, 1u);
+      [allow_uav_condition] while(true) {
         if (!loop_init) {
           int _e98 = i;
           i = asint(asuint(_e98) + asuint(int(1)));

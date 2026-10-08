@@ -194,11 +194,8 @@ void write(uint list, uint slot, TreeInstance instance_1, float value_1, float w
 
   uint base = (slot * 9u);
   float values[9] = Constructarray9_float_(instance_1.position.x, instance_1.position.y, instance_1.position.z, instance_1.scale, instance_1.rotation, instance_1.tint, value_1, instance_1.dryness, width_1);
-  uint2 loop_bound = uint2(4294967295u, 4294967295u);
   bool loop_init = true;
-  while(true) {
-    if (all(loop_bound == uint2(0u, 0u))) { break; }
-    loop_bound -= uint2(loop_bound.y == 0u, 1u);
+  [allow_uav_condition] while(true) {
     if (!loop_init) {
       uint _e45 = i;
       i = (_e45 + 1u);
@@ -432,11 +429,8 @@ void cull_main(uint3 id : SV_DispatchThreadID)
       uint _e247; args.InterlockedAdd(5780, -1u, _e247);
     }
   }
-  uint2 loop_bound_1 = uint2(4294967295u, 4294967295u);
   bool loop_init_1 = true;
-  while(true) {
-    if (all(loop_bound_1 == uint2(0u, 0u))) { break; }
-    loop_bound_1 -= uint2(loop_bound_1.y == 0u, 1u);
+  [allow_uav_condition] while(true) {
     if (!loop_init_1) {
       int _e264 = p;
       p = asint(asuint(_e264) + asuint(int(1)));

@@ -52,11 +52,8 @@ void average_canopy(uint3 id : SV_DispatchThreadID)
   uint species = id.x;
   uint2 size = NagaDimensions2DArray(source);
   uint2 cell = naga_div(size, (3u).xx);
-  uint2 loop_bound = uint2(4294967295u, 4294967295u);
   bool loop_init = true;
-  while(true) {
-    if (all(loop_bound == uint2(0u, 0u))) { break; }
-    loop_bound -= uint2(loop_bound.y == 0u, 1u);
+  [allow_uav_condition] while(true) {
     if (!loop_init) {
       uint _e81 = variant;
       variant = (_e81 + 1u);
@@ -73,11 +70,8 @@ void average_canopy(uint3 id : SV_DispatchThreadID)
       uint _e24 = variant;
       int layer = int((((species * _e22) + _e24) * 2u));
       y = (cell.y * 2u);
-      uint2 loop_bound_1 = uint2(4294967295u, 4294967295u);
       bool loop_init_1 = true;
-      while(true) {
-        if (all(loop_bound_1 == uint2(0u, 0u))) { break; }
-        loop_bound_1 -= uint2(loop_bound_1.y == 0u, 1u);
+      [allow_uav_condition] while(true) {
         if (!loop_init_1) {
           uint _e78 = y;
           y = (_e78 + 1u);
@@ -90,11 +84,8 @@ void average_canopy(uint3 id : SV_DispatchThreadID)
         }
         {
           x = (cell.x * 2u);
-          uint2 loop_bound_2 = uint2(4294967295u, 4294967295u);
           bool loop_init_2 = true;
-          while(true) {
-            if (all(loop_bound_2 == uint2(0u, 0u))) { break; }
-            loop_bound_2 -= uint2(loop_bound_2.y == 0u, 1u);
+          [allow_uav_condition] while(true) {
             if (!loop_init_2) {
               uint _e75 = x;
               x = (_e75 + 1u);

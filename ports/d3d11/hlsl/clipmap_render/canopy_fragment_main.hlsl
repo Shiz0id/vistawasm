@@ -294,11 +294,8 @@ float canopy_clumps(float2 xz_1)
 
   float2 p_1 = (xz_1 / (9.0).xx);
   float2 cell = floor(p_1);
-  uint2 loop_bound = uint2(4294967295u, 4294967295u);
   bool loop_init = true;
   while(true) {
-    if (all(loop_bound == uint2(0u, 0u))) { break; }
-    loop_bound -= uint2(loop_bound.y == 0u, 1u);
     if (!loop_init) {
       int _e46 = j;
       j = asint(asuint(_e46) + asuint(int(1)));
@@ -311,11 +308,8 @@ float canopy_clumps(float2 xz_1)
     }
     {
       i = int(-1);
-      uint2 loop_bound_1 = uint2(4294967295u, 4294967295u);
       bool loop_init_1 = true;
       while(true) {
-        if (all(loop_bound_1 == uint2(0u, 0u))) { break; }
-        loop_bound_1 -= uint2(loop_bound_1.y == 0u, 1u);
         if (!loop_init_1) {
           int _e43 = i;
           i = asint(asuint(_e43) + asuint(int(1)));

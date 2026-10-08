@@ -73,11 +73,8 @@ float perlin3_(float3 p, int period_4, uint seed_2)
   int3 i_1 = naga_f2i32(floor(p));
   float3 f = frac(p);
   float3 u = (((f * f) * f) * ((f * ((f * 6.0) - (15.0).xxx)) + (10.0).xxx));
-  uint2 loop_bound = uint2(4294967295u, 4294967295u);
   bool loop_init = true;
-  while(true) {
-    if (all(loop_bound == uint2(0u, 0u))) { break; }
-    loop_bound -= uint2(loop_bound.y == 0u, 1u);
+  [allow_uav_condition] [loop] while(true) {
     if (!loop_init) {
       int _e45 = c;
       c = asint(asuint(_e45) + asuint(int(1)));
@@ -122,11 +119,8 @@ float worley3_(float3 p_1, int period_5, uint seed_3)
 
   int3 i_2 = naga_f2i32(floor(p_1));
   float3 f_1 = frac(p_1);
-  uint2 loop_bound_1 = uint2(4294967295u, 4294967295u);
   bool loop_init_1 = true;
-  while(true) {
-    if (all(loop_bound_1 == uint2(0u, 0u))) { break; }
-    loop_bound_1 -= uint2(loop_bound_1.y == 0u, 1u);
+  [allow_uav_condition] [loop] while(true) {
     if (!loop_init_1) {
       int _e55 = z;
       z = asint(asuint(_e55) + asuint(int(1)));
@@ -139,11 +133,8 @@ float worley3_(float3 p_1, int period_5, uint seed_3)
     }
     {
       y = int(-1);
-      uint2 loop_bound_2 = uint2(4294967295u, 4294967295u);
       bool loop_init_2 = true;
-      while(true) {
-        if (all(loop_bound_2 == uint2(0u, 0u))) { break; }
-        loop_bound_2 -= uint2(loop_bound_2.y == 0u, 1u);
+      [allow_uav_condition] [loop] while(true) {
         if (!loop_init_2) {
           int _e52 = y;
           y = asint(asuint(_e52) + asuint(int(1)));
@@ -156,11 +147,8 @@ float worley3_(float3 p_1, int period_5, uint seed_3)
         }
         {
           x = int(-1);
-          uint2 loop_bound_3 = uint2(4294967295u, 4294967295u);
           bool loop_init_3 = true;
-          while(true) {
-            if (all(loop_bound_3 == uint2(0u, 0u))) { break; }
-            loop_bound_3 -= uint2(loop_bound_3.y == 0u, 1u);
+          [allow_uav_condition] [loop] while(true) {
             if (!loop_init_3) {
               int _e49 = x;
               x = asint(asuint(_e49) + asuint(int(1)));
@@ -248,11 +236,8 @@ void gen_cloud(uint3 id : SV_DispatchThreadID)
     return;
   }
   float3 uvw_1 = ((float3(id) + (0.5).xxx) / float3(size));
-  uint2 loop_bound_4 = uint2(4294967295u, 4294967295u);
   bool loop_init_4 = true;
-  while(true) {
-    if (all(loop_bound_4 == uint2(0u, 0u))) { break; }
-    loop_bound_4 -= uint2(loop_bound_4.y == 0u, 1u);
+  [allow_uav_condition] [loop] while(true) {
     if (!loop_init_4) {
       int _e58 = i;
       i = asint(asuint(_e58) + asuint(int(1)));

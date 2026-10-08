@@ -63,11 +63,8 @@ void exchange(uint3 id : SV_DispatchThreadID)
     return;
   }
   float here = asfloat(terrain.Load(uint(asint(asuint(asint(asuint(y) * asuint(n))) + asuint(x)))*4));
-  uint2 loop_bound = uint2(4294967295u, 4294967295u);
   bool loop_init = true;
-  while(true) {
-    if (all(loop_bound == uint2(0u, 0u))) { break; }
-    loop_bound -= uint2(loop_bound.y == 0u, 1u);
+  [allow_uav_condition] while(true) {
     if (!loop_init) {
       int _e134 = oy;
       oy = asint(asuint(_e134) + asuint(int(1)));
@@ -80,11 +77,8 @@ void exchange(uint3 id : SV_DispatchThreadID)
     }
     {
       ox = int(-1);
-      uint2 loop_bound_1 = uint2(4294967295u, 4294967295u);
       bool loop_init_1 = true;
-      while(true) {
-        if (all(loop_bound_1 == uint2(0u, 0u))) { break; }
-        loop_bound_1 -= uint2(loop_bound_1.y == 0u, 1u);
+      [allow_uav_condition] while(true) {
         if (!loop_init_1) {
           int _e131 = ox;
           ox = asint(asuint(_e131) + asuint(int(1)));

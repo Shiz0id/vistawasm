@@ -108,6 +108,9 @@ const MODULES: &[Module] = &[
   },
 ];
 
+/// Modules whose loops are all kept rolled (see `write_entry`).
+const ROLLED_MODULES: &[&str] = &["texture_gen"];
+
 /// Direct3D 11 slots per stage at feature level 11.0.
 const MAX_CONSTANT_BUFFERS: usize = 14;
 const MAX_SAMPLERS: usize = 16;
@@ -392,6 +395,10 @@ fn write_entry(
     sampler_buffer_binding_map,
     fake_missing_bindings: false,
     zero_initialize_workgroup_memory: true,
+    // Naga bounds every loop with a 64-bit counter, against Direct3D 12
+    // drivers that assume loops end. fxc cannot unroll through it, and
+    // refuses some loops it would otherwise compile.
+    force_loop_bounding: false,
     ..Default::default()
   };
   let pipeline = hlsl::PipelineOptions {
@@ -407,7 +414,21 @@ fn write_entry(
     .next()
     .ok_or("no entry point written")?
     .map_err(|error| format!("{}::{}: {error:?}", source.name, entry.name))?;
-  let text = two_space_indent(&direct_samplers(&text)?);
+  let mut text = two_space_indent(&direct_samplers(&text)?);
+
+  // fxc refuses a loop in divergent flow whose exit depends on data read
+  // from a UAV (X3671) unless the loop says that is intended.
+  if entry.stage == ShaderStage::Compute {
+    text = text.replace("while(true) {", "[allow_uav_condition] while(true) {");
+  }
+
+  // fxc tries to unroll every loop whose count it can work out. In the
+  // texture bake's large shaders that takes it far longer than the bake
+  // gains, which runs once: gen_flora alone compiles in 3 minutes rolled,
+  // and had not finished after 15 unrolled.
+  if ROLLED_MODULES.contains(&source.name) {
+    text = text.replace("while(true) {", "[loop] while(true) {");
+  }
 
   let mut hazards = Vec::new();
   let used: Vec<(&Slot, u32)> = slots

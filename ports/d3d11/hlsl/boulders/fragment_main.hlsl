@@ -725,11 +725,8 @@ MaterialSample sample_projected(int material_3, float3 position_5, float3 ddx_p,
   MaterialSample result = ConstructMaterialSample((0.0).xxx, 0.0, (0.0).xx, 0.0, 0.0);
   int axis_1 = int(0);
 
-  uint2 loop_bound = uint2(4294967295u, 4294967295u);
   bool loop_init = true;
   while(true) {
-    if (all(loop_bound == uint2(0u, 0u))) { break; }
-    loop_bound -= uint2(loop_bound.y == 0u, 1u);
     if (!loop_init) {
       int _e66 = axis_1;
       axis_1 = asint(asuint(_e66) + asuint(int(1)));
@@ -781,11 +778,8 @@ float3 rock_cells(float2 p_1)
   int i = (int)0;
 
   float2 base = floor(p_1);
-  uint2 loop_bound_1 = uint2(4294967295u, 4294967295u);
   bool loop_init_1 = true;
   while(true) {
-    if (all(loop_bound_1 == uint2(0u, 0u))) { break; }
-    loop_bound_1 -= uint2(loop_bound_1.y == 0u, 1u);
     if (!loop_init_1) {
       int _e45 = j;
       j = asint(asuint(_e45) + asuint(int(1)));
@@ -798,11 +792,8 @@ float3 rock_cells(float2 p_1)
     }
     {
       i = int(-1);
-      uint2 loop_bound_2 = uint2(4294967295u, 4294967295u);
       bool loop_init_2 = true;
       while(true) {
-        if (all(loop_bound_2 == uint2(0u, 0u))) { break; }
-        loop_bound_2 -= uint2(loop_bound_2.y == 0u, 1u);
         if (!loop_init_2) {
           int _e42 = i;
           i = asint(asuint(_e42) + asuint(int(1)));

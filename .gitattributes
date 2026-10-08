@@ -27,3 +27,6 @@ README text
 *.zip binary
 *.tar binary
 *.gz binary
+
+# Compiled shaders
+*.cso binary

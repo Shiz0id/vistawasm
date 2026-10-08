@@ -100,11 +100,8 @@ float4 downsampled(int2 texel, int layer_3, uint mode)
   int x = (int)0;
 
   int2 base = asint(asuint(texel) * asuint(int(2)));
-  uint2 loop_bound = uint2(4294967295u, 4294967295u);
   bool loop_init = true;
-  while(true) {
-    if (all(loop_bound == uint2(0u, 0u))) { break; }
-    loop_bound -= uint2(loop_bound.y == 0u, 1u);
+  [allow_uav_condition] while(true) {
     if (!loop_init) {
       int _e52 = y;
       y = asint(asuint(_e52) + asuint(int(1)));
@@ -117,11 +114,8 @@ float4 downsampled(int2 texel, int layer_3, uint mode)
     }
     {
       x = int(0);
-      uint2 loop_bound_1 = uint2(4294967295u, 4294967295u);
       bool loop_init_1 = true;
-      while(true) {
-        if (all(loop_bound_1 == uint2(0u, 0u))) { break; }
-        loop_bound_1 -= uint2(loop_bound_1.y == 0u, 1u);
+      [allow_uav_condition] while(true) {
         if (!loop_init_1) {
           int _e49 = x;
           x = asint(asuint(_e49) + asuint(int(1)));
@@ -210,11 +204,8 @@ void downsample(uint3 id : SV_DispatchThreadID)
     uint _e39 = params.reference_texels;
     float wanted_1 = (float(_e35) / float(max(_e39, 1u)));
     float texels = float((size.x * size.y));
-    uint2 loop_bound_2 = uint2(4294967295u, 4294967295u);
     bool loop_init_2 = true;
-    while(true) {
-      if (all(loop_bound_2 == uint2(0u, 0u))) { break; }
-      loop_bound_2 -= uint2(loop_bound_2.y == 0u, 1u);
+    [allow_uav_condition] while(true) {
       if (!loop_init_2) {
         uint _e80 = k;
         k = (_e80 + 1u);

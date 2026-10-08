@@ -728,11 +728,8 @@ CloudResult march_clouds(float3 ray_1, float max_distance, float2 pixel_1)
   float phase1_ = ((lerp(_e245, _e247, 0.25) * 4.0) * PI);
   const float _e255 = henyey_greenstein(mu_1, 0.2);
   float phase2_ = ((lerp(_e255, 0.07957747, 0.5) * 4.0) * PI);
-  uint2 loop_bound = uint2(4294967295u, 4294967295u);
   bool loop_init = true;
   while(true) {
-    if (all(loop_bound == uint2(0u, 0u))) { break; }
-    loop_bound -= uint2(loop_bound.y == 0u, 1u);
     if (!loop_init) {
       int _e623 = i;
       i = asint(asuint(_e623) + asuint(int(1)));
@@ -802,11 +799,8 @@ CloudResult march_clouds(float3 ray_1, float max_distance, float2 pixel_1)
         float _e348 = t;
         inside = _e348;
         k = int(0);
-        uint2 loop_bound_1 = uint2(4294967295u, 4294967295u);
         bool loop_init_1 = true;
         while(true) {
-          if (all(loop_bound_1 == uint2(0u, 0u))) { break; }
-          loop_bound_1 -= uint2(loop_bound_1.y == 0u, 1u);
           if (!loop_init_1) {
             int _e378 = k;
             k = asint(asuint(_e378) + asuint(int(1)));
@@ -882,11 +876,8 @@ CloudResult march_clouds(float3 ray_1, float max_distance, float2 pixel_1)
       float _e440 = frame.clouds3_.x;
       int light_samples = ((_e440 > 0.6) ? int(3) : int(5));
       j = int(0);
-      uint2 loop_bound_2 = uint2(4294967295u, 4294967295u);
       bool loop_init_2 = true;
       while(true) {
-        if (all(loop_bound_2 == uint2(0u, 0u))) { break; }
-        loop_bound_2 -= uint2(loop_bound_2.y == 0u, 1u);
         if (!loop_init_2) {
           int _e478 = j;
           j = asint(asuint(_e478) + asuint(int(1)));
@@ -1120,11 +1111,8 @@ float4 rain_shafts(float3 ray_4, float max_distance_2)
   float _e59 = frame.atmosphere.z;
   float haze_distance = max((_e59 * 1.4), 1.0);
   const float3 _e64 = sky_radiance(ray_4);
-  uint2 loop_bound_3 = uint2(4294967295u, 4294967295u);
   bool loop_init_3 = true;
   while(true) {
-    if (all(loop_bound_3 == uint2(0u, 0u))) { break; }
-    loop_bound_3 -= uint2(loop_bound_3.y == 0u, 1u);
     if (!loop_init_3) {
       int _e186 = i_1;
       i_1 = asint(asuint(_e186) + asuint(int(1)));

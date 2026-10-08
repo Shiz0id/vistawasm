@@ -804,11 +804,8 @@ MaterialSample sample_projected(int material_4, float3 position_5, float3 ddx_p,
   MaterialSample result = ConstructMaterialSample((0.0).xxx, 0.0, (0.0).xx, 0.0, 0.0);
   int axis_1 = int(0);
 
-  uint2 loop_bound = uint2(4294967295u, 4294967295u);
   bool loop_init = true;
   while(true) {
-    if (all(loop_bound == uint2(0u, 0u))) { break; }
-    loop_bound -= uint2(loop_bound.y == 0u, 1u);
     if (!loop_init) {
       int _e66 = axis_1;
       axis_1 = asint(asuint(_e66) + asuint(int(1)));

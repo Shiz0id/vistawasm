@@ -289,11 +289,8 @@ float mesh_height(Texture2D<float4> heights_2, float4 terrain_1, float4 terrain2
   bool upper = ((_e104 + _e106) > 1.0);
   corners = Constructarray3_float2_(float2(_e35.x, _e40.y), float2(_e35.y, _e40.x), (upper ? float2(_e35.y, _e40.y) : float2(_e35.x, _e40.x)));
   float stride = (terrain_1.z / metres);
-  uint2 loop_bound = uint2(4294967295u, 4294967295u);
   bool loop_init = true;
-  while(true) {
-    if (all(loop_bound == uint2(0u, 0u))) { break; }
-    loop_bound -= uint2(loop_bound.y == 0u, 1u);
+  [allow_uav_condition] while(true) {
     if (!loop_init) {
       int _e180 = k;
       k = asint(asuint(_e180) + asuint(int(1)));
@@ -364,11 +361,8 @@ float grounded_base(Texture2D<float4> heights_3, float4 terrain_2, float4 terrai
   bool local_16 = (bool)0;
 
   int points = ((root_1 <= 0.0) ? int(1) : int(5));
-  uint2 loop_bound_1 = uint2(4294967295u, 4294967295u);
   bool loop_init_1 = true;
-  while(true) {
-    if (all(loop_bound_1 == uint2(0u, 0u))) { break; }
-    loop_bound_1 -= uint2(loop_bound_1.y == 0u, 1u);
+  [allow_uav_condition] while(true) {
     if (!loop_init_1) {
       int _e43 = point_;
       point_ = asint(asuint(_e43) + asuint(int(1)));

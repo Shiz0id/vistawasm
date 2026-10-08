@@ -5,6 +5,11 @@
 - `hlsl/manifest.json`: every file's entry point, profile and register for
   each WGSL binding.
 - `hlsl/compile-fxc.ps1`: compiles every file with `fxc` on Windows.
+- `cso/`: every file compiled with Microsoft's HLSL compiler, as
+  `<module>/<entry>.cso`, ready for `CreateVertexShader`,
+  `CreatePixelShader` and `CreateComputeShader`.
+- `tools/check-hlsl.sh`: compiles every file on Linux through Wine and
+  rewrites `cso/`. `tools/hlslc.c` is the small driver it uses.
 
 The C library for world generation is in `crates/vista_native`. Read
 [docs/porting-d3d11.md](../../docs/porting-d3d11.md) first.

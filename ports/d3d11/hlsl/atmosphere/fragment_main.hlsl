@@ -542,11 +542,8 @@ Fog atmospheric_fog(float3 ray, float distance_2, float2 pixel_1, bool include_h
     float _e115 = frame.mist_params.w;
     if ((_e115 > 0.001)) {
       const float _e120 = pixel_dither(pixel_1);
-      uint2 loop_bound = uint2(4294967295u, 4294967295u);
       bool loop_init = true;
       while(true) {
-        if (all(loop_bound == uint2(0u, 0u))) { break; }
-        loop_bound -= uint2(loop_bound.y == 0u, 1u);
         if (!loop_init) {
           int _e139 = i;
           i = asint(asuint(_e139) + asuint(int(1)));
@@ -647,11 +644,8 @@ float4 precipitation(float3 ray_2, float max_distance)
   float side_wind = dot(_e48.zw, float2(-(heading.y), heading.x));
   float angle = atan2(ray_2.z, ray_2.x);
   const float _e59 = terrain_height_at(camera_1.xz);
-  uint2 loop_bound_1 = uint2(4294967295u, 4294967295u);
   bool loop_init_1 = true;
   while(true) {
-    if (all(loop_bound_1 == uint2(0u, 0u))) { break; }
-    loop_bound_1 -= uint2(loop_bound_1.y == 0u, 1u);
     if (!loop_init_1) {
       int _e359 = layer_1;
       layer_1 = asint(asuint(_e359) + asuint(int(1)));
