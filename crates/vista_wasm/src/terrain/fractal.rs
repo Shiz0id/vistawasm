@@ -1,3 +1,4 @@
+use crate::maths::Portable;
 use std::sync::Arc;
 
 use vista_types::{FractalTerrainOptions, LandformKind, NoiseKind, TerrainEdges, TerrainMetadata};
@@ -134,7 +135,7 @@ pub fn generate_fractal_heightmap_base_with_progress(
   // itself is left for scree below cliffs in stage D.
   let threshold_slope = ((landform.talus_angle_degrees - HILLSLOPE_BELOW_TALUS) as f64)
     .to_radians()
-    .tan();
+    .portable_tan();
 
   // Lowlands erode for a limited time, so big rivers open broad vales
   // while the plains between them keep their gentle relief.
@@ -519,7 +520,7 @@ fn erode_lowlands(size: u32, spacing: f64, heights: &mut [f64], options: &Stream
   let rate = options.rate.map(|rate| {
     // Cells cover `scale^2` times the area, so the same drainage area is
     // fewer cells; scale the rate to erode just as fast.
-    rate * (scale * scale).powf(AREA_EXPONENT)
+    rate * (scale * scale).portable_powf(AREA_EXPONENT)
   });
   let no_uplift = vec![0.0; coarse.len()];
   stream_power(
@@ -990,7 +991,9 @@ fn shape_noise(options: &FractalTerrainOptions, x: f32, y: f32, mut value: f32) 
 }
 
 fn apply_island(x: f32, y: f32, value: f32, amount: f32) -> f32 {
-  let falloff = distance_from_centre(x, y).powf(1.5).clamp(0.0, 1.0);
+  let falloff = distance_from_centre(x, y)
+    .portable_powf(1.5)
+    .clamp(0.0, 1.0);
   value - falloff * amount.clamp(0.0, 1.2)
 }
 
@@ -1001,7 +1004,7 @@ fn distance_from_centre(x: f32, y: f32) -> f32 {
 }
 
 fn canyon_mask(x: f32, y: f32) -> f32 {
-  let channel = (x * 1.8 + (y * 8.0).sin() * 0.08 - 0.9).abs();
+  let channel = (x * 1.8 + (y * 8.0).portable_sin() * 0.08 - 0.9).abs();
   (1.0 - channel * 5.0).clamp(0.0, 1.0)
 }
 

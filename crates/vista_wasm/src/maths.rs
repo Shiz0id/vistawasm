@@ -1,5 +1,95 @@
 use vista_types::Vec3;
 
+/// Transcendental functions that give the same bits on every target.
+///
+/// `f32::sin` and its kin call the platform's maths library: Rust's own
+/// port of musl's in the browser build, the C runtime's natively. They
+/// differ in the last bit now and then, and the generator amplifies that:
+/// a river can take another path, so the same seed made another map
+/// natively than in the browser. These call the `libm` crate, the same
+/// code the browser build always used, on every target.
+pub trait Portable: Copy {
+  fn portable_sin(self) -> Self;
+  fn portable_cos(self) -> Self;
+  fn portable_sin_cos(self) -> (Self, Self);
+  fn portable_tan(self) -> Self;
+  fn portable_asin(self) -> Self;
+  fn portable_acos(self) -> Self;
+  fn portable_atan(self) -> Self;
+  fn portable_atan2(self, x: Self) -> Self;
+  fn portable_exp(self) -> Self;
+  fn portable_ln(self) -> Self;
+  fn portable_log10(self) -> Self;
+  fn portable_powf(self, power: Self) -> Self;
+  fn portable_hypot(self, other: Self) -> Self;
+}
+
+macro_rules! portable {
+  (
+    $float:ty, $sin:ident, $cos:ident, $sincos:ident, $tan:ident, $asin:ident, $acos:ident,
+    $atan:ident, $atan2:ident, $exp:ident, $ln:ident, $log10:ident, $pow:ident, $hypot:ident
+  ) => {
+    impl Portable for $float {
+      fn portable_sin(self) -> Self {
+        libm::$sin(self)
+      }
+
+      fn portable_cos(self) -> Self {
+        libm::$cos(self)
+      }
+
+      fn portable_sin_cos(self) -> (Self, Self) {
+        libm::$sincos(self)
+      }
+
+      fn portable_tan(self) -> Self {
+        libm::$tan(self)
+      }
+
+      fn portable_asin(self) -> Self {
+        libm::$asin(self)
+      }
+
+      fn portable_acos(self) -> Self {
+        libm::$acos(self)
+      }
+
+      fn portable_atan(self) -> Self {
+        libm::$atan(self)
+      }
+
+      fn portable_atan2(self, x: Self) -> Self {
+        libm::$atan2(self, x)
+      }
+
+      fn portable_exp(self) -> Self {
+        libm::$exp(self)
+      }
+
+      fn portable_ln(self) -> Self {
+        libm::$ln(self)
+      }
+
+      fn portable_log10(self) -> Self {
+        libm::$log10(self)
+      }
+
+      fn portable_powf(self, power: Self) -> Self {
+        libm::$pow(self, power)
+      }
+
+      fn portable_hypot(self, other: Self) -> Self {
+        libm::$hypot(self, other)
+      }
+    }
+  };
+}
+
+portable!(
+  f32, sinf, cosf, sincosf, tanf, asinf, acosf, atanf, atan2f, expf, logf, log10f, powf, hypotf
+);
+portable!(f64, sin, cos, sincos, tan, asin, acos, atan, atan2, exp, log, log10, pow, hypot);
+
 /// Clamp a value to an inclusive range while treating NaN as the lower bound.
 pub fn clamp_f32(value: f32, min: f32, max: f32) -> f32 {
   if value.is_nan() {
@@ -135,12 +225,12 @@ pub fn mat4_multiply(a: [f32; 16], b: [f32; 16]) -> [f32; 16] {
 pub fn sun_direction_vector(azimuth_degrees: f32, elevation_degrees: f32) -> Vec3 {
   let azimuth = azimuth_degrees.to_radians();
   let elevation = elevation_degrees.to_radians();
-  let horizontal = elevation.cos();
+  let horizontal = elevation.portable_cos();
 
   normalise([
-    azimuth.cos() * horizontal,
-    elevation.sin(),
-    azimuth.sin() * horizontal,
+    azimuth.portable_cos() * horizontal,
+    elevation.portable_sin(),
+    azimuth.portable_sin() * horizontal,
   ])
 }
 

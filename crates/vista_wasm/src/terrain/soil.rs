@@ -20,6 +20,7 @@
 //! and the ground just below each outcrop) tells the boulder generator
 //! where fallen blocks lie and how far down their cone they came.
 
+use crate::maths::Portable;
 use vista_types::{LandformKind, Vec3};
 
 use crate::maths::{hash_u64, smoothstep, value_noise};
@@ -93,10 +94,10 @@ impl Strata {
     let roll = |salt: u64| (hash_u64(seed ^ salt) >> 40) as f32 / 16_777_216.0;
     let angle = roll(0x51a7) * std::f32::consts::TAU;
     let degrees = dip.0 + (dip.1 - dip.0) * roll(0xd1b5);
-    let rise = degrees.to_radians().tan();
+    let rise = degrees.to_radians().portable_tan();
     Self {
       period: period.0 + (period.1 - period.0) * roll(0x9e3f),
-      dip: [angle.cos() * rise, angle.sin() * rise],
+      dip: [angle.portable_cos() * rise, angle.portable_sin() * rise],
       seed,
       outcrop,
     }
@@ -125,7 +126,7 @@ impl Strata {
   /// How hard the bed at a phase is, 0 to 1: about a third of each period
   /// is a hard bed, with soft edges.
   pub fn hardness(phase: f32) -> f32 {
-    smoothstep(((phase * std::f32::consts::TAU).sin() - 0.25) / 0.45)
+    smoothstep(((phase * std::f32::consts::TAU).portable_sin() - 0.25) / 0.45)
   }
 
   /// How much of a hard bed crops out at world `(x, z)`, 0 to 1. Beds pinch
@@ -275,7 +276,7 @@ impl Coarse {
 
 /// Slope in degrees from a unit normal.
 fn slope_of(normal: Vec3) -> f32 {
-  normal[1].clamp(-1.0, 1.0).acos().to_degrees()
+  normal[1].clamp(-1.0, 1.0).portable_acos().to_degrees()
 }
 
 /// Soil depth, in metres, at one sample. `convexity` is the mean
@@ -294,7 +295,7 @@ pub fn soil_depth(site: Site, slope: f32, convexity: f32, drainage: f32, hardnes
   };
   // Open hillslopes gather little: soil deepens from about 20 samples
   // upstream, and most on valley floors.
-  let accumulation = smoothstep((drainage.max(1.0).ln() - 3.0) / 6.0);
+  let accumulation = smoothstep((drainage.max(1.0).portable_ln() - 3.0) / 6.0);
   let frost = site.frost.clamp(0.0, 1.0);
   let strata = 1.5 * hardness * smoothstep((slope - 22.0) / 8.0);
   (base - slope_loss - convexity_loss + accumulation - frost - strata).clamp(0.0, MAX_SOIL_METRES)
@@ -643,7 +644,7 @@ mod tests {
     // Parallel ridges and valleys 240 m apart, falling gently to the
     // south so the valleys drain.
     let map = map_of(96, 10.0, |x, z| {
-      20.0 * (x / 240.0 * std::f32::consts::TAU).cos() + (960.0 - z) * 0.05
+      20.0 * (x / 240.0 * std::f32::consts::TAU).portable_cos() + (960.0 - z) * 0.05
     });
     let depth = depths(&map);
     let size = 96usize;
@@ -666,7 +667,7 @@ mod tests {
   #[test]
   fn the_soil_field_is_deterministic() {
     let map = map_of(64, 12.0, |x, z| {
-      300.0 * ((x / 300.0).sin() * (z / 250.0).cos()).abs() + 0.2 * x
+      300.0 * ((x / 300.0).portable_sin() * (z / 250.0).portable_cos()).abs() + 0.2 * x
     });
     let options = SoilOptions {
       rockiness: 1.3,
@@ -677,7 +678,9 @@ mod tests {
 
   #[test]
   fn rockiness_zero_keeps_deep_soil_everywhere_and_two_bares_more_rock() {
-    let map = map_of(64, 12.0, |x, z| (x - 384.0).hypot(z - 384.0) * -0.7 + 500.0);
+    let map = map_of(64, 12.0, |x, z| {
+      (x - 384.0).portable_hypot(z - 384.0) * -0.7 + 500.0
+    });
     let rock = |rockiness: f32| {
       field(
         &map,
@@ -698,9 +701,9 @@ mod tests {
 
   /// A 30-degree cone 1,500 m across, at 6 m a sample.
   fn cone() -> HeightMap {
-    let rise = 30f32.to_radians().tan();
+    let rise = 30f32.to_radians().portable_tan();
     map_of(256, 6.0, |x, z| {
-      (1100.0 - (x - 765.0).hypot(z - 765.0) * rise).max(0.0)
+      (1100.0 - (x - 765.0).portable_hypot(z - 765.0) * rise).max(0.0)
     })
   }
 
@@ -727,7 +730,7 @@ mod tests {
     // and the foot).
     for start in 0..size * size {
       let (sx, sy) = ((start % size) as f32, (start / size) as f32);
-      let radius = (sx - centre).hypot(sy - centre);
+      let radius = (sx - centre).portable_hypot(sy - centre);
 
       if !rocky[start] || label[start] != usize::MAX || !(15.0..110.0).contains(&radius) {
         continue;
@@ -750,7 +753,7 @@ mod tests {
           }
 
           let n = (ny as usize) * size + nx as usize;
-          let r = ((nx as f32) - centre).hypot(ny as f32 - centre);
+          let r = ((nx as f32) - centre).portable_hypot(ny as f32 - centre);
 
           if rocky[n] && label[n] == usize::MAX && (15.0..110.0).contains(&r) {
             label[n] = id;
@@ -783,8 +786,8 @@ mod tests {
         sxy += (x - mx) * (y - my);
       }
 
-      let axis = 0.5 * (2.0 * sxy).atan2(sxx - syy);
-      let tangent = (my - centre).atan2(mx - centre) + std::f32::consts::FRAC_PI_2;
+      let axis = 0.5 * (2.0 * sxy).portable_atan2(sxx - syy);
+      let tangent = (my - centre).portable_atan2(mx - centre) + std::f32::consts::FRAC_PI_2;
       let mut angle = (axis - tangent).rem_euclid(std::f32::consts::PI);
 
       if angle > std::f32::consts::FRAC_PI_2 {
@@ -827,11 +830,11 @@ mod tests {
       if z < talus_start {
         cliff
       } else if z < toe {
-        350.0 - (z - talus_start) * 32f32.to_radians().tan()
+        350.0 - (z - talus_start) * 32f32.to_radians().portable_tan()
       } else {
         350.0
-          - (toe - talus_start) * 32f32.to_radians().tan()
-          - (z - toe) * 12f32.to_radians().tan()
+          - (toe - talus_start) * 32f32.to_radians().portable_tan()
+          - (z - toe) * 12f32.to_radians().portable_tan()
       }
     });
     let soil = field(&map, &SoilOptions::default());

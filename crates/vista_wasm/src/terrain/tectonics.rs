@@ -6,6 +6,7 @@
 //! mask to part of the land and faded in from the coast. The result is a
 //! base elevation and an uplift rate for the stream-power stage.
 
+use crate::maths::Portable;
 use vista_types::LandformKind;
 
 use crate::terrain::landforms::Landform;
@@ -269,7 +270,7 @@ pub fn tectonic_base(
 
       if volcanic {
         let (sx, sy) = (x - summit.0, y - summit.1);
-        let (sin, cos) = stretch_angle.sin_cos();
+        let (sin, cos) = stretch_angle.portable_sin_cos();
         let along = (sx * cos + sy * sin) / stretch;
         let across = -sx * sin + sy * cos;
         let r = (along * along + across * across).sqrt();
@@ -285,7 +286,7 @@ pub fn tectonic_base(
               0.5,
               2.0,
             );
-        cone[gy * n + gx] = profile.powf(1.3) * lumps;
+        cone[gy * n + gx] = profile.portable_powf(1.3) * lumps;
       }
 
       raw.push(continent);

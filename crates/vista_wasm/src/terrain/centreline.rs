@@ -621,6 +621,7 @@ pub fn simplify(points: &[ChannelPoint], keep: &[bool], tolerance: f32) -> Vec<C
 #[cfg(test)]
 mod tests {
   use super::*;
+  use crate::maths::Portable;
   use crate::terrain::channels::{
     condition_channels, raw_streams, CarveRecord, ChannelContext, Channels,
   };
@@ -652,7 +653,7 @@ mod tests {
   /// A V valley 160 samples at 30 m, its axis through (10, 10) at 30
   /// degrees to the grid, falling along it to the map edge.
   fn slanted_valley() -> HeightMap {
-    let (sin, cos) = 30f32.to_radians().sin_cos();
+    let (sin, cos) = 30f32.to_radians().portable_sin_cos();
     crate::terrain::hydrology::tests::map_from(160, 30.0, move |x, y| {
       let (dx, dy) = (x as f32 - 10.0, y as f32 - 10.0);
       let along = dx * cos + dy * sin;
@@ -676,7 +677,7 @@ mod tests {
   fn a_valley_across_the_grid_gets_a_smooth_centreline_on_its_axis() {
     let mut map = slanted_valley();
     let points = trunk(&channels(&mut map, &options()));
-    let (sin, cos) = 30f32.to_radians().sin_cos();
+    let (sin, cos) = 30f32.to_radians().portable_sin_cos();
     let xy: Vec<[f32; 2]> = points.iter().map(|p| [p.x, p.y]).collect();
     // Away from the head and the map edge, where the points are pinned.
     let inner = |p: &[f32; 2]| p[0] > 3.0 && p[1] > 3.0 && p[0] < 156.0 && p[1] < 156.0;

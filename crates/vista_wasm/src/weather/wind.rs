@@ -2,6 +2,7 @@
 //! rain and water share, and the sea state it raises.
 
 use crate::maths::smoothstep;
+use crate::maths::Portable;
 
 /// Gust patterns are carried along at this share of the mean wind.
 pub const GUST_TRAVEL: f32 = 1.0;
@@ -62,7 +63,7 @@ pub fn sea_state(wind: f32, fetch_metres: f32) -> SeaState {
   let whitecaps = if wind < 4.0 {
     0.0
   } else {
-    (3.84e-6 * wind.powf(3.41)).min(0.3)
+    (3.84e-6 * wind.portable_powf(3.41)).min(0.3)
   };
 
   SeaState {

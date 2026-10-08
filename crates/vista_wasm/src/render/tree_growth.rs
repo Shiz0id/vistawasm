@@ -26,6 +26,7 @@
 //! GPU. It is deterministic: a species, variant and age class always grow
 //! the same tree.
 
+use crate::maths::Portable;
 use crate::render::flora::{species_trunk_radius, TRUNK_BREAST_HEIGHT};
 use crate::render::tree_models::{layers, pack_normal, TreeMesh, TreeSpecies, TreeVertex};
 
@@ -101,7 +102,7 @@ pub(crate) fn normalise(a: V3) -> V3 {
 
 /// Rotate `v` around unit `axis` by `angle` radians.
 fn rotate(v: V3, axis: V3, angle: f32) -> V3 {
-  let (s, c) = angle.sin_cos();
+  let (s, c) = angle.portable_sin_cos();
   add(
     add(scale(v, c), scale(cross(axis, v), s)),
     scale(axis, dot(axis, v) * (1.0 - c)),
@@ -198,11 +199,13 @@ impl Envelope {
 
     let shape = match self.profile {
       Profile::Ellipsoid => (1.0 - (2.0 * u - 1.0).powi(2)).max(0.0).sqrt(),
-      Profile::Cone => (1.0 - u).powf(0.9) * (u * 12.0).min(1.0).sqrt(),
+      Profile::Cone => (1.0 - u).portable_powf(0.9) * (u * 12.0).min(1.0).sqrt(),
       Profile::Umbrella => {
         (1.0 - (1.0 - u).powi(2)).max(0.0).sqrt() * (1.0 - 0.35 * ((u - 0.85) / 0.15).max(0.0))
       }
-      Profile::Column => (1.0 - (2.0 * u - 1.0).abs().powi(4)).max(0.0).powf(0.25),
+      Profile::Column => (1.0 - (2.0 * u - 1.0).abs().powi(4))
+        .max(0.0)
+        .portable_powf(0.25),
       Profile::Dome => (1.0 - u * u).max(0.0).sqrt(),
     };
 
@@ -689,7 +692,11 @@ pub fn grow(species: TreeSpecies, variant: usize, age: Age) -> Grown {
     for stem in 0..f.stems {
       let yaw = spin + stem as f32 / f.stems as f32 * std::f32::consts::TAU + rng.range(-0.3, 0.3);
       let tilt = rng.range(0.3, 0.75) + if age == Age::Young { 0.5 } else { 0.0 };
-      let heading = [tilt.sin() * yaw.sin(), tilt.cos(), tilt.sin() * yaw.cos()];
+      let heading = [
+        tilt.portable_sin() * yaw.portable_sin(),
+        tilt.portable_cos(),
+        tilt.portable_sin() * yaw.portable_cos(),
+      ];
       let mut parent = 0;
       let mut position = [0.0, 0.0, 0.0];
 
@@ -733,7 +740,11 @@ pub fn grow(species: TreeSpecies, variant: usize, age: Age) -> Grown {
       let reach = env.radius_at(y);
       let angle = rng.unit() * std::f32::consts::TAU;
       let out = rng.range(0.25, 0.75) * reach;
-      let centre = [env.shift + out * angle.sin(), y, out * angle.cos()];
+      let centre = [
+        env.shift + out * angle.portable_sin(),
+        y,
+        out * angle.portable_cos(),
+      ];
       (
         centre,
         rng.range(0.45, 0.7) * env.radius.max(env.top - env.bottom),
@@ -797,7 +808,11 @@ pub fn grow(species: TreeSpecies, variant: usize, age: Age) -> Grown {
       let angle = rng.unit() * std::f32::consts::TAU;
       let reach = rng.range(1.2, 2.8);
       grown.knees.push((
-        [reach * angle.sin(), 0.0, reach * angle.cos()],
+        [
+          reach * angle.portable_sin(),
+          0.0,
+          reach * angle.portable_cos(),
+        ],
         rng.range(0.25, 0.6),
         rng.range(0.07, 0.13),
       ));
@@ -1086,7 +1101,7 @@ fn pipe_radii(nodes: &mut [Node], species: TreeSpecies, tip: f32) {
   // Foliage pipes per branch node, so the trunk at breast height carries
   // the species' radius with twigs of the tip radius.
   let breast = breast_node(nodes);
-  let wanted = (core_radius(species) / tip).powf(PIPE_EXPONENT);
+  let wanted = (core_radius(species) / tip).portable_powf(PIPE_EXPONENT);
   let foliage = if species == TreeSpecies::Shrub {
     2.0
   } else if along[breast] > 0.0 {
@@ -1107,11 +1122,11 @@ fn pipe_radii(nodes: &mut [Node], species: TreeSpecies, tip: f32) {
   let unit = if species == TreeSpecies::Shrub {
     tip
   } else {
-    core_radius(species) / pipes[breast].powf(1.0 / PIPE_EXPONENT)
+    core_radius(species) / pipes[breast].portable_powf(1.0 / PIPE_EXPONENT)
   };
 
   for (node, pipe) in nodes.iter_mut().zip(pipes) {
-    node.radius = unit * pipe.powf(1.0 / PIPE_EXPONENT);
+    node.radius = unit * pipe.portable_powf(1.0 / PIPE_EXPONENT);
   }
 }
 
@@ -1147,7 +1162,7 @@ fn grow_palm(f: &Form, age: Age, rng: &mut Rng) -> Grown {
   let h = f.height;
   let segments = 18;
   let lean = rng.unit() * std::f32::consts::TAU;
-  let (sin, cos) = lean.sin_cos();
+  let (sin, cos) = lean.portable_sin_cos();
   let bend = match age {
     Age::Young => 0.05,
     Age::Old | Age::Krummholz => 0.22,
@@ -1159,7 +1174,7 @@ fn grow_palm(f: &Form, age: Age, rng: &mut Rng) -> Grown {
   // A gentle S-curve: lean out, then curve back up towards the light.
   for i in 0..=segments {
     let t = i as f32 / segments as f32;
-    let out = bend * h * (t * std::f32::consts::PI * 0.8).sin() * t;
+    let out = bend * h * (t * std::f32::consts::PI * 0.8).portable_sin() * t;
     nodes.push(Node {
       position: [sin * out, t * trunk_top, cos * out],
       parent: if i == 0 { NONE } else { i - 1 },
@@ -1202,9 +1217,9 @@ fn grow_palm(f: &Form, age: Age, rng: &mut Rng) -> Grown {
       rng.range(4.6, 5.8)
     } * if age == Age::Young { 0.8 } else { 1.0 };
     let heading = [
-      elevation.cos() * yaw.sin(),
-      elevation.sin(),
-      elevation.cos() * yaw.cos(),
+      elevation.portable_cos() * yaw.portable_sin(),
+      elevation.portable_sin(),
+      elevation.portable_cos() * yaw.portable_cos(),
     ];
     fronds.push((top, heading, length, if young { 0.3 } else { 1.9 }));
   }
@@ -1307,7 +1322,7 @@ impl Builder {
     let trig: Vec<(f32, f32, f32)> = (0..=sides)
       .map(|side| {
         let angle = side as f32 / sides as f32 * std::f32::consts::TAU;
-        let (s, c) = angle.sin_cos();
+        let (s, c) = angle.portable_sin_cos();
         (angle, s, c)
       })
       .collect();
@@ -1627,8 +1642,11 @@ pub fn mesh(grown: &Grown, lod: usize) -> TreeMesh {
       let mut r = flare(y);
 
       if buttressed && y < 3.5 {
-        let fin = (angle * fins as f32 + fin_phase).cos().max(0.0).powi(8);
-        r += fin * 1.6 * (1.0 - y.max(0.0) / 3.5).powf(1.6);
+        let fin = (angle * fins as f32 + fin_phase)
+          .portable_cos()
+          .max(0.0)
+          .powi(8);
+        r += fin * 1.6 * (1.0 - y.max(0.0) / 3.5).portable_powf(1.6);
       }
 
       r
@@ -1859,11 +1877,15 @@ mod tests {
         }
 
         forks += 1;
-        let parent = node.radius.powf(PIPE_EXPONENT);
+        let parent = node.radius.portable_powf(PIPE_EXPONENT);
         let children: f32 = node
           .children
           .iter()
-          .map(|child| grown.nodes[*child as usize].radius.powf(PIPE_EXPONENT))
+          .map(|child| {
+            grown.nodes[*child as usize]
+              .radius
+              .portable_powf(PIPE_EXPONENT)
+          })
           .sum();
         assert!(
           (parent - children).abs() <= parent * 0.01,

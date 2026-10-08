@@ -176,9 +176,9 @@ TerrainWholeOp("Auto-splat (Vista)", region, [&](SelotapeTerrain::Terrain_s& t) 
 });
 ```
 
-On ground nobody sculpted it agrees with `Generate`'s painting on 94% of
-samples. The rest differs only where Vista's rivers would carve their beds
-again.
+On ground nobody sculpted it agrees with `Generate`'s painting on about
+nine samples in ten (88% on the test's 1 km mesa desert). The rest differs
+where Vista's rivers would carve their beds again.
 
 ### 5. The apron
 

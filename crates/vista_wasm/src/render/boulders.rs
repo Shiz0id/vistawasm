@@ -21,6 +21,7 @@
 //! reads the same lattice, so foam breaks on the stones that are there.
 
 use crate::maths::smoothstep;
+use crate::maths::Portable;
 use crate::render::lattice::{jittered, point_hash, unit};
 use crate::render::vegetation::{in_channel, tile_first, GroundData};
 
@@ -221,8 +222,8 @@ impl BoulderRules {
 /// scaled from 0.75 at the outcrop's foot to 1.35 at the cone's end.
 pub fn boulder_size(u: f32, position: f32) -> f32 {
   let (small, large) = BOULDER_SIZES;
-  let tail = (small / large).powf(SIZE_EXPONENT);
-  let size = small * (1.0 - u * (1.0 - tail)).powf(-1.0 / SIZE_EXPONENT);
+  let tail = (small / large).portable_powf(SIZE_EXPONENT);
+  let size = small * (1.0 - u * (1.0 - tail)).portable_powf(-1.0 / SIZE_EXPONENT);
   (size * (0.75 + 0.6 * position)).clamp(small, large)
 }
 
@@ -443,7 +444,11 @@ impl BoulderMeshes {
             roll(10 + cut) * std::f32::consts::TAU,
             0.5 * roll(20 + cut) - 0.3,
           );
-          let normal = [a.cos() * b.cos(), b.sin(), a.sin() * b.cos()];
+          let normal = [
+            a.portable_cos() * b.portable_cos(),
+            b.portable_sin(),
+            a.portable_sin() * b.portable_cos(),
+          ];
           let reach = dot(p, normal) - (0.55 + 0.2 * roll(30 + cut));
 
           if reach > 0.0 {
@@ -746,7 +751,11 @@ mod tests {
     let brook: Vec<[f32; 3]> = (0..240)
       .map(|i| {
         let x = -120.0 + i as f32;
-        [x, 6.0 * (x / 25.0 * std::f32::consts::TAU).sin(), 0.4]
+        [
+          x,
+          6.0 * (x / 25.0 * std::f32::consts::TAU).portable_sin(),
+          0.4,
+        ]
       })
       .collect();
     let rivers = crate::render::water::RiverNetwork {

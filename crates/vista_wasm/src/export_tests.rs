@@ -1,5 +1,6 @@
 //! Map and tree export against the engine's own data.
 
+use crate::maths::Portable;
 use vista_types::{
   BiomeKind, FloraOptions, FractalTerrainOptions, RawHeightmapOptions, RawSampleFormat,
   VistaEngineOptions,
@@ -162,7 +163,7 @@ fn nearest_resampling_keeps_only_biomes_the_map_has() {
 fn plane(degrees: f32) -> EngineCore {
   let mut engine = EngineCore::new_for_tests(VistaEngineOptions::default()).unwrap();
   let (size, metres) = (64u32, 10.0f32);
-  let rise = degrees.to_radians().tan() * metres;
+  let rise = degrees.to_radians().portable_tan() * metres;
   let bytes: Vec<u8> = (0..size * size)
     .flat_map(|index| (100.0 + (index % size) as f32 * rise).to_le_bytes())
     .collect();

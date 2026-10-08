@@ -2,6 +2,8 @@
 //! `pack_ice` and of the noise texture it samples (`gen_noise` in
 //! `shaders/texture_gen.wgsl`), at full detail near the camera.
 
+use crate::maths::Portable;
+
 const NOISE_SIZE: usize = 512;
 
 pub(super) fn pcg(value: u32) -> u32 {
@@ -19,7 +21,7 @@ fn perlin(p: [f32; 2], period: i32, seed: u32) -> f32 {
   let gradient = |x: i32, y: i32| {
     let h = pcg(wrap(x).wrapping_add(pcg(wrap(y).wrapping_add(pcg(seed)))));
     let angle = unit(h) * std::f32::consts::TAU;
-    (angle.cos(), angle.sin())
+    (angle.portable_cos(), angle.portable_sin())
   };
   let (ix, iy) = (p[0].floor() as i32, p[1].floor() as i32);
   let (fx, fy) = (p[0] - ix as f32, p[1] - iy as f32);
@@ -183,8 +185,8 @@ fn pack_ice(noise: &NoiseTexture, p: [f32; 2], c: f32) -> (f32, f32) {
 
   let across = -0.6 * p[0] + 0.8 * p[1];
   let along = 0.8 * p[0] + 0.6 * p[1];
-  let bend = 150.0 * (along * 0.003 + 0.8 * (across * 0.0009).sin()).sin()
-    + 90.0 * (along * 0.0011 + 1.7).sin();
+  let bend = 150.0 * (along * 0.003 + 0.8 * (across * 0.0009).portable_sin()).portable_sin()
+    + 90.0 * (along * 0.0011 + 1.7).portable_sin();
   let q = [along / 16000.0, (across + bend) / 2000.0];
   let [r, g] = noise.sample(q);
   let width = 0.032 + (0.011 - 0.032) * c;

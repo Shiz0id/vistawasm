@@ -21,6 +21,7 @@
 //! walls into a U shape. [`plane_valley_floors`] then gives valleys flat
 //! floors and over-deepens the largest glacial troughs.
 
+use crate::maths::Portable;
 use crate::terrain::drainage::{
   accumulate, accumulate_into, edge_or_sea_outlet, neighbours, priority_flood, stack_order,
   total_order_bits, StackOrder, NO_RECEIVER,
@@ -134,7 +135,7 @@ pub fn stream_power(
   // `(area / cell area)^m` for every possible cell count, since areas are
   // whole numbers of cells and `powf` dominates the solve otherwise.
   let area_power: Vec<f64> = (0..=count)
-    .map(|cells| (cells as f64).powf(options.area_exponent))
+    .map(|cells| (cells as f64).portable_powf(options.area_exponent))
     .collect();
 
   for iteration in 0..options.iterations.max(1) {
@@ -610,11 +611,11 @@ pub fn plane_valley_floors(
   let mut trough = vec![0.0f64; count];
   let mut heap = BinaryHeap::new();
   let largest = area.iter().cloned().fold(cell_area, f32::max);
-  let log_largest = ((largest / cell_area) as f64).ln().max(1.0);
+  let log_largest = ((largest / cell_area) as f64).portable_ln().max(1.0);
 
   for i in 0..count {
     if heights[i] > 0.0 && area[i] >= cell_area * FLOODPLAIN_MIN_CELLS {
-      let flux = ((area[i] / cell_area) as f64).ln() / log_largest;
+      let flux = ((area[i] / cell_area) as f64).portable_ln() / log_largest;
       let ice = glacial * smooth(0.3, 0.8, flux);
       let width = (FLOODPLAIN_WIDTH * (area[i] as f64).sqrt() * (1.0 + ice)).min(widest);
       let level = heights[i];
@@ -868,8 +869,8 @@ mod tests {
 
         while area[cell] >= cell_area * 20.0 && steps < area.len() {
           steps += 1;
-          let x = ((area[cell] / cell_area) as f64).ln();
-          let y = length[cell].max(1.0).ln();
+          let x = ((area[cell] / cell_area) as f64).portable_ln();
+          let y = length[cell].max(1.0).portable_ln();
           sx += x;
           sy += y;
           sxx += x * x;

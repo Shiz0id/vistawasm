@@ -914,6 +914,7 @@ dependencies = [
  "futures-channel",
  "futures-executor",
  "js-sys",
+ "libm",
  "naga",
  "serde",
  "serde-wasm-bindgen",

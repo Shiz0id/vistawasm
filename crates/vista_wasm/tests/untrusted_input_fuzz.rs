@@ -4,6 +4,9 @@
 //! caps allow. The generator is seeded, so a failure names a case that
 //! can be replayed.
 
+// Inputs made here need not match the browser build bit for bit.
+#![allow(clippy::disallowed_methods)]
+
 use std::alloc::{GlobalAlloc, Layout, System};
 use std::cell::Cell;
 use std::panic::{catch_unwind, AssertUnwindSafe};

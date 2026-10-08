@@ -782,6 +782,7 @@ pub fn accumulate_into(order: &[u32], receiver: &[u32], accumulation: &mut [f32]
 #[cfg(test)]
 mod tests {
   use super::*;
+  use crate::maths::Portable;
 
   #[test]
   fn d8_drainage_gathers_down_a_valley() {
@@ -910,7 +911,7 @@ mod tests {
     let size = 200u32;
 
     for degrees in [22.5f64, 30.0, 60.0] {
-      let (sin, cos) = degrees.to_radians().sin_cos();
+      let (sin, cos) = degrees.to_radians().portable_sin_cos();
       let heights: Vec<f64> = (0..size * size)
         .map(|i| {
           let (x, y) = (f64::from(i % size), f64::from(i / size));
@@ -927,7 +928,7 @@ mod tests {
       let xy = |c: u32| (f64::from(c % size), f64::from(c / size));
       let (x0, y0) = xy(start);
       let (x1, y1) = xy(*cells.last().unwrap());
-      let heading = (y1 - y0).atan2(x1 - x0).to_degrees();
+      let heading = (y1 - y0).portable_atan2(x1 - x0).to_degrees();
       assert!(
         (heading - degrees).abs() <= 3.0,
         "{degrees} degrees: heading {heading}"
@@ -941,7 +942,7 @@ mod tests {
     }
 
     // D8 runs along the nearer grid direction instead.
-    let (sin, cos) = 30f64.to_radians().sin_cos();
+    let (sin, cos) = 30f64.to_radians().portable_sin_cos();
     let heights: Vec<f64> = (0..size * size)
       .map(|i| 500.0 - (f64::from(i % size) * cos + f64::from(i / size) * sin) * 0.8)
       .collect();
@@ -950,7 +951,7 @@ mod tests {
     steepest_receivers(size, size, &flood.filled, &mut d8);
     let end = *path(&d8, 20 * size + 20, 60).last().unwrap();
     let heading = f64::from(end / size - 20)
-      .atan2(f64::from(end % size - 20))
+      .portable_atan2(f64::from(end % size - 20))
       .to_degrees();
     assert!((heading - 30.0).abs() > 3.0, "D8 heading {heading}");
   }
@@ -1003,7 +1004,7 @@ mod tests {
             f64::from(b % size) - f64::from(a % size),
             f64::from(b / size) - f64::from(a / size),
           );
-          length += dx.hypot(dy);
+          length += dx.portable_hypot(dy);
           along_edge = if ring(a) && ring(b) {
             along_edge + 1
           } else {
@@ -1012,7 +1013,7 @@ mod tests {
           assert!(along_edge <= 3, "{x}, {y} runs along the high edge");
         }
 
-        straight += (f64::from(x)).hypot(f64::from(y) - 33.0);
+        straight += (f64::from(x)).portable_hypot(f64::from(y) - 33.0);
       }
     }
 

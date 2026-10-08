@@ -1,0 +1,31 @@
+# The platform's maths library differs between the browser build and native
+# ones in the last bit, which moved rivers: the same seed made another map.
+# `maths::Portable` gives the same bits on every target.
+disallowed-methods = [
+  { path = "f32::sin", reason = "use maths::Portable::portable_sin, the same on every target" },
+  { path = "f32::cos", reason = "use maths::Portable::portable_cos, the same on every target" },
+  { path = "f32::sin_cos", reason = "use maths::Portable::portable_sin_cos, the same on every target" },
+  { path = "f32::tan", reason = "use maths::Portable::portable_tan, the same on every target" },
+  { path = "f32::asin", reason = "use maths::Portable::portable_asin, the same on every target" },
+  { path = "f32::acos", reason = "use maths::Portable::portable_acos, the same on every target" },
+  { path = "f32::atan", reason = "use maths::Portable::portable_atan, the same on every target" },
+  { path = "f32::atan2", reason = "use maths::Portable::portable_atan2, the same on every target" },
+  { path = "f32::exp", reason = "use maths::Portable::portable_exp, the same on every target" },
+  { path = "f32::ln", reason = "use maths::Portable::portable_ln, the same on every target" },
+  { path = "f32::log10", reason = "use maths::Portable::portable_log10, the same on every target" },
+  { path = "f32::powf", reason = "use maths::Portable::portable_powf, the same on every target" },
+  { path = "f32::hypot", reason = "use maths::Portable::portable_hypot, the same on every target" },
+  { path = "f64::sin", reason = "use maths::Portable::portable_sin, the same on every target" },
+  { path = "f64::cos", reason = "use maths::Portable::portable_cos, the same on every target" },
+  { path = "f64::sin_cos", reason = "use maths::Portable::portable_sin_cos, the same on every target" },
+  { path = "f64::tan", reason = "use maths::Portable::portable_tan, the same on every target" },
+  { path = "f64::asin", reason = "use maths::Portable::portable_asin, the same on every target" },
+  { path = "f64::acos", reason = "use maths::Portable::portable_acos, the same on every target" },
+  { path = "f64::atan", reason = "use maths::Portable::portable_atan, the same on every target" },
+  { path = "f64::atan2", reason = "use maths::Portable::portable_atan2, the same on every target" },
+  { path = "f64::exp", reason = "use maths::Portable::portable_exp, the same on every target" },
+  { path = "f64::ln", reason = "use maths::Portable::portable_ln, the same on every target" },
+  { path = "f64::log10", reason = "use maths::Portable::portable_log10, the same on every target" },
+  { path = "f64::powf", reason = "use maths::Portable::portable_powf, the same on every target" },
+  { path = "f64::hypot", reason = "use maths::Portable::portable_hypot, the same on every target" },
+]

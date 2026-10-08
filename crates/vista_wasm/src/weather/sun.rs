@@ -3,6 +3,7 @@
 //! longitude, obliquity and equation of time, and its refraction
 //! correction).
 
+use crate::maths::Portable;
 use vista_types::{TimeOfDay, TimeOfDayOptions};
 
 /// Where the sun is.
@@ -32,22 +33,22 @@ fn orbit(day_of_year: u32, hours: f32) -> Orbit {
   let anomaly = 357.5291 + t * (35_999.05 - 0.000_153_7 * t);
   let eccentricity = 0.016_708_634 - t * (0.000_042_037 + 0.000_000_126_7 * t);
   let m = anomaly.to_radians();
-  let centre = m.sin() * (1.914_602 - t * (0.004_817 + 0.000_014 * t))
-    + (2.0 * m).sin() * (0.019_993 - 0.000_101 * t)
-    + (3.0 * m).sin() * 0.000_289;
+  let centre = m.portable_sin() * (1.914_602 - t * (0.004_817 + 0.000_014 * t))
+    + (2.0 * m).portable_sin() * (0.019_993 - 0.000_101 * t)
+    + (3.0 * m).portable_sin() * 0.000_289;
   let omega = (125.04 - 1_934.136 * t).to_radians();
   let apparent_longitude =
-    (mean_longitude + centre - 0.005_69 - 0.004_78 * omega.sin()).to_radians();
+    (mean_longitude + centre - 0.005_69 - 0.004_78 * omega.portable_sin()).to_radians();
   let mean_obliquity =
     23.0 + (26.0 + (21.448 - t * (46.815 + t * (0.000_59 - t * 0.001_813))) / 60.0) / 60.0;
-  let obliquity = (mean_obliquity + 0.002_56 * omega.cos()).to_radians();
-  let declination = (obliquity.sin() * apparent_longitude.sin()).asin();
-  let y = (obliquity / 2.0).tan().powi(2);
+  let obliquity = (mean_obliquity + 0.002_56 * omega.portable_cos()).to_radians();
+  let declination = (obliquity.portable_sin() * apparent_longitude.portable_sin()).portable_asin();
+  let y = (obliquity / 2.0).portable_tan().powi(2);
   let l0 = mean_longitude.to_radians();
-  let equation = y * (2.0 * l0).sin() - 2.0 * eccentricity * m.sin()
-    + 4.0 * eccentricity * y * m.sin() * (2.0 * l0).cos()
-    - 0.5 * y * y * (4.0 * l0).sin()
-    - 1.25 * eccentricity * eccentricity * (2.0 * m).sin();
+  let equation = y * (2.0 * l0).portable_sin() - 2.0 * eccentricity * m.portable_sin()
+    + 4.0 * eccentricity * y * m.portable_sin() * (2.0 * l0).portable_cos()
+    - 0.5 * y * y * (4.0 * l0).portable_sin()
+    - 1.25 * eccentricity * eccentricity * (2.0 * m).portable_sin();
   Orbit {
     equation_minutes: 4.0 * equation.to_degrees(),
     declination,
@@ -61,13 +62,16 @@ pub fn solar_position(latitude_degrees: f32, day_of_year: u32, hours: f32) -> So
   let latitude = latitude_degrees.to_radians();
   let solar_minutes = hours * 60.0 + orbit.equation_minutes;
   let hour_angle = (solar_minutes / 4.0 - 180.0).to_radians();
-  let cos_zenith = (latitude.sin() * orbit.declination.sin()
-    + latitude.cos() * orbit.declination.cos() * hour_angle.cos())
+  let cos_zenith = (latitude.portable_sin() * orbit.declination.portable_sin()
+    + latitude.portable_cos() * orbit.declination.portable_cos() * hour_angle.portable_cos())
   .clamp(-1.0, 1.0);
-  let zenith = cos_zenith.acos();
+  let zenith = cos_zenith.portable_acos();
   let azimuth = hour_angle
-    .sin()
-    .atan2(hour_angle.cos() * latitude.sin() - orbit.declination.tan() * latitude.cos())
+    .portable_sin()
+    .portable_atan2(
+      hour_angle.portable_cos() * latitude.portable_sin()
+        - orbit.declination.portable_tan() * latitude.portable_cos(),
+    )
     .to_degrees()
     + 180.0;
   let elevation = 90.0 - zenith.to_degrees();
@@ -83,12 +87,12 @@ fn refraction(elevation: f32) -> f32 {
   let arc_seconds = if elevation > 85.0 {
     0.0
   } else if elevation > 5.0 {
-    let t = elevation.to_radians().tan();
+    let t = elevation.to_radians().portable_tan();
     58.1 / t - 0.07 / t.powi(3) + 0.000_086 / t.powi(5)
   } else if elevation > -0.575 {
     1_735.0 + elevation * (-518.2 + elevation * (103.4 + elevation * (-12.79 + elevation * 0.711)))
   } else {
-    -20.772 / elevation.to_radians().tan()
+    -20.772 / elevation.to_radians().portable_tan()
   };
   arc_seconds / 3_600.0
 }
@@ -97,14 +101,15 @@ fn refraction(elevation: f32) -> f32 {
 pub fn sunrise_sunset(latitude_degrees: f32, day_of_year: u32) -> Option<(f32, f32)> {
   let orbit = orbit(day_of_year, 12.0);
   let latitude = latitude_degrees.to_radians();
-  let cos_hour_angle = 90.833f32.to_radians().cos() / (latitude.cos() * orbit.declination.cos())
-    - latitude.tan() * orbit.declination.tan();
+  let cos_hour_angle = 90.833f32.to_radians().portable_cos()
+    / (latitude.portable_cos() * orbit.declination.portable_cos())
+    - latitude.portable_tan() * orbit.declination.portable_tan();
 
   if !(-1.0..=1.0).contains(&cos_hour_angle) {
     return None;
   }
 
-  let half_day_minutes = 4.0 * cos_hour_angle.acos().to_degrees();
+  let half_day_minutes = 4.0 * cos_hour_angle.portable_acos().to_degrees();
   let noon = 720.0 - orbit.equation_minutes;
   Some((
     (noon - half_day_minutes) / 60.0,

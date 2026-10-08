@@ -486,6 +486,7 @@ fn towards_water(map: &HeightMap, painted: &[u8], from: (i32, i32)) -> i32 {
 #[cfg(test)]
 mod tests {
   use super::*;
+  use crate::maths::Portable;
   use crate::render::water::{build_river_network, RiverNetwork, RiverSources};
   use crate::terrain::channels::{channel_depth, width_discharge};
   use vista_types::{RiverOptions, TerrainMetadata};
@@ -502,7 +503,7 @@ mod tests {
       ..Default::default()
     };
     let heights = (0..SIZE * SIZE)
-      .map(|i| (i % SIZE) as f32 * 0.8 - 6.0 + ((i / SIZE) as f32 * 0.3).sin() * 0.2)
+      .map(|i| (i % SIZE) as f32 * 0.8 - 6.0 + ((i / SIZE) as f32 * 0.3).portable_sin() * 0.2)
       .collect();
     let no_data = vec![false; (SIZE * SIZE) as usize];
     HeightMap::from_values(SIZE, SIZE, heights, no_data, metadata).unwrap()
@@ -518,7 +519,7 @@ mod tests {
   /// x = 20 to 110, as the demo's river brush paints one.
   fn stroke(radius: f32, value: u8) -> impl Fn(f32, f32) -> u8 {
     move |x, y| {
-      let centre = 64.0 + 10.0 * (x / 18.0).sin();
+      let centre = 64.0 + 10.0 * (x / 18.0).portable_sin();
       u8::from((20.0..110.0).contains(&x) && (y - centre).abs() <= radius) * value
     }
   }
@@ -614,7 +615,7 @@ mod tests {
     let before = map.heights.clone();
     // A lake about 640 m across whose rim, at x = 21, is 11 m up: a basin
     // for its size would reach 17 m below the sea.
-    let painted = paint(|x, y| u8::from((x - 30.0).hypot(y - 64.0) < 8.0) * 200);
+    let painted = paint(|x, y| u8::from((x - 30.0).portable_hypot(y - 64.0) < 8.0) * 200);
     let (_, network) = build(&mut map, &painted);
 
     assert_eq!(network.lakes.len(), 1);
@@ -635,7 +636,7 @@ mod tests {
   fn painted_water_across_the_coast_joins_the_sea_with_no_edge_or_deeper_patch() {
     let mut map = slope();
     let before = map.heights.clone();
-    let painted = paint(|x, y| u8::from((x - 12.0).hypot(y - 64.0) < 7.0) * 200);
+    let painted = paint(|x, y| u8::from((x - 12.0).portable_hypot(y - 64.0) < 7.0) * 200);
     let (_, network) = build(&mut map, &painted);
     let metres = map.metadata.metres_per_sample;
     let beside = |index: usize, test: &dyn Fn(usize) -> bool| {

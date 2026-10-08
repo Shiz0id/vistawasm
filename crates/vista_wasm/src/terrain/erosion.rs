@@ -37,6 +37,7 @@
 //! form the fine gullies. All heights are in units of the cell size, so
 //! the same constants serve both scales.
 
+use crate::maths::Portable;
 use vista_types::{ErosionOptions, ErosionQuality};
 
 use crate::config::EROSION_ITERATIONS_MAX;
@@ -151,7 +152,7 @@ impl ErosionParams {
       evaporation: (evaporation * EVAPORATION_PER_UNIT).min(1.0),
       capacity: capacity * CAPACITY_PER_UNIT,
       full_depth: FULL_DEPTH_METRES / cell,
-      talus: talus.to_radians().tan(),
+      talus: talus.to_radians().portable_tan(),
     }
   }
 }
@@ -213,7 +214,7 @@ pub fn rain_weights(map: &HeightMap, size: u32) -> Vec<f32> {
   let largest = aux
     .map(|aux| aux.drainage_area.iter().cloned().fold(cell_area, f32::max))
     .unwrap_or(cell_area);
-  let log_largest = (largest / cell_area).ln().max(1.0);
+  let log_largest = (largest / cell_area).portable_ln().max(1.0);
   let mut weights = vec![0.0; n * n];
 
   for y in 0..n {
@@ -228,7 +229,7 @@ pub fn rain_weights(map: &HeightMap, size: u32) -> Vec<f32> {
         let area = aux
           .map(|aux| aux.drainage_area_at(u, v))
           .unwrap_or(cell_area);
-        let flow = ((area / cell_area).max(1.0).ln() / log_largest).clamp(0.0, 1.0);
+        let flow = ((area / cell_area).max(1.0).portable_ln() / log_largest).clamp(0.0, 1.0);
         0.35 + 0.65 * flow
       };
     }

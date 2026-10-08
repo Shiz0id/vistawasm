@@ -1,3 +1,4 @@
+use crate::maths::Portable;
 use vista_types::{BiomeKind, FloraOptions, FloraRule};
 
 use crate::render::terrain_mesh::full_detail_height;
@@ -548,7 +549,7 @@ pub fn effective_moisture(
   water_affinity: f32,
   riparian: f32,
 ) -> f32 {
-  let gathered = 0.25 * (drainage.max(1.0).ln() / 12.0).clamp(0.0, 1.0);
+  let gathered = 0.25 * (drainage.max(1.0).portable_ln() / 12.0).clamp(0.0, 1.0);
   moisture + gathered + aspect + 0.35 * water_affinity * riparian
 }
 
@@ -806,7 +807,7 @@ impl<'a> Fields<'a> {
       1.0,
       (at(0, -1) - at(0, 1)) / (2.0 * self.metres),
     ]);
-    let slope_degrees = normal[1].clamp(-1.0, 1.0).acos().to_degrees();
+    let slope_degrees = normal[1].clamp(-1.0, 1.0).portable_acos().to_degrees();
     let shaded = normal[0] * self.poleward[0] + normal[2] * self.poleward[1];
 
     Some(Site {
@@ -1415,7 +1416,7 @@ mod tests {
     // A 30 degree plane on 12 m cells. Trees used to keep the height of
     // the sample nearest their jittered position: up to half a cell
     // off, 6 m x tan 30 degrees = 3.5 m above or below the ground.
-    let rise = 30f32.to_radians().tan();
+    let rise = 30f32.to_radians().portable_tan();
     let map = map_from(96, 12.0, |x, _| 400.0 + x * rise);
     let trees = build_tree_instances(&map, &forest_surface(&map), &flora_options(), 1.0);
 
@@ -1440,7 +1441,9 @@ mod tests {
     (0..1400)
       .map(|i| {
         let x = -700.0 + i as f32;
-        let z = 30.0 + 5.0 * (x / 22.0 * std::f32::consts::TAU).sin() + 3.0 * (x / 9.0).cos();
+        let z = 30.0
+          + 5.0 * (x / 22.0 * std::f32::consts::TAU).portable_sin()
+          + 3.0 * (x / 9.0).portable_cos();
         [x, z, 1.0]
       })
       .collect()
@@ -1589,7 +1592,7 @@ mod tests {
 
   /// A cone rising to 300 m with sides of `degrees`.
   fn cone(degrees: f32) -> HeightMap {
-    let rise = degrees.to_radians().tan();
+    let rise = degrees.to_radians().portable_tan();
     map_from(160, 8.0, |x, z| {
       (300.0 - (x * x + z * z).sqrt() * rise).max(10.0)
     })
@@ -1780,7 +1783,7 @@ mod tests {
     // south, in dry country: water gathering in the valleys is what lets
     // trees grow there.
     let map = map_from(200, 6.0, |x, z| {
-      60.0 + 12.0 * (x / 240.0 * std::f32::consts::TAU).cos() - z * 0.05
+      60.0 + 12.0 * (x / 240.0 * std::f32::consts::TAU).portable_cos() - z * 0.05
     });
     let options = BiomeOptions {
       moisture_bias: -0.7,
@@ -2014,7 +2017,7 @@ mod tests {
 
     for degrees in [10.0f32, 15.0, 30.0, 40.0] {
       let mut map = HeightMap::flat(size, size, 0.0, metadata.clone());
-      let rise = degrees.to_radians().tan();
+      let rise = degrees.to_radians().portable_tan();
 
       for (index, height) in map.heights.iter_mut().enumerate() {
         *height = (index as u32 % size) as f32 * 2.0 * rise;
@@ -2184,7 +2187,7 @@ mod tests {
       ..TerrainMetadata::default()
     };
     let mut map = HeightMap::flat(size, size, 0.0, metadata);
-    let rise = 30f32.to_radians().tan();
+    let rise = 30f32.to_radians().portable_tan();
 
     // Rising along +x at 30 degrees.
     for (index, height) in map.heights.iter_mut().enumerate() {

@@ -7,6 +7,7 @@
 //! buffers they fill. Everything here is plain data and arithmetic; no GPU
 //! API appears.
 
+use crate::maths::Portable;
 use bytemuck::{Pod, Zeroable};
 
 use crate::render::flora::FloraInstance;
@@ -383,7 +384,7 @@ pub const SPECIES_TINTS: [[f32; 4]; 8] = [
 
 pub fn direction_from_degrees(degrees: f32) -> [f32; 2] {
   let radians = degrees.to_radians();
-  [radians.sin(), radians.cos()]
+  [radians.portable_sin(), radians.portable_cos()]
 }
 
 /// The mid-level layer's drift direction: the cloud wind veered 20
@@ -501,7 +502,7 @@ impl UniformMotion {
 
     let apply_gamma = u.camera_up[3];
     let p = params.camera_position;
-    let tan_half_fov_y = (params.field_of_view_degrees.to_radians() * 0.5).tan();
+    let tan_half_fov_y = (params.field_of_view_degrees.to_radians() * 0.5).portable_tan();
 
     u.view_proj = params.view_proj;
     u.camera_position = [p[0], p[1], p[2], time];
@@ -859,7 +860,7 @@ pub struct TreeCullInputs<'a> {
 /// The tree cull pass's parameters.
 pub fn tree_cull_params(params: &FrameParams, inputs: &TreeCullInputs<'_>) -> CullParams {
   let tan_half_fov_y = (params.field_of_view_degrees.to_radians() * 0.5)
-    .tan()
+    .portable_tan()
     .max(0.0001);
   let mut cull = CullParams::zeroed();
   cull.planes = crate::maths::frustum_planes(&params.view_proj);
@@ -1082,7 +1083,7 @@ pub fn boulder_generate_params(
       height as f32
         / (2.0
           * (params.field_of_view_degrees.to_radians() * 0.5)
-            .tan()
+            .portable_tan()
             .max(1e-4)),
     ],
     shape: [

@@ -12,6 +12,7 @@
 //! comes from instance data. A host's custom model ([`mesh_from_arrays`])
 //! replaces every variant of its species.
 
+use crate::maths::Portable;
 use std::f32::consts::TAU;
 
 use crate::render::flora::{species_root_radius, ROOT_RADII};
@@ -630,12 +631,12 @@ pub fn wind_offset(s: &WindSample) -> [f32; 3] {
   let y = s.position[1].max(0.0);
   // Gusts travel downwind across the forest.
   let gust_phase = (s.instance[0] * dir[0] + s.instance[1] * dir[1]) * 0.012 - t * 0.9;
-  let gust = 0.55 + 0.45 * gust_phase.sin() * (gust_phase * 0.37 + 1.3).sin();
+  let gust = 0.55 + 0.45 * gust_phase.portable_sin() * (gust_phase * 0.37 + 1.3).portable_sin();
 
   // 1. The trunk bends from its base at 0.2 to 0.5 Hz.
   let frequency = (1.6 / h.sqrt()).clamp(0.2, 0.5);
   let tree_phase = s.instance[0] * 0.13 + s.instance[1] * 0.11;
-  let sway = 0.7 + 0.3 * (TAU * frequency * t + tree_phase).sin();
+  let sway = 0.7 + 0.3 * (TAU * frequency * t + tree_phase).portable_sin();
   let amplitude = s.species.0 * w * w * h * h * 0.0025 * gust * sway;
   let bend = (y / h) * (y / h) * amplitude;
   let mut d = [dir[0] * bend, -0.08 * bend, dir[1] * bend];
@@ -655,7 +656,7 @@ pub fn wind_offset(s: &WindSample) -> [f32; 3] {
       * (1.0 - s.stiffness.clamp(0.0, 1.0))
       * 0.1
       * gust
-      * (TAU * frequency * t + s.phase + tree_phase).sin();
+      * (TAU * frequency * t + s.phase + tree_phase).portable_sin();
     // Up and down, and a little along the wind.
     let bob = angle * reach * rise / 1.25f32.sqrt();
     d = [
@@ -671,7 +672,7 @@ pub fn wind_offset(s: &WindSample) -> [f32; 3] {
     let flutter = w
       * s.species.1
       * 0.12
-      * (TAU * frequency * t + s.phase * 3.0 + s.position[1] * 1.7).sin()
+      * (TAU * frequency * t + s.phase * 3.0 + s.position[1] * 1.7).portable_sin()
       * s.along
       * rise;
     d = [

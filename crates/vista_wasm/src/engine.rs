@@ -1,3 +1,4 @@
+use crate::maths::Portable;
 use vista_types::{
   AtmosphereOptions, BiomeKind, BiomeOptions, CameraOptions, CloudsOptions, DebugView,
   DemLoadOptions, EngineState, FloraOptions, FractalTerrainOptions, GrassOptions, MistOptions,
@@ -1087,7 +1088,7 @@ impl EngineCore {
     let metres = terrain.metadata.metres_per_sample.max(0.001);
     let sea = terrain.metadata.sea_level_metres;
     let radians = wind_direction_degrees.to_radians();
-    let upwind = [-radians.sin(), -radians.cos()];
+    let upwind = [-radians.portable_sin(), -radians.portable_cos()];
     let camera = self.camera.options.position;
     let step = (metres * 4.0).max(25.0);
     let mut travelled = 0.0;
@@ -1759,7 +1760,7 @@ impl EngineCore {
         let normal = crate::terrain::normals::normal_at(terrain, x, z);
 
         if kind == MapKind::Slope {
-          out[0] = normal[1].clamp(-1.0, 1.0).acos().to_degrees();
+          out[0] = normal[1].clamp(-1.0, 1.0).portable_acos().to_degrees();
         } else {
           out.copy_from_slice(&normal);
         }
@@ -2972,7 +2973,7 @@ impl EngineCore {
       // units of 15 m/s.
       out.clouds.speed = wind * 2.0 / 15.0;
       let radians = state.wind_direction_degrees.to_radians();
-      out.weather.wind = [radians.sin() * wind, radians.cos() * wind];
+      out.weather.wind = [radians.portable_sin() * wind, radians.portable_cos() * wind];
       out.weather.gust = [
         self.weather.gust_offset(),
         state.gustiness,
@@ -4108,7 +4109,7 @@ mod tests {
       ..Default::default()
     };
     let heights = (0..size * size)
-      .map(|i| (i % size) as f32 * 0.8 - 6.0 + ((i / size) as f32 * 0.3).sin() * 0.2)
+      .map(|i| (i % size) as f32 * 0.8 - 6.0 + ((i / size) as f32 * 0.3).portable_sin() * 0.2)
       .collect();
     let map = HeightMap::from_values(
       size,

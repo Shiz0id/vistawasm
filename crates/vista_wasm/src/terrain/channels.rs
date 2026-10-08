@@ -15,6 +15,7 @@
 //! Every changed height is recorded, so the terrain can be restored
 //! exactly when river options or the water mask change.
 
+use crate::maths::Portable;
 use vista_types::RiverOptions;
 
 use std::f32::consts::FRAC_PI_2;
@@ -84,7 +85,7 @@ pub fn width_discharge(width: f32, width_scale: f32) -> f32 {
 
 /// Channel depth in metres for a discharge.
 pub fn channel_depth(discharge: f32) -> f32 {
-  (0.35 * discharge.max(0.0).powf(0.4)).clamp(0.6, 400.0)
+  (0.35 * discharge.max(0.0).portable_powf(0.4)).clamp(0.6, 400.0)
 }
 
 /// Mean flow speed from Manning's equation, with the hydraulic radius
@@ -94,8 +95,9 @@ pub fn channel_depth(discharge: f32) -> f32 {
 /// river 2 m deep runs at about 3 m/s, not at the ceiling.
 pub fn manning_speed(depth: f32, slope: f32) -> f32 {
   let slope = slope.max(1.0e-5);
-  let roughness = MANNING_N.max(0.39 * slope.powf(0.38) * depth.max(0.1).powf(-0.16));
-  (depth.powf(2.0 / 3.0) * slope.sqrt() / roughness).clamp(0.2, 6.0)
+  let roughness =
+    MANNING_N.max(0.39 * slope.portable_powf(0.38) * depth.max(0.1).portable_powf(-0.16));
+  (depth.portable_powf(2.0 / 3.0) * slope.sqrt() / roughness).clamp(0.2, 6.0)
 }
 
 /// Original heights of every sample the river stages change, so they can
@@ -742,7 +744,9 @@ fn junction(points: &mut Vec<ChannelPoint>, join: &Join, map: &HeightMap, metres
 
   let run = length2(end.x - points[k].x, end.y - points[k].y) * metres;
   let steep = (points[k].level - end.level) / run.max(1e-3);
-  let angle = (main.slope / steep.max(1e-6)).clamp(0.087, 0.906).acos();
+  let angle = (main.slope / steep.max(1e-6))
+    .clamp(0.087, 0.906)
+    .portable_acos();
   let reach = (3.0 * main.width / metres).clamp(1.0, 4.0);
   // The curve must bend no tighter than the rest of the stream; a short
   // chord cannot turn far enough, so try a longer one before shorter ones.
@@ -784,7 +788,7 @@ fn junction(points: &mut Vec<ChannelPoint>, join: &Join, map: &HeightMap, metres
     // Towards the tributary's side of the main stem.
     let side = join.along[0] * (start.y - end.y) - join.along[1] * (start.x - end.x);
     let turn = -angle * side.signum();
-    let (sin, cos) = turn.sin_cos();
+    let (sin, cos) = turn.portable_sin_cos();
     let arrive = [
       (join.along[0] * cos - join.along[1] * sin) * chord,
       (join.along[0] * sin + join.along[1] * cos) * chord,
@@ -794,7 +798,7 @@ fn junction(points: &mut Vec<ChannelPoint>, join: &Join, map: &HeightMap, metres
     // 6 degrees of turn a step to keep the sharpest step under 30 degrees.
     let heading = (t0[0] * arrive[1] - t0[1] * arrive[0])
       .abs()
-      .atan2(t0[0] * arrive[0] + t0[1] * arrive[1]);
+      .portable_atan2(t0[0] * arrive[0] + t0[1] * arrive[1]);
     let count = ((walked * metres) / crate::terrain::centreline::spacing(end.width, metres))
       .ceil()
       .max((heading / 0.1).ceil() + 1.0)
@@ -842,7 +846,7 @@ fn junction(points: &mut Vec<ChannelPoint>, join: &Join, map: &HeightMap, metres
 /// Finnegan et al. (2005).
 pub fn narrowing(slope: f32) -> f32 {
   if slope > 0.02 {
-    (slope / 0.02).powf(-3.0 / 16.0).max(0.7)
+    (slope / 0.02).portable_powf(-3.0 / 16.0).max(0.7)
   } else {
     1.0
   }
@@ -883,14 +887,14 @@ fn estuary(points: &mut [ChannelPoint], sea: f32, metres: f32) -> bool {
   // A bank opens at `atan(w0 ln(most) / (2 L_e))` where the flare starts:
   // 12 degrees at most.
   let wide = reach >= 2.0 * w0;
-  let most = if wide { 3.0f32 } else { 1.5 }.min((0.425 * reach / w0).exp());
+  let most = if wide { 3.0f32 } else { 1.5 }.min((0.425 * reach / w0).portable_exp());
   let mut x = reach;
 
   for i in k + 1..n {
     x -= length2(points[i].x - points[i - 1].x, points[i].y - points[i - 1].y) * metres;
     points[i].width = points[i]
       .width
-      .max(w0 * most.powf(1.0 - x.max(0.0) / reach));
+      .max(w0 * most.portable_powf(1.0 - x.max(0.0) / reach));
   }
 
   wide
@@ -1086,10 +1090,12 @@ pub(crate) fn kinoshita_table() -> [f32; 64] {
     let u = k as f32 / steps as f32;
     let tau = std::f32::consts::TAU;
     let theta = theta0
-      * ((tau * u).sin()
-        + theta0 * theta0 * (skew * (3.0 * tau * u).cos() - flat * (3.0 * tau * u).sin()));
-    x += theta.cos() / steps as f32;
-    y += theta.sin() / steps as f32;
+      * ((tau * u).portable_sin()
+        + theta0
+          * theta0
+          * (skew * (3.0 * tau * u).portable_cos() - flat * (3.0 * tau * u).portable_sin()));
+    x += theta.portable_cos() / steps as f32;
+    y += theta.portable_sin() / steps as f32;
   }
 
   let total = xs[steps];
@@ -1770,7 +1776,7 @@ fn delta(points: &[ChannelPoint], map: &HeightMap, metres: f32, seed: u64) -> Op
     (hash_u64(seed ^ k.wrapping_mul(0x9e37_79b9_7f4a_7c15)) >> 40) as f32 / (1u32 << 24) as f32
   };
   let rotate = |d: [f32; 2], a: f32| {
-    let (sin, cos) = a.sin_cos();
+    let (sin, cos) = a.portable_sin_cos();
     [d[0] * cos - d[1] * sin, d[0] * sin + d[1] * cos]
   };
   let before = points[split - 2];
@@ -1821,7 +1827,7 @@ fn delta(points: &[ChannelPoint], map: &HeightMap, metres: f32, seed: u64) -> Op
         let toward = if length2(fall[0], fall[1]) > 1e-4 {
           let cross = direction[0] * fall[1] - direction[1] * fall[0];
           let dot = direction[0] * fall[0] + direction[1] * fall[1];
-          0.5 * cross.atan2(dot)
+          0.5 * cross.portable_atan2(dot)
         } else {
           0.0
         };
@@ -2788,8 +2794,8 @@ mod tests {
       .map(|i| {
         let angle = i as f32 / 39.0 * 5.0;
         ChannelPoint {
-          x: 100.0 + 3.0 * angle.cos(),
-          y: 100.0 + 3.0 * angle.sin(),
+          x: 100.0 + 3.0 * angle.portable_cos(),
+          y: 100.0 + 3.0 * angle.portable_sin(),
           level: 10.0,
           bed: 9.0,
           width: 12.0,
@@ -3154,7 +3160,8 @@ mod tests {
     }
 
     // Each split turns both arms 15 to 35 degrees off their parent.
-    let heading = |a: &ChannelPoint, b: &ChannelPoint| (b.y - a.y).atan2(b.x - a.x).to_degrees();
+    let heading =
+      |a: &ChannelPoint, b: &ChannelPoint| (b.y - a.y).portable_atan2(b.x - a.x).to_degrees();
 
     for arm in arms {
       let first = &arm.points[0];
@@ -3220,7 +3227,7 @@ mod tests {
     // one row to the next.
     let bank = |i: usize| {
       let run = length2(points[i + 1].x - points[i].x, points[i + 1].y - points[i].y) * 12.0;
-      (0.5 * (points[i + 1].width - points[i].width)).atan2(run)
+      (0.5 * (points[i + 1].width - points[i].width)).portable_atan2(run)
     };
 
     for i in 1..n - 1 {
@@ -3548,7 +3555,8 @@ mod tests {
 
   #[test]
   fn meander_belts_are_floored_up_to_their_valley_walls() {
-    let ground = |x: f32, y: f32| 10.0 + 3.0 * ((x * 0.37).sin() * (y * 0.23).cos()).abs();
+    let ground =
+      |x: f32, y: f32| 10.0 + 3.0 * ((x * 0.37).portable_sin() * (y * 0.23).portable_cos()).abs();
     let mut map = map_from(64, 12.0, ground);
     let before = map.heights.clone();
     let point = |x: f32, y: f32| ChannelPoint {

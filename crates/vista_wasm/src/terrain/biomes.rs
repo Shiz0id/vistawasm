@@ -21,6 +21,7 @@
 //! kilometres) and bilinearly interpolated, which keeps the full-resolution
 //! pass cheap even for 2048-sample terrain.
 
+use crate::maths::Portable;
 use vista_types::{BiomeKind, BiomeOptions, Vec3};
 
 use crate::maths::{hash_noise, smoothstep, value_noise};
@@ -410,7 +411,7 @@ fn cold_gate(options: &BiomeOptions) -> f32 {
 }
 
 fn slope_degrees(normal: Vec3) -> f32 {
-  normal[1].clamp(-1.0, 1.0).acos().to_degrees()
+  normal[1].clamp(-1.0, 1.0).portable_acos().to_degrees()
 }
 
 /// Large-scale moisture before local detail: the climate field, wetter in
@@ -1890,7 +1891,7 @@ mod tests {
       for x in 0..size {
         let dx = x as f32 - 64.0;
         let dy = y as f32 - 64.0;
-        let h = peak * (-(dx * dx + dy * dy) / (30.0 * 30.0)).exp() - 20.0;
+        let h = peak * (-(dx * dx + dy * dy) / (30.0 * 30.0)).portable_exp() - 20.0;
         let _ = map.set_height(x, y, h);
       }
     }

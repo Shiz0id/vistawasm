@@ -1,3 +1,4 @@
+use crate::maths::Portable;
 use vista_types::{BiomeKind, GrassOptions};
 
 use crate::maths::hash_noise;
@@ -145,7 +146,7 @@ pub fn meadow_cover(d: f32) -> f32 {
   use crate::render::lattice::{grass_height, grass_probability, GRASS_PITCH};
   let tufts = grass_probability(d) / (GRASS_PITCH * GRASS_PITCH);
   let radius = TUFT_COVER_RADIUS * 0.8 * grass_height(d);
-  1.0 - (-tufts * std::f32::consts::PI * radius * radius).exp()
+  1.0 - (-tufts * std::f32::consts::PI * radius * radius).portable_exp()
 }
 
 /// Streamed tufts hand over to the ground's grass sheen from here, in
@@ -185,7 +186,7 @@ pub const TUFT_SIDE_AREA: f32 = 2.0 * 0.78 / (std::f32::consts::PI * TUFT_COVER_
 pub fn apparent_cover(cover: f32, sine: f32, side: f32) -> f32 {
   let sine = sine.clamp(0.02, 1.0);
   let cotangent = (1.0 - sine * sine).sqrt() / sine;
-  1.0 - (1.0 - cover.clamp(0.0, 0.999)).powf(1.0 + TUFT_SIDE_AREA * side * cotangent)
+  1.0 - (1.0 - cover.clamp(0.0, 0.999)).portable_powf(1.0 + TUFT_SIDE_AREA * side * cotangent)
 }
 
 /// How much of the full meadow's side area the thinned tufts keep
@@ -205,7 +206,10 @@ pub fn thinned_side(distance: f32, radius: f32) -> f32 {
 /// rest, so tufts and sheen together always look like the full meadow: no
 /// ring where the tufts end, from any height.
 pub fn sheen_share(full: f32, thinned: f32, share: f32) -> f32 {
-  let drawn = 1.0 - (1.0 - thinned).max(0.0).powf(share.clamp(0.0, 1.0));
+  let drawn = 1.0
+    - (1.0 - thinned)
+      .max(0.0)
+      .portable_powf(share.clamp(0.0, 1.0));
   ((full - drawn) / (1.0 - drawn).max(1e-4)).clamp(0.0, 1.0)
 }
 
@@ -629,7 +633,8 @@ pub fn grass_cover_at(
   let share =
     (chance.meadow + chance.floor).min(rules.probability * ground.grass_multiplier(x, z).max(1.0));
   let radius = TUFT_COVER_RADIUS * 0.8 * rules.height;
-  1.0 - (-share / (GRASS_PITCH * GRASS_PITCH) * std::f32::consts::PI * radius * radius).exp()
+  1.0
+    - (-share / (GRASS_PITCH * GRASS_PITCH) * std::f32::consts::PI * radius * radius).portable_exp()
 }
 
 /// The tuft at grass lattice point `(ix, iz)` whose rank relative to its
@@ -718,7 +723,8 @@ pub fn tuft_at(
   if rank < tufts {
     // Riparian tufts lean over the water: the eighth of a turn towards
     // it rides on the dryness, as `2 x (sector + 1)`.
-    let sector = (toward_z.atan2(toward_x) / (std::f32::consts::TAU / 8.0)).round() as i32 & 7;
+    let sector =
+      (toward_z.portable_atan2(toward_x) / (std::f32::consts::TAU / 8.0)).round() as i32 & 7;
     scale *= 1.3
       * if tundra {
         TUNDRA_GRASS_HEIGHT
@@ -1249,7 +1255,7 @@ mod tests {
           for step in 0..steps {
             let angle = step as f32 / steps as f32 * std::f32::consts::TAU;
             points += 1;
-            hit += usize::from(covered(r * angle.cos(), r * angle.sin()));
+            hit += usize::from(covered(r * angle.portable_cos(), r * angle.portable_sin()));
           }
         }
 
@@ -1305,7 +1311,7 @@ mod tests {
             let thinned = apparent_cover(cover, height / distance, thinned_side(distance, radius));
             let share = tuft_share(distance, start, view);
             let far = 1.0 - smoothstep((distance - 2.0 * view) / (2.0 * view));
-            let drawn = 1.0 - (1.0 - thinned).powf(share);
+            let drawn = 1.0 - (1.0 - thinned).portable_powf(share);
             let sheen = sheen_share(apparent, thinned, share) * far;
             let combined = drawn + (1.0 - drawn) * sheen;
             let full = apparent * if share > 0.999 { 1.0 } else { far };
@@ -1367,7 +1373,7 @@ mod tests {
       sea_level_metres: 0.0,
       ..TerrainMetadata::default()
     };
-    let rise = (0.8 * MAX_PLANTING_SLOPE).to_radians().tan() * 4.0;
+    let rise = (0.8 * MAX_PLANTING_SLOPE).to_radians().portable_tan() * 4.0;
     let heights = (0..size * size)
       .map(|index| 20.0 + (index % size) as f32 * rise)
       .collect();
@@ -1455,7 +1461,11 @@ mod tests {
     let brook: Vec<[f32; 3]> = (0..200)
       .map(|i| {
         let x = -100.0 + i as f32;
-        [x, 5.0 * (x / 22.0 * std::f32::consts::TAU).sin(), 1.0]
+        [
+          x,
+          5.0 * (x / 22.0 * std::f32::consts::TAU).portable_sin(),
+          1.0,
+        ]
       })
       .collect();
     let rivers = crate::render::water::RiverNetwork {

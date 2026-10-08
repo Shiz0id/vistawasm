@@ -21,6 +21,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `EngineCore::terrain()` and `EngineCore::river_network()`, read-only
   accessors for native hosts.
 
+### Changed
+
+- Native builds make the same map as the browser for the same seed and
+  options, bit for bit. Their maths library rounded a few results
+  differently, which moved rivers. Browser maps are unchanged; native maps
+  from earlier builds differ slightly.
+
 ## [2.0.0] — 2026-10-03
 
 A realism release: geology-led terrain, biomes, real trees, simulated

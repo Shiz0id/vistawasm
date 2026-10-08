@@ -13,6 +13,7 @@
 //! oxbow surfaces; and for each waterfall a curved sheet, mist sprites and
 //! a plunge pool, in a buffer of their own.
 
+use crate::maths::Portable;
 use vista_types::{RiverOptions, WaterOptions};
 
 use crate::maths::{length2, smoothstep};
@@ -332,7 +333,7 @@ pub struct SeaMouth {
 /// How far a river's plume reaches out to sea, in metres: 5 widths for a
 /// brook of 1 m³/s, rising to 20 for a river of 1000 m³/s.
 pub fn plume_length(width: f32, discharge: f32) -> f32 {
-  width * (5.0 + 15.0 * (discharge.max(1.0).log10() / 3.0).min(1.0))
+  width * (5.0 + 15.0 * (discharge.max(1.0).portable_log10() / 3.0).min(1.0))
 }
 
 /// How much of a river's plume tints the sea `along` metres seawards of
@@ -1676,7 +1677,7 @@ const STEP_FACE_METRES: f32 = 0.2;
 /// Judd's `L = 0.31 S^-1.19` metres (Judd, 1964), kept within 1.5 to 3
 /// widths (Chin, 1999).
 pub fn step_spacing(slope: f32, width: f32) -> f32 {
-  (0.31 * slope.max(1e-3).powf(-1.19)).clamp(1.5 * width, 3.0 * width)
+  (0.31 * slope.max(1e-3).portable_powf(-1.19)).clamp(1.5 * width, 3.0 * width)
 }
 
 /// Water that steps: on slopes within [`STEP_SLOPES`], a drawn stream
@@ -2104,7 +2105,7 @@ fn eddy(swirl: &mut [f32], s: &[f32], from: usize, reach: f32, side: f32) {
       break;
     }
 
-    let value = side * (std::f32::consts::PI * d / reach.max(1e-3)).sin();
+    let value = side * (std::f32::consts::PI * d / reach.max(1e-3)).portable_sin();
 
     if value.abs() > swirl[k].abs() {
       swirl[k] = value;
@@ -2258,8 +2259,8 @@ fn sub_sample_centreline(
       // Real loops vary: the wavelength drifts by up to 30 % and the
       // amplitude between 60 and 100 %, over periods no multiple of it,
       // so a straight carved path does not show a regular wave.
-      let drift = (along / (47.0 * p.width).max(0.01) + start * 3.7).sin();
-      let swell = 0.8 + 0.2 * (along / (71.0 * p.width).max(0.01) + start * 5.3).cos();
+      let drift = (along / (47.0 * p.width).max(0.01) + start * 3.7).portable_sin();
+      let swell = 0.8 + 0.2 * (along / (71.0 * p.width).max(0.01) + start * 5.3).portable_cos();
       phase += step / (11.0 * p.width * (1.0 + 0.3 * drift)).max(0.01);
       wander_phase += step / (5.0 * p.width * (1.0 + 0.4 * drift)).max(0.01);
       long_phase += step / ((3.5 * metres).max(30.0 * p.width) * (1.0 + 0.3 * swell)).max(0.01);
@@ -2276,8 +2277,8 @@ fn sub_sample_centreline(
       // shares of the wander's whole amplitude.
       let long = 0.6 * corridor;
       let short = (0.5 * p.width).min(0.4 * corridor);
-      let bends = (long * (long_phase * std::f32::consts::TAU).sin()
-        + short * (wander_phase * std::f32::consts::TAU).sin())
+      let bends = (long * (long_phase * std::f32::consts::TAU).portable_sin()
+        + short * (wander_phase * std::f32::consts::TAU).portable_sin())
         / (long + short).max(1e-6);
       let offset = loops(&p).min(ends) * pin * swell * kinoshita(table, phase)
         + wander(&p).min(wander_ends) * pin * bends;
@@ -2535,7 +2536,7 @@ fn plan_bank_strips(
   metres: f32,
   seed: u64,
 ) -> BankStrips {
-  let straight = STRIP_MERGE_DEGREES.to_radians().cos();
+  let straight = STRIP_MERGE_DEGREES.to_radians().portable_cos();
   let mut strips = BankStrips {
     rows: Vec::with_capacity(points.len() * 2),
     runs: Vec::new(),
@@ -3082,7 +3083,7 @@ fn add_pool(
   if depth > 0.0 {
     for k in 0..POOL_SEGMENTS {
       let angle = k as f32 / POOL_SEGMENTS as f32 * std::f32::consts::TAU;
-      let (cos, sin) = (angle.cos(), angle.sin());
+      let (cos, sin) = (angle.portable_cos(), angle.portable_sin());
       let ground = height_at(map, foot[0] + cos * ring, foot[1] + sin * ring);
       let outlet = cos * fall.direction[0] + sin * fall.direction[1] > 0.77;
       level = level.min(if outlet {
@@ -3119,7 +3120,7 @@ fn add_pool(
 
     for k in 0..POOL_SEGMENTS {
       let angle = k as f32 / POOL_SEGMENTS as f32 * std::f32::consts::TAU;
-      let (cos, sin) = (angle.cos(), angle.sin());
+      let (cos, sin) = (angle.portable_cos(), angle.portable_sin());
       let level = surface(foot[0] + cos * r / metres, foot[1] + sin * r / metres);
       network.vertices.push(WaterVertex {
         position: [world[0] + cos * r, level + 0.02, world[1] + sin * r],
@@ -3326,8 +3327,8 @@ fn add_fall(
     let angle = unit(0) * std::f32::consts::TAU;
     let distance = unit(16).sqrt() * fall.pool_radius * 0.8;
     let centre = [
-      foot[0] + angle.cos() * distance,
-      foot[1] + angle.sin() * distance,
+      foot[0] + angle.portable_cos() * distance,
+      foot[1] + angle.portable_sin() * distance,
     ];
     let first = vertices.len() as u32;
 
@@ -3508,8 +3509,10 @@ mod tests {
 
   #[test]
   fn curl_noise_is_divergence_free() {
-    let psi =
-      |x: f32, y: f32| (1.3 * x + 0.4).sin() * (0.7 * y).cos() + 0.5 * (2.1 * y - 0.9 * x).sin();
+    let psi = |x: f32, y: f32| {
+      (1.3 * x + 0.4).portable_sin() * (0.7 * y).portable_cos()
+        + 0.5 * (2.1 * y - 0.9 * x).portable_sin()
+    };
 
     for k in 0..100 {
       let q = [k as f32 * 0.37, k as f32 * 0.21 + 1.0];
@@ -3532,8 +3535,8 @@ mod tests {
       .map(|i| {
         let angle = i as f32 / 40.0 * std::f32::consts::PI;
         ChannelPoint {
-          x: 50.0 + 6.0 * angle.cos(),
-          y: 50.0 + 6.0 * angle.sin(),
+          x: 50.0 + 6.0 * angle.portable_cos(),
+          y: 50.0 + 6.0 * angle.portable_sin(),
           width: 10.0,
           ..straight_reach(1)[0]
         }
@@ -3760,7 +3763,7 @@ mod tests {
     // The ray steps of `trace_reflection`: 16, growing, out to its reach.
     let reach: f32 = 4000.0;
     let steps: Vec<f32> = (1..=16)
-      .map(|i| 2.0 * (reach / 2.0).powf(i as f32 / 16.0))
+      .map(|i| 2.0 * (reach / 2.0).portable_powf(i as f32 / 16.0))
       .collect();
     assert!((steps[15] - reach).abs() < 0.1);
     assert!(steps[0] < 4.0);
@@ -4467,7 +4470,7 @@ mod tests {
         );
         let [_, foot, top, lip] = cut.points();
         let steep = ((top[1] - foot[1]) / (top[0] - foot[0]))
-          .atan()
+          .portable_atan()
           .to_degrees();
         assert!(steep > 60.0, "a {steep} degree face");
         // The lip hangs out over the face's foot side.
@@ -4477,7 +4480,7 @@ mod tests {
         assert_eq!(inner.cut, 0.0);
         let [edge, _, _, lip] = inner.points();
         let slope = ((lip[1] - edge[1]) / (lip[0] - edge[0]))
-          .atan()
+          .portable_atan()
           .to_degrees();
         assert!(slope < 20.0, "a {slope} degree shelf");
       }
@@ -4635,7 +4638,7 @@ mod tests {
     for y in 0..size {
       for x in 0..size {
         let (wx, wz) = ((x as f32 - 64.0) * 12.0, (y as f32 - 64.0) * 12.0);
-        let centre = 90.0 * (wz / 160.0).sin();
+        let centre = 90.0 * (wz / 160.0).portable_sin();
         let height = 30.0 + (size - y) as f32 * 12.0 * fall + (wx - centre).abs() * 0.04;
         let _ = map.set_height(x, y, height);
       }
@@ -5110,8 +5113,8 @@ mod tests {
       .map(|i| {
         let angle = i as f32 * 0.2;
         ChannelPoint {
-          x: 60.0 + 3.0 * angle.cos(),
-          y: 30.0 + 3.0 * angle.sin(),
+          x: 60.0 + 3.0 * angle.portable_cos(),
+          y: 30.0 + 3.0 * angle.portable_sin(),
           ..straight[0]
         }
       })
@@ -5344,6 +5347,7 @@ mod tests {
       fingerprint(&mut hash, bytemuck::cast_slice(brook));
     }
 
-    assert_eq!(hash, 0x3898_1ae9_c93e_baf4, "{hash:#x}");
+    // The same on every target since the maths became `maths::Portable`.
+    assert_eq!(hash, 0x7cc0_a3fd_106d_c41a, "{hash:#x}");
   }
 }

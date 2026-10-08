@@ -4,6 +4,7 @@
 //! in `shaders/texture_gen.wgsl`, at level 0).
 
 use super::pack_ice_tests::{fbm, pcg, remap, unit};
+use crate::maths::Portable;
 
 const NOISE_SIZE: usize = 512;
 
@@ -198,7 +199,8 @@ fn alto_ripple(q: [f32; 2], warp: f32) -> f32 {
   let across = [-WIND[1], WIND[0]];
   0.5
     + 0.5
-      * ((q[0] * across[0] + q[1] * across[1]) * (std::f32::consts::TAU / ALTO_RIPPLE) + warp).sin()
+      * ((q[0] * across[0] + q[1] * across[1]) * (std::f32::consts::TAU / ALTO_RIPPLE) + warp)
+        .portable_sin()
 }
 
 /// `alto_coarse` in `common.wgsl`, without a regional map.
@@ -225,7 +227,7 @@ fn alto_depth_overhead(noise: &Noise, q: [f32; 2], amounts: [f32; 2]) -> f32 {
 }
 
 fn transmittance_overhead(noise: &Noise, q: [f32; 2], amounts: [f32; 2]) -> f32 {
-  (-alto_depth_overhead(noise, q, amounts)).exp()
+  (-alto_depth_overhead(noise, q, amounts)).portable_exp()
 }
 
 /// Points on a 20 x 20 km grid at 250 m.
@@ -450,7 +452,7 @@ fn sparse_altocumulus_leaves_no_specks() {
 /// for altostratus `amount`.
 fn veil_along(noise: &Noise, q: [f32; 2], amount: f32, elevation: f32) -> f32 {
   let depth = alto_depth_overhead(noise, q, [0.0, amount]) / elevation.max(0.05);
-  1.0 - (1.0 - (-depth).exp()) * smoothstep(0.01, 0.12, elevation)
+  1.0 - (1.0 - (-depth).portable_exp()) * smoothstep(0.01, 0.12, elevation)
 }
 
 /// The first veil for the disc: the mean depth of altostratus at `amount`
@@ -458,13 +460,13 @@ fn veil_along(noise: &Noise, q: [f32; 2], amount: f32, elevation: f32) -> f32 {
 /// the whole disc.
 fn mean_veil(amount: f32, elevation: f32) -> f32 {
   let depth = ALTO_EXTINCTION * amount * 0.85 * ALTOSTRATUS_THICKNESS / elevation.max(0.01);
-  1.0 - (1.0 - (-depth).exp()) * smoothstep(0.01, 0.12, elevation)
+  1.0 - (1.0 - (-depth).portable_exp()) * smoothstep(0.01, 0.12, elevation)
 }
 
 #[test]
 fn the_watery_sun_shows_the_veils_fibres() {
   let noise = Noise::new();
-  let (amount, elevation) = (0.7, 35f32.to_radians().sin());
+  let (amount, elevation) = (0.7, 35f32.to_radians().portable_sin());
   // The disc and its corona span 6 degrees; the veil 4,200 m up lies
   // about 7.3 km away towards a sun at 35 degrees. Where the drifting
   // veil's depth differs from its mean by at least 10 %, so does the
@@ -505,7 +507,7 @@ fn the_watery_sun_shows_the_veils_fibres() {
 
   for amount in [0.2, 0.5, 0.7, 1.0] {
     for degrees in [10.0f32, 35.0, 70.0] {
-      let elevation = degrees.to_radians().sin();
+      let elevation = degrees.to_radians().portable_sin();
 
       for q in grid().step_by(97) {
         let (pixel, mean) = (

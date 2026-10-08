@@ -9,6 +9,7 @@
 //! map edge are left out: the edge is a boundary condition (an outlet for
 //! stream power and a sink for hydraulic erosion), not terrain.
 
+use crate::maths::Portable;
 use std::sync::OnceLock;
 
 use vista_types::{
@@ -122,7 +123,7 @@ fn slope_degrees(map: &HeightMap, x: usize, y: usize) -> f32 {
   let spacing = map.metadata.metres_per_sample;
   let dx = (h[y * n + x + 1] - h[y * n + x - 1]) / (2.0 * spacing);
   let dy = (h[(y + 1) * n + x] - h[(y - 1) * n + x]) / (2.0 * spacing);
-  (dx * dx + dy * dy).sqrt().atan().to_degrees()
+  (dx * dx + dy * dy).sqrt().portable_atan().to_degrees()
 }
 
 /// Interior land samples, as `(x, y, index)`.
@@ -473,15 +474,17 @@ fn open_edges_are_pinned_bit_for_bit() {
   // Hashes of 128 x 128 maps at 12 m, seed 7, "high" erosion. Rolling
   // hills, which has no ranges, is the generator's output from before
   // `edges` existed; the others were recorded when ranges were raised to
-  // real relief, and pin it since.
+  // real relief, and pin it since. Recorded again when the generator's
+  // maths became the same on every target (`maths::Portable`): these are
+  // the browser build's maps too.
   let expected = [
-    (LandformKind::Continental, 0x8adc_0859_9867_d28c),
-    (LandformKind::Alpine, 0xfcec_7956_d926_4d8f),
-    (LandformKind::RollingHills, 0x615d_6e68_97e4_838b),
-    (LandformKind::Archipelago, 0x9190_a274_f1e4_e33e),
-    (LandformKind::MesaDesert, 0xc968_68c0_06fd_895e),
-    (LandformKind::Fjords, 0x164e_bf47_b38d_8dd0),
-    (LandformKind::VolcanicIsland, 0x72e2_78c5_2a3c_2d5a),
+    (LandformKind::Continental, 0x4b24_7ae7_ed22_f943),
+    (LandformKind::Alpine, 0xc4f2_9cee_6ea9_d5a0),
+    (LandformKind::RollingHills, 0x150c_8342_a9e9_96e2),
+    (LandformKind::Archipelago, 0x2cde_68f3_437f_5d51),
+    (LandformKind::MesaDesert, 0x85b0_6a7d_591a_f8e5),
+    (LandformKind::Fjords, 0x14c5_1d7b_f847_bed2),
+    (LandformKind::VolcanicIsland, 0x7fde_461a_3e63_d7b5),
   ];
 
   for (landform, hash) in expected {

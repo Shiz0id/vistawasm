@@ -7,6 +7,7 @@
 //! Points are in heightmap sample coordinates; lengths in metres.
 
 use crate::maths::length2;
+use crate::maths::Portable;
 use crate::terrain::channels::{ChannelPoint, Reach};
 
 /// Valley spacing (Perron, Kirchner and Dietrich, 2009), in samples: the
@@ -56,7 +57,7 @@ pub fn valley_spacing(reaches: &[Reach]) -> Option<f32> {
     grid.entry(cell(point.1)).or_default().push(index);
   }
 
-  let parallel = 30f32.to_radians().cos();
+  let parallel = 30f32.to_radians().portable_cos();
   let mut gaps = Vec::new();
 
   for (r, at, toward, slope) in &points {
@@ -130,7 +131,7 @@ pub fn grid_aligned_fraction(points: &[[f32; 2]]) -> f32 {
       continue;
     }
 
-    let angle = dy.atan2(dx).to_degrees().rem_euclid(45.0);
+    let angle = dy.portable_atan2(dx).to_degrees().rem_euclid(45.0);
     aligned += usize::from(angle.min(45.0 - angle) <= 1.0);
     count += 1;
   }
@@ -169,7 +170,7 @@ pub fn turn_angles(points: &[[f32; 2]]) -> Turns {
       }
 
       let cos = ((u[0] * v[0] + u[1] * v[1]) / (lu * lv)).clamp(-1.0, 1.0);
-      cos.acos().to_degrees()
+      cos.portable_acos().to_degrees()
     })
     .collect();
   let share = |target: f32| {
@@ -328,7 +329,7 @@ pub fn junction_angles(reaches: &[Reach], metres: f32) -> Vec<Junction> {
 
     let cos = ((t[0] * d[0] + t[1] * d[1]) / (lt * ld)).clamp(-1.0, 1.0);
     junctions.push(Junction {
-      angle: cos.acos().to_degrees(),
+      angle: cos.portable_acos().to_degrees(),
     });
   }
 
@@ -405,7 +406,10 @@ mod tests {
     let circle: Vec<[f32; 2]> = (0..40)
       .map(|i| {
         let a = i as f32 * 0.1 + 0.05;
-        [10.0 * a.cos() + 0.37, 10.0 * a.sin() + 0.21]
+        [
+          10.0 * a.portable_cos() + 0.37,
+          10.0 * a.portable_sin() + 0.21,
+        ]
       })
       .collect();
     assert!(on_nodes_fraction(&circle) == 0.0);

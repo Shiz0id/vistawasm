@@ -10,6 +10,7 @@
 //! downloaded, the output is identical on every run, and the cost is GPU
 //! time instead of megabytes of image assets.
 
+use crate::maths::Portable;
 #[cfg(not(target_arch = "wasm32"))]
 use crate::render::recorder as wgpu;
 
@@ -478,7 +479,7 @@ fn leaf_placements() -> Vec<[f32; 4]> {
       } else {
         side * (0.55 + unit(h) * 0.75)
       };
-      let direction = [angle.sin(), angle.cos()];
+      let direction = [angle.portable_sin(), angle.portable_cos()];
       let room_x = if direction[0] < 0.0 {
         (at[0] - 0.03) / (-direction[0]).max(1e-3)
       } else {

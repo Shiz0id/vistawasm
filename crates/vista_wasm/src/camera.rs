@@ -1,3 +1,4 @@
+use crate::maths::Portable;
 use vista_types::{CameraOptions, Vec3};
 
 use crate::config::validate_camera;
@@ -75,7 +76,7 @@ pub fn perspective_matrix(
   far_metres: f32,
 ) -> [f32; 16] {
   let fov_radians = field_of_view_degrees.to_radians();
-  let f = 1.0 / (fov_radians * 0.5).tan();
+  let f = 1.0 / (fov_radians * 0.5).portable_tan();
   let range_inv = 1.0 / (near_metres - far_metres);
 
   [

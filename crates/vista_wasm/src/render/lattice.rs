@@ -10,6 +10,8 @@
 //! so each point is placed exactly once. `lattice.wgsl` mirrors the hash
 //! line for line.
 
+use crate::maths::Portable;
+
 /// Tree lattice pitch in metres: about 1,100 candidates per hectare.
 pub const TREE_PITCH: f32 = 3.0;
 /// Candidates per hectare in the `p` formula, `target_density / 1100`.
@@ -183,7 +185,7 @@ pub fn canopy_density(d: f32) -> f32 {
 /// random, with `canopy` from [`canopy_density`].
 pub fn canopy_cover(red: f32, canopy: f32) -> f32 {
   let share = red * red * (crate::render::flora::COVER_SHARE_MAX / 65_025.0);
-  1.0 - (-canopy * share).exp()
+  1.0 - (-canopy * share).portable_exp()
 }
 
 /// How one candidate is thinned at a distance from the camera.

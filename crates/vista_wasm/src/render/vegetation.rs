@@ -9,6 +9,7 @@
 //! each point by [`tree_at`] (or its WGSL twin), so they agree point for
 //! point.
 
+use crate::maths::Portable;
 use vista_types::BiomeKind;
 
 use crate::render::flora::{
@@ -262,7 +263,9 @@ impl GroundData {
     let dx = self.height_at(x + SLOPE_SPAN, z) - self.height_at(x - SLOPE_SPAN, z);
     let dz = self.height_at(x, z + SLOPE_SPAN) - self.height_at(x, z - SLOPE_SPAN);
     let run = 2.0 * SLOPE_SPAN;
-    (crate::maths::length2(dx, dz) / run).atan().to_degrees()
+    (crate::maths::length2(dx, dz) / run)
+      .portable_atan()
+      .to_degrees()
   }
 }
 
@@ -541,7 +544,9 @@ pub fn shape_bits(
   let dx = ground.height_at(x + SLOPE_SPAN, z) - ground.height_at(x - SLOPE_SPAN, z);
   let dz = ground.height_at(x, z + SLOPE_SPAN) - ground.height_at(x, z - SLOPE_SPAN);
   let run = 2.0 * SLOPE_SPAN;
-  let slope = (crate::maths::length2(dx, dz) / run).atan().to_degrees();
+  let slope = (crate::maths::length2(dx, dz) / run)
+    .portable_atan()
+    .to_degrees();
   // Downhill, weighted by the slope, and with the prevailing wind.
   let fall = (crate::maths::length2(dx, dz) / run * 10.0).min(2.0);
   let downhill = crate::maths::length2(dx, dz).max(1e-6);
@@ -549,7 +554,8 @@ pub fn shape_bits(
     -dx / downhill * fall + PREVAILING_WIND[0] * 0.5,
     -dz / downhill * fall + PREVAILING_WIND[1] * 0.5,
   ]);
-  let sector = (lean[0].atan2(lean[1]) / (std::f32::consts::TAU / 16.0)).round() as i32 & 15;
+  let sector =
+    (lean[0].portable_atan2(lean[1]) / (std::f32::consts::TAU / 16.0)).round() as i32 & 15;
   let roll = hash >> 10 & 255;
   let mut strength = u32::from(slope >= 12.0) + u32::from(slope >= 25.0) + u32::from(slope >= 35.0);
   strength = strength.max(u32::from(roll >= 128) + u32::from(roll >= 218));
@@ -566,7 +572,8 @@ pub fn shape_bits(
 /// The rotation a stunted tree stands at: its model's windward side (+x)
 /// facing into the prevailing wind, give or take 0.35 radians.
 pub fn krummholz_rotation(hash: u32) -> f32 {
-  PREVAILING_WIND[1].atan2(-PREVAILING_WIND[0]) + ((hash >> 18 & 255) as f32 / 255.0 - 0.5) * 0.7
+  PREVAILING_WIND[1].portable_atan2(-PREVAILING_WIND[0])
+    + ((hash >> 18 & 255) as f32 / 255.0 - 0.5) * 0.7
 }
 
 /// What every tree point needs beyond the ground: the lattice seed and
@@ -1570,7 +1577,7 @@ pub fn grass_stream(mass: TileMass, radius: f32, view: f32, cap: u32) -> Stream 
   let most = mass.most();
   let layout_for = |radius: f32| {
     let first = radius.min(view);
-    let ratio = (view / first.max(1.0)).powf(1.0 / 7.0);
+    let ratio = (view / first.max(1.0)).portable_powf(1.0 / 7.0);
     let mut reaches = vec![first];
 
     while reaches.len() < 8 && reaches[reaches.len() - 1] < view {
@@ -2466,7 +2473,9 @@ mod tests {
     (0..1400)
       .map(|i| {
         let x = -700.0 + i as f32;
-        let z = 30.0 + 5.0 * (x / 22.0 * std::f32::consts::TAU).sin() + 3.0 * (x / 9.0).cos();
+        let z = 30.0
+          + 5.0 * (x / 22.0 * std::f32::consts::TAU).portable_sin()
+          + 3.0 * (x / 9.0).portable_cos();
         [x, z, 1.0]
       })
       .collect()
@@ -2497,7 +2506,7 @@ mod tests {
       // The brook runs from x = -400 to 380: beyond its ends the water is
       // its end point.
       let along = tree.position[0].clamp(-400.0, 380.0);
-      let off_water = (tree.position[0] - along).hypot(tree.position[2] - 30.0);
+      let off_water = (tree.position[0] - along).portable_hypot(tree.position[2] - 30.0);
 
       if off_water < LEAN_WATER_METRES - 0.5 && along == tree.position[0] {
         // Bank trees lean over the water, and are never old.
@@ -2531,7 +2540,7 @@ mod tests {
     }
 
     let stunted = lattice_trees(&ground, &bins, &rules, 1.0, usize::MAX);
-    let windward = PREVAILING_WIND[1].atan2(-PREVAILING_WIND[0]);
+    let windward = PREVAILING_WIND[1].portable_atan2(-PREVAILING_WIND[0]);
     assert!(!stunted.is_empty());
 
     for tree in &stunted {

@@ -11,6 +11,8 @@
 //! Every drop is binned into every tile its outline touches, so the
 //! shader, which only looks at its own tile's drops, draws each drop whole.
 
+use crate::maths::Portable;
+
 /// The most drops on the lens at once.
 pub const MAX_LENS_DROPS: usize = 512;
 
@@ -160,7 +162,7 @@ impl LensDrops {
 
       let size = ((drop.radius * 2.0 - min) / range).clamp(BEAD_SHARE, 1.0);
       let speed = 0.15 + 0.45 * (size - BEAD_SHARE) / (1.0 - BEAD_SHARE);
-      drop.drift = (drop.phase + drop.age * 1.7).sin() * 0.25;
+      drop.drift = (drop.phase + drop.age * 1.7).portable_sin() * 0.25;
       drop.x += drop.drift * speed * dt;
       drop.y += speed * dt;
       drop.trail += speed * dt;

@@ -560,6 +560,7 @@ fn fold_lakes(map: &HeightMap, lakes: &[bool], slots: &[u32], columns: u32, tile
 #[cfg(test)]
 mod tests {
   use super::*;
+  use crate::maths::Portable;
   use vista_types::TerrainMetadata;
 
   fn flat(size: u32, metres: f32) -> HeightMap {
@@ -612,7 +613,7 @@ mod tests {
     let points = (0..=80)
       .map(|i| {
         let x = 4.0 + i as f32 * 0.5;
-        point(x, 20.0 + 3.0 * (x / 7.0).sin(), 1.6, 0.8)
+        point(x, 20.0 + 3.0 * (x / 7.0).portable_sin(), 1.6, 0.8)
       })
       .collect();
     (flat(64, 12.0), points)

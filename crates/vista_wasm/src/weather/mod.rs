@@ -18,6 +18,7 @@ pub mod sun;
 pub mod surface;
 pub mod wind;
 
+use crate::maths::Portable;
 use vista_types::{WeatherKind, WeatherOptions, WeatherState};
 
 use crate::maths::{hash_u64, smoothstep};
@@ -237,7 +238,7 @@ pub fn surface_relief(terrain: &crate::terrain::HeightMap, x: f32, z: f32) -> (f
   let (north, south) = (at(column, row - 1), at(column, row + 1));
   let gradient = ((east - west).powi(2) + (south - north).powi(2)).sqrt() / (2.0 * metres);
   let hollow = (west + east + north + south) * 0.25 - at(column, row);
-  (gradient.atan().to_degrees(), hollow)
+  (gradient.portable_atan().to_degrees(), hollow)
 }
 
 /// The time of day, for the golden-hour bias.
@@ -669,9 +670,10 @@ impl WeatherSystem {
     let time = self.time as f32;
     let gustiness = values.get(field::GUSTINESS);
     let mean_wind = self.mean_wind();
-    let direction = self.options.wind_direction_degrees + (time * 0.05).sin() * 12.0 * gustiness;
+    let direction =
+      self.options.wind_direction_degrees + (time * 0.05).portable_sin() * 12.0 * gustiness;
     let radians = direction.to_radians();
-    let heading = [radians.sin(), radians.cos()];
+    let heading = [radians.portable_sin(), radians.portable_cos()];
     self.gust_offset = (self.gust_offset + mean_wind * wind::GUST_TRAVEL * dt) % 1.0e6;
     let along = self.camera[0] * heading[0] + self.camera[2] * heading[1];
     let gust = wind::gust(along - self.gust_offset);
@@ -799,7 +801,10 @@ impl WeatherSystem {
       for spot in 0..6u64 {
         let angle = self.roll(0x21 + spot * 2) * std::f32::consts::TAU;
         let distance = 1_000.0 + self.roll(0x31 + spot * 2) * 8_000.0;
-        let offset = [angle.sin() * distance, angle.cos() * distance];
+        let offset = [
+          angle.portable_sin() * distance,
+          angle.portable_cos() * distance,
+        ];
         let sample = self
           .regional
           .evaluate(self.camera[0] + offset[0], self.camera[2] + offset[1]);
@@ -815,14 +820,14 @@ impl WeatherSystem {
         self.lightning_offset = best.1;
       }
 
-      let wait = -((1.0 - self.roll(0x11) * 0.98).ln()) * 60.0 / rate;
+      let wait = -((1.0 - self.roll(0x11) * 0.98).portable_ln()) * 60.0 / rate;
       self.next_lightning = self.time + wait.clamp(1.5, 120.0) as f64;
     }
 
     let since = (self.time - self.lightning_started) as f32;
 
     if since < 0.6 {
-      ((1.0 - since / 0.6) * (0.6 + 0.4 * (since * 40.0).sin().abs())).clamp(0.0, 1.0)
+      ((1.0 - since / 0.6) * (0.6 + 0.4 * (since * 40.0).portable_sin().abs())).clamp(0.0, 1.0)
     } else {
       0.0
     }

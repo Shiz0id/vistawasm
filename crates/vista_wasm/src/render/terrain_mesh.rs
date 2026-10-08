@@ -973,6 +973,7 @@ const _: () = assert!(std::mem::size_of::<TerrainVertex>() == 36);
 #[cfg(test)]
 mod tests {
   use super::*;
+  use crate::maths::Portable;
   use vista_types::TerrainMetadata;
 
   #[test]
@@ -1539,7 +1540,7 @@ mod tests {
     // Ribs 4 samples apart: a single sample's normal tilts steeply, but
     // across a 4-sample step the ground is level.
     for (index, height) in map.heights.iter_mut().enumerate() {
-      *height = 10.0 * ((index % 256) as f32 * std::f32::consts::FRAC_PI_2).sin();
+      *height = 10.0 * ((index % 256) as f32 * std::f32::consts::FRAC_PI_2).portable_sin();
     }
 
     let normals = crate::terrain::normals::generate_normals(&map);

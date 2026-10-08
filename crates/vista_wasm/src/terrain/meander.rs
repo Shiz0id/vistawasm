@@ -12,6 +12,7 @@
 //! and how fast it happens. Everything runs once per river build, on the
 //! CPU, from seeded values, so a seed always gives the same rivers.
 
+use crate::maths::Portable;
 use crate::maths::{hash_u64, length2, smoothstep, value_noise};
 use crate::terrain::centreline::{blend, spacing};
 use crate::terrain::channels::{height_at, manning_speed, rock_banks, ChannelPoint};
@@ -64,7 +65,7 @@ const BRAIDING_SLOPE: f32 = 0.02;
 /// The slope above which a channel carrying `discharge` m³/s braids,
 /// where it has the room.
 pub fn braiding_threshold(discharge: f32) -> f32 {
-  BRAIDING_SLOPE * discharge.max(0.01).powf(-0.44)
+  BRAIDING_SLOPE * discharge.max(0.01).portable_powf(-0.44)
 }
 
 /// The meandering share of the channel pattern at a point: 1 on gentle
@@ -229,7 +230,9 @@ pub fn migrate(
   let tau = std::f32::consts::TAU;
   let seeded = |i: usize, p: &ChannelPoint| {
     (1..4u64)
-      .map(|k| (s[i] / ((8.0 + 8.0 * unit(2 * k)) * p.width) * tau + tau * unit(2 * k + 1)).sin())
+      .map(|k| {
+        (s[i] / ((8.0 + 8.0 * unit(2 * k)) * p.width) * tau + tau * unit(2 * k + 1)).portable_sin()
+      })
       .sum::<f32>()
       * 0.05
       / 3.0
@@ -303,7 +306,8 @@ pub fn migrate(
       let kappa = 0.25 * (raw[k.saturating_sub(1)] + 2.0 * raw[k] + raw[(k + 1).min(count - 1)]);
 
       if k > 0 {
-        let decay = (-2.0 * FRICTION * (s[k] - s[k - 1]) / node.point.depth.max(0.1)).exp();
+        let decay =
+          (-2.0 * FRICTION * (s[k] - s[k - 1]) / node.point.depth.max(0.1)).portable_exp();
         weighted = (weighted + nominal) * decay;
         weights = (weights + 1.0) * decay;
       }

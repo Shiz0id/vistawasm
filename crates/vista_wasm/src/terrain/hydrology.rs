@@ -1325,6 +1325,7 @@ fn mark_channels(hydrology: &mut Hydrology, threshold: f32, order: &[u32]) {
 #[cfg(test)]
 pub(crate) mod tests {
   use super::*;
+  use crate::maths::Portable;
   use crate::terrain::heightmap::update_stats;
   use vista_types::TerrainMetadata;
 
@@ -1608,7 +1609,8 @@ pub(crate) mod tests {
   fn springs_are_seeded_and_spaced() {
     // Steep hills over a gentle plain, so slope feet are everywhere.
     let map = map_from(160, 20.0, |x, y| {
-      let ridge = ((x as f32 * 0.21).sin() * (y as f32 * 0.17).cos()).max(0.0) * 60.0;
+      let ridge =
+        ((x as f32 * 0.21).portable_sin() * (y as f32 * 0.17).portable_cos()).max(0.0) * 60.0;
       50.0 + y as f32 * 0.4 + ridge
     });
     let first = build_hydrology(&map, &[], &options(), 11);
