@@ -2,17 +2,15 @@ use std::cell::OnceCell;
 use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
 use std::sync::{Arc, Mutex};
 
-use bytemuck::{Pod, Zeroable};
-use vista_types::{
-  AtmosphereOptions, CloudsOptions, ErosionOptions, FloraOptions, MistOptions, ShadowOptions,
-  SurfaceOptions, TextureTarget, WaterOptions,
-};
+use bytemuck::Zeroable;
+use vista_types::{ErosionOptions, TextureTarget};
 
 use crate::errors::{VistaError, VistaResult};
 use crate::render::erosion_compute::ErosionCompute;
 use crate::render::flora::{FloraInstance, TreeInstance};
 use crate::render::grass::GRASS_BASE_TUFT;
 use crate::render::pipelines::{Needs, PipelineKind, PipelineSlots};
+use crate::render::plan::*;
 use crate::render::shaders;
 use crate::render::shadow_math::tree_shadow_frame;
 use crate::render::terrain_mesh::{TerrainMeshData, TerrainVertex};
@@ -22,325 +20,15 @@ use crate::render::tree_models::{
   build_library, mesh_slot, SpeciesModel, TreeLibrary, TreeMesh, TreeSpecies, IMPOSTOR_CELL,
   IMPOSTOR_MIPS, MESH_SLOTS, SPECIES_COUNT,
 };
-use crate::render::water::{build_ocean_grid, WaterVertex, OCEAN_SNAP_METRES};
+use crate::render::water::{build_ocean_grid, WaterVertex};
 use crate::terrain::biomes::{SurfaceSample, DEFAULT_SEA_LEVEL_CELSIUS};
 use crate::terrain::HeightMap;
 
 mod weather;
-pub use weather::SurfaceWeatherStep;
+pub use crate::render::frame::{
+  CanopyFrame, FrameParams, FrameWeather, RiverFrame, SeaIce, SurfaceWeatherStep,
+};
 use weather::{GroundLayers, SurfaceWeatherMap};
-
-/// Per-frame uniforms shared by every render shader.
-///
-/// The layout must stay in sync with `FrameUniforms` in `common.wgsl`, which
-/// is prepended to every render shader, so there is exactly one declaration
-/// to keep in step.
-#[repr(C)]
-#[derive(Clone, Copy, Debug, Pod, Zeroable)]
-struct FrameUniforms {
-  view_proj: [f32; 16],
-  camera_position: [f32; 4],
-  camera_forward: [f32; 4],
-  camera_right: [f32; 4],
-  camera_up: [f32; 4],
-  sun_direction: [f32; 4],
-  atmosphere: [f32; 4],
-  sky_tint: [f32; 4],
-  mist_params: [f32; 4],
-  mist_colour: [f32; 4],
-  mist_wind: [f32; 4],
-  cloud_params: [f32; 4],
-  cloud_motion: [f32; 4],
-  cloud_colour: [f32; 4],
-  water_params: [f32; 4],
-  water_shallow: [f32; 4],
-  water_deep: [f32; 4],
-  water_current: [f32; 4],
-  wave_params: [f32; 4],
-  wave_params2: [f32; 4],
-  water_origin: [f32; 4],
-  vegetation: [f32; 4],
-  vegetation2: [f32; 4],
-  viewport: [f32; 4],
-  shadow_view_proj: [f32; 16],
-  shadow_params: [f32; 4],
-  weather: [f32; 4],
-  weather2: [f32; 4],
-  surface: [f32; 4],
-  clouds2: [f32; 4],
-  clouds3: [f32; 4],
-  clouds4: [f32; 4],
-  weather3: [f32; 4],
-  previous_view_proj: [f32; 16],
-  temporal: [f32; 4],
-  distances: [f32; 4],
-  fades: [f32; 4],
-  output: [f32; 4],
-  cold: [f32; 4],
-  sea_ice: [f32; 4],
-  rivers: [f32; 4],
-  ground: [f32; 4],
-  vegetation3: [f32; 4],
-  rock: [f32; 4],
-  regional: [f32; 4],
-  air: [f32; 4],
-  light: [f32; 4],
-  gust: [f32; 4],
-  weather4: [f32; 4],
-  clouds5: [f32; 4],
-  alto: [f32; 4],
-  rivers2: [f32; 4],
-  waterside: [f32; 4],
-  mouths: [[f32; 4]; 16],
-}
-
-const _: () = assert!(std::mem::size_of::<FrameUniforms>() == 1248);
-
-/// Static world data: species bounds, wind and tints, terrain mapping,
-/// material tints, and the canopy layer's colour per species. Mirrors
-/// `WorldInfo` in `common.wgsl`.
-#[repr(C)]
-#[derive(Clone, Copy, Debug, Pod, Zeroable)]
-struct WorldInfo {
-  species: [[f32; 4]; 8],
-  species_tint: [[f32; 4]; 8],
-  terrain: [f32; 4],
-  terrain2: [f32; 4],
-  material_tints: [[f32; 4]; vista_types::MATERIAL_COUNT],
-  /// x: variants per species in the impostor atlas.
-  trees: [f32; 4],
-  /// Per species, the canopy layer's colour, averaged from the impostors
-  /// on the GPU after each bake (see `GpuContext::bake_impostors`), so it
-  /// is written only up to here from the CPU.
-  species_canopy: [[f32; 4]; 8],
-}
-
-const _: () = assert!(std::mem::size_of::<WorldInfo>() == 624);
-/// Bytes of [`WorldInfo`] the CPU writes: all but `species_canopy`.
-const WORLD_INFO_CPU_BYTES: u64 = 496;
-
-/// Tree culling parameters. Mirrors `CullParams` in `tree_cull.wgsl`.
-#[repr(C)]
-#[derive(Clone, Copy, Debug, Pod, Zeroable)]
-struct CullParams {
-  planes: [[f32; 4]; 6],
-  camera: [f32; 4],
-  params: [f32; 4],
-  bounds: [[f32; 4]; 8],
-  lod: [f32; 4],
-  shadow: [f32; 4],
-  stream: [u32; 4],
-  thin: [f32; 4],
-  budget: [f32; 4],
-}
-
-const _: () = assert!(std::mem::size_of::<CullParams>() == 336);
-
-/// Terrain shadow bake parameters. Mirrors `BakeParams` in
-/// `terrain_shadow.wgsl`.
-#[repr(C)]
-#[derive(Clone, Copy, Debug, Pod, Zeroable)]
-struct TerrainShadowParams {
-  sun: [f32; 4],
-  grid: [f32; 4],
-}
-
-/// Weather values the shaders need for one frame.
-#[derive(Clone, Debug, Default)]
-pub struct FrameWeather {
-  /// Rain intensity.
-  pub rain: f32,
-  /// Snowfall intensity.
-  pub snow: f32,
-  /// Ground wetness.
-  pub wetness: f32,
-  /// Settled snow.
-  pub snow_cover: f32,
-  /// Lightning flash brightness.
-  pub lightning: f32,
-  /// How grey and flat the sky is.
-  pub overcast: f32,
-  /// Wind vector (x, z) in metres per second.
-  pub wind: [f32; 2],
-  /// World position (x, z) of the latest lightning strike.
-  pub lightning_position: [f32; 2],
-  /// How far precipitation exceeds full intensity (1 or more).
-  pub heaviness: f32,
-  /// Raindrops on the lens (see [`crate::lens_drops::LensDrops::packed`]).
-  pub lens_drops: Vec<[f32; 4]>,
-  /// Low drifting snow, 0 to 1.
-  pub blowing_snow: f32,
-  /// The regional weather map's corner (xy), 1 / its size (z), and 1 when
-  /// it is read (w).
-  pub regional: [f32; 4],
-  /// Mie colour (rgb) and phase asymmetry (w).
-  pub air: [f32; 4],
-  /// Direct sun, shadow strength, indirect light, and how flat the sky
-  /// light is under a deck.
-  pub light: [f32; 4],
-  /// The gust front: distance travelled, gustiness, mean wind, and 1 when
-  /// on.
-  pub gust: [f32; 4],
-  /// 1 when the surface weather map is read, whitecaps, blown spray.
-  pub sea: [f32; 4],
-  /// Added to the terrain shadows' softness under cloud.
-  pub shadow_softening: f32,
-}
-
-/// Where the sea may freeze.
-#[derive(Clone, Copy, Debug, Default)]
-pub struct SeaIce {
-  /// Whether any sea, on the terrain or beyond it, is cold enough to
-  /// freeze. When `false` the water shader skips sea ice entirely.
-  pub possible: bool,
-  /// Temperature unit ((°C + 30) / 65) of the open sea beyond the terrain.
-  pub open_sea_unit: f32,
-}
-
-/// Rivers, lakes and waterfalls this frame.
-#[derive(Clone, Copy, Debug, Default)]
-pub struct RiverFrame {
-  /// How full snowmelt makes the rivers, 0.4 to 1.4: it scales speed and
-  /// foam, and raises the surface inside the channel above 1.
-  pub melt: f32,
-  /// Whether any lake, river or waterfall is below 0 °C. When `false` the
-  /// water shader skips all frozen-water code.
-  pub freezing: bool,
-  /// Whether there are waterfalls. When `false` the water shader skips
-  /// all waterfall code.
-  pub falls: bool,
-  /// Whether there is a wet-bank field. When `false` the terrain shader
-  /// skips wet banks.
-  pub wet_banks: bool,
-  /// Eddies and vortices in rivers, 0 to 1 (`WaterOptions::eddies`). At 0
-  /// the water shader skips all eddy code.
-  pub eddies: f32,
-  /// Refraction and caustics in shallow water, 0 to 1
-  /// (`WaterOptions::refraction`).
-  pub refraction: f32,
-  /// The river mouths whose plumes tint the sea (`water::plume_mouths`).
-  pub mouths: [[f32; 4]; 16],
-  /// The stream stones' lattice seed (`BoulderRules::stones`), which the
-  /// water shader breaks its foam on.
-  pub stones: u32,
-}
-
-/// The canopy layer this frame.
-#[derive(Clone, Copy, Debug, Default)]
-pub struct CanopyFrame {
-  /// Crown area per square metre per unit of cover share, at the tree
-  /// density (`lattice::canopy_density`); 0 without trees.
-  pub density: f32,
-  /// Where individual trees give way to the canopy layer, in metres.
-  pub distance: f32,
-  /// Whether the layer is drawn.
-  pub drawn: bool,
-}
-
-/// Everything the renderer needs to shade one frame. The engine resolves
-/// weather into these values, so the renderer never needs to know whether
-/// a setting came from the host or from the weather system.
-pub struct FrameParams {
-  /// Combined view-projection matrix.
-  pub view_proj: [f32; 16],
-  /// Camera position in metres.
-  pub camera_position: [f32; 3],
-  /// Unit camera forward vector.
-  pub camera_forward: [f32; 3],
-  /// Unit camera right vector.
-  pub camera_right: [f32; 3],
-  /// Unit camera up vector.
-  pub camera_up: [f32; 3],
-  /// Vertical field of view.
-  pub field_of_view_degrees: f32,
-  /// Viewport aspect ratio.
-  pub aspect_ratio: f32,
-  /// Near plane distance.
-  pub near_metres: f32,
-  /// Far plane distance.
-  pub far_metres: f32,
-  /// Unit vector towards the sun.
-  pub sun_direction: [f32; 3],
-  /// Sun intensity.
-  pub sun_intensity: f32,
-  /// Atmosphere controls.
-  pub atmosphere: AtmosphereOptions,
-  /// Water controls.
-  pub water: WaterOptions,
-  /// Effective mist density (0 when mist is off).
-  pub mist_density: f32,
-  /// Mist noise strength (0 for flat mist).
-  pub mist_noise_strength: f32,
-  /// Water level for the rise-above-water term, or a far-away sentinel.
-  pub mist_water_level_metres: f32,
-  /// Mist controls.
-  pub mist: MistOptions,
-  /// Effective cloud coverage (0 when clouds are off).
-  pub cloud_coverage: f32,
-  /// Cloud raymarch steps (0 for painted clouds).
-  pub cloud_raymarch_steps: u32,
-  /// Effective altocumulus and altostratus amounts (0 when clouds are
-  /// off).
-  pub alto_amounts: [f32; 2],
-  /// Cloud controls.
-  pub clouds: CloudsOptions,
-  /// Tree style: 0 billboard, 1 cross-quad, 2 mesh.
-  pub tree_style: u32,
-  /// Time canopy meshes, understorey meshes and impostors as separate
-  /// passes.
-  pub split_tree_timing: bool,
-  /// Flora controls.
-  pub flora: FloraOptions,
-  /// Grass fade-out distance.
-  pub grass_view_distance_metres: f32,
-  /// The share of an ideal meadow's ground its tufts cover near the
-  /// camera (0 while grass is off), for the ground's grass sheen.
-  pub grass_cover: f32,
-  /// How tall meadow grass grows (see `lattice::grass_height`).
-  pub grass_height: f32,
-  /// Tiles to stream this frame, and the near radii.
-  pub vegetation: crate::render::vegetation::StreamFrame,
-  /// The canopy layer.
-  pub canopy: CanopyFrame,
-  /// Bare rock: the beds' rise per metre along x and z, their spacing in
-  /// metres, and the angle of the sunward side in radians (see
-  /// `materials.wgsl`).
-  pub rock: [f32; 4],
-  /// Debug view index.
-  pub debug_view: u32,
-  /// Shadow controls.
-  pub shadows: ShadowOptions,
-  /// Terrain surface controls.
-  pub surface: SurfaceOptions,
-  /// Resolved weather.
-  pub weather: FrameWeather,
-  /// Sea ice conditions.
-  pub sea_ice: SeaIce,
-  /// River, lake and waterfall conditions.
-  pub rivers: RiverFrame,
-  /// The terrain mesh being drawn, for grounding trees and grass (see
-  /// `terrain_mesh::mesh_ground_uniform`).
-  pub mesh_ground: [f32; 4],
-  /// Lowest and highest terrain heights, for fitting the shadow map.
-  pub height_range: (f32, f32),
-  /// Render, detail, and cloud distances.
-  pub distances: vista_types::RenderDistances,
-  /// Fraction of the canvas resolution to render the scene at (0.25 to 1).
-  pub render_scale: f32,
-  /// Smoothed time step to animate by, in seconds.
-  pub frame_seconds: f32,
-  /// What the scene draws this frame.
-  pub needs: Needs,
-  /// What it is likely to draw soon.
-  pub likely: Needs,
-}
-
-impl FrameParams {
-  /// Whether the cloud pass runs: low clouds, or a mid-level layer.
-  fn clouds_drawn(&self) -> bool {
-    self.cloud_coverage > 0.001 || self.alto_amounts[0].max(self.alto_amounts[1]) > 0.001
-  }
-}
 
 // The engine validates replacement textures against these sizes without
 // access to the texture module, so keep them in step.
@@ -407,49 +95,6 @@ struct TreeStream {
   params: wgpu::Buffer,
 }
 
-/// Mirrors `TreeParams` in `tree_generate.wgsl`.
-#[repr(C)]
-#[derive(Clone, Copy, Debug, Pod, Zeroable)]
-struct TreeGenerateParams {
-  terrain: [f32; 4],
-  terrain2: [f32; 4],
-  mesh: [f32; 4],
-  rules: [f32; 4],
-  shape: [u32; 4],
-  max_slopes: [[f32; 4]; 2],
-  roots: [[f32; 4]; 2],
-}
-
-/// Mirrors `Job` in `generate_common.wgsl`.
-#[repr(C)]
-#[derive(Clone, Copy, Debug, Pod, Zeroable)]
-struct GpuJob {
-  tile: [i32; 2],
-  first: u32,
-  capacity: u32,
-  slot: u32,
-  keep: f32,
-  unused: [u32; 2],
-}
-
-/// Most tiles of one kind generated in a frame.
-const MAX_JOBS: usize = crate::render::lattice::TILES_PER_FRAME * 2;
-
-/// Mirrors `GrassParams` in `grass_generate.wgsl`.
-#[repr(C)]
-#[derive(Clone, Copy, Debug, Pod, Zeroable)]
-struct GrassGenerateParams {
-  terrain: [f32; 4],
-  terrain2: [f32; 4],
-  mesh: [f32; 4],
-  rules: [f32; 4],
-  shape: [u32; 4],
-  camera: [f32; 4],
-  view: [f32; 4],
-  planes: [[f32; 4]; 6],
-  classes: [[u32; 4]; 8],
-}
-
 /// GPU-side grass: reeds placed on the CPU, and the tile pool of streamed
 /// tufts with its culled, drawn list.
 struct GrassGpu {
@@ -473,39 +118,6 @@ struct GrassStream {
   grounding: Grounding,
 }
 
-/// Mirrors `BoulderParams` in `boulder_generate.wgsl`.
-#[repr(C)]
-#[derive(Clone, Copy, Debug, Pod, Zeroable)]
-struct BoulderGenerateParams {
-  terrain: [f32; 4],
-  terrain2: [f32; 4],
-  mesh: [f32; 4],
-  rules: [f32; 4],
-  shape: [u32; 4],
-  camera: [f32; 4],
-  tall: [[f32; 4]; 2],
-  planes: [[f32; 4]; 6],
-}
-
-/// Boulder draw lists: finest, middle and coarsest level per variant,
-/// then one shadow list per variant (drawn at the middle level). Their
-/// capacities mirror `boulder_generate.wgsl`.
-const BOULDER_LISTS: usize = crate::render::boulders::VARIANTS * 4;
-const BOULDER_LIST_CAPACITY: [u32; 3] = [1024, 2048, 4096];
-const BOULDER_VARIANT_ENTRIES: u32 = 7168;
-const BOULDER_SHADOW_CAPACITY: u32 = 2048;
-const _: () = assert!(
-  BOULDER_LIST_CAPACITY[0] + BOULDER_LIST_CAPACITY[1] + BOULDER_LIST_CAPACITY[2]
-    == BOULDER_VARIANT_ENTRIES
-);
-/// Words in the boulders' indirect arguments: an indexed draw per list,
-/// then the count of every boulder drawn.
-const BOULDER_ARGS_WORDS: usize = BOULDER_LISTS * 5 + 1;
-/// Bytes per boulder: `Boulder`'s eight floats.
-const BOULDER_BYTES: u64 = 32;
-const _: () =
-  assert!(std::mem::size_of::<crate::render::boulders::Boulder>() as u64 == BOULDER_BYTES);
-
 /// The boulder meshes and, when boulders are streamed, their tile pool.
 struct BouldersGpu {
   vertex_buffer: wgpu::Buffer,
@@ -528,56 +140,6 @@ struct BoulderStream {
   params: wgpu::Buffer,
   grounding: Grounding,
 }
-
-impl BouldersGpu {
-  /// Each list's indirect draw, with no instances yet, and the count of
-  /// boulders drawn at 0: what the cull pass starts from each frame.
-  fn cleared_args(&self) -> [u32; BOULDER_ARGS_WORDS] {
-    let mut words = [0u32; BOULDER_ARGS_WORDS];
-
-    for list in 0..BOULDER_LISTS {
-      let (variant, lod) = if list < 18 {
-        (list / 3, list % 3)
-      } else {
-        (list - 18, 1)
-      };
-      let (first, count, base) = self.ranges[variant][lod];
-      words[list * 5..list * 5 + 5].copy_from_slice(&[count, 0, first, base as u32, 0]);
-    }
-
-    words
-  }
-
-  /// The first drawn entry of each list.
-  fn list_start(list: usize) -> u32 {
-    let variants = crate::render::boulders::VARIANTS as u32;
-
-    if list < 18 {
-      let starts = [
-        0,
-        BOULDER_LIST_CAPACITY[0],
-        BOULDER_LIST_CAPACITY[0] + BOULDER_LIST_CAPACITY[1],
-      ];
-      (list / 3) as u32 * BOULDER_VARIANT_ENTRIES + starts[list % 3]
-    } else {
-      variants * BOULDER_VARIANT_ENTRIES + (list - 18) as u32 * BOULDER_SHADOW_CAPACITY
-    }
-  }
-}
-
-/// Grounding parameters for one instance buffer. Mirrors `GroundParams`
-/// in `grounding.wgsl`.
-#[repr(C)]
-#[derive(Clone, Copy, Debug, Pod, Zeroable)]
-struct GroundParams {
-  terrain: [f32; 4],
-  terrain2: [f32; 4],
-  mesh: [f32; 4],
-  shape: [u32; 4],
-  roots: [[f32; 4]; 2],
-}
-
-const _: () = assert!(std::mem::size_of::<GroundParams>() == 96);
 
 /// Standing one instance buffer on the drawn terrain.
 struct Grounding {
@@ -606,83 +168,6 @@ struct IndexedMesh {
   vertex_buffer: wgpu::Buffer,
   index_buffer: wgpu::Buffer,
   index_count: u32,
-}
-
-/// The mesh slot a mesh list draws: its own, or for an understorey list
-/// its species' and variant's young, full mesh.
-fn list_mesh(list: usize) -> usize {
-  if list < MESH_SLOTS {
-    return list;
-  }
-
-  let understorey = list - MESH_SLOTS;
-  mesh_slot(
-    understorey / VARIANTS,
-    understorey % VARIANTS,
-    Age::Young as usize,
-    0,
-  )
-}
-
-/// Each mesh list's first slot and slots: for each species present,
-/// the full and light meshes of every variant grown and age class, and
-/// with streamed tiles the understorey's young meshes. Each list has
-/// twice its share of the species' trees, so an uneven mix of ages still
-/// fits; a full list passes trees to the lighter level, and on to
-/// impostors.
-fn mesh_list_layout(
-  present: u32,
-  species_slots: &[u32; SPECIES_COUNT],
-  pool: u32,
-  streamed: bool,
-  variants: usize,
-) -> (Vec<u32>, Vec<u32>) {
-  let mut capacities = vec![0u32; MESH_LISTS];
-
-  for species in 0..SPECIES_COUNT {
-    if present & 1 << species == 0 {
-      continue;
-    }
-
-    // Shrubs are never stunted.
-    let ages = if species == TreeSpecies::Shrub as usize {
-      AGES - 1
-    } else {
-      AGES
-    };
-    let lists = (variants * ages) as u32;
-
-    for (lod, most) in [(0, LOD0_MESH_SLOTS), (1, LOD1_MESH_SLOTS)] {
-      let total = species_slots[species].min(most);
-      let share = (total * 2).div_ceil(lists).min(total);
-
-      for variant in 0..variants {
-        for age in 0..ages {
-          capacities[mesh_slot(species, variant, age, lod)] = share;
-        }
-      }
-    }
-
-    if streamed {
-      let total = pool.min(UNDERSTOREY_MESH_SLOTS);
-
-      for variant in 0..variants {
-        capacities[MESH_SLOTS + species * VARIANTS + variant] =
-          (total * 3 / 2).div_ceil(variants as u32).min(total);
-      }
-    }
-  }
-
-  let mut running = 0;
-  let offsets = capacities
-    .iter()
-    .map(|capacity| {
-      let offset = running;
-      running += capacity;
-      offset
-    })
-    .collect();
-  (offsets, capacities)
 }
 
 /// Times the GPU work between two points in the queue with timestamp
@@ -1056,68 +541,12 @@ struct TerrainShadow {
   baked_for: Option<([f32; 3], f32, u64)>,
 }
 
-/// Mesh lists: canopy trees per mesh slot (species, variant, age class
-/// and level of detail, `tree_models::mesh_slot`), then understorey
-/// saplings per species and variant.
-const MESH_LISTS: usize = MESH_SLOTS + SPECIES_COUNT * VARIANTS;
-/// Words in the indirect argument buffer: an indexed mesh draw per list
-/// (5 words each), then one impostor draw and one shadow draw (4 each).
-/// The triangle budget reads them all back.
-const INDIRECT_WORDS: usize = MESH_LISTS * 5 + 4 * 2;
-const IMPOSTOR_ARGS_BASE: usize = MESH_LISTS * 5;
-const SHADOW_ARGS_BASE: usize = IMPOSTOR_ARGS_BASE + 4;
-/// Mesh slots per species for understorey saplings: they are meshes only
-/// within 15 m.
-const UNDERSTOREY_MESH_SLOTS: u32 = 4_096;
-/// Full meshes are drawn within this distance, lighter ones beyond.
-const LOD0_METRES: f32 = 50.0;
-/// Trees are impostors beyond this distance, or the mesh distance when
-/// less.
-const IMPOSTOR_METRES: f32 = 150.0;
-/// Most full meshes per species: more than stand within 50 m.
-const LOD0_MESH_SLOTS: u32 = 2_048;
-/// Most light meshes per species: more than stand within 150 m, less
-/// than the triangle budget allows.
-const LOD1_MESH_SLOTS: u32 = 12_288;
-/// Beyond this distance, understorey saplings are impostor cards.
-const UNDERSTOREY_CARD_METRES: f32 = 15.0;
-/// Drawn tufts within 15 m of the camera, which are two crossed quads:
-/// every lattice point within 15 m, with room to spare. The single cards
-/// beyond follow them in the drawn list.
-const GRASS_NEAR_SLOTS: u32 = 8_192;
-/// Bytes per drawn tuft: `FloraInstance`'s seven floats.
-const DRAWN_TUFT_BYTES: u64 = 28;
-const _: () = assert!(std::mem::size_of::<FloraInstance>() as u64 == DRAWN_TUFT_BYTES);
-/// Floats per drawn tree: `TreeInstance`'s eight, the species word
-/// holding species plus fade / 2, and the extra crown width.
-const DRAWN_TREE_FLOATS: u64 = 9;
-/// Most mesh slots per species: more would already cost far more than
-/// the triangle budget allows, and the rest draw as impostors.
-const STREAMED_MESH_SLOTS: u32 = 24_576;
-const TERRAIN_SHADOW_MAX: u32 = 1024;
-const OCEAN_GRID_SAMPLES: u32 = 193;
 /// Two frames in flight let the CPU record one frame while the GPU draws the
 /// previous one, and keep input-to-screen latency to at most two frames.
 const MAX_FRAMES_IN_FLIGHT: u32 = 2;
-/// How much taller than the ordinary cloud layer storm towers grow, at
-/// full `towering`.
-const TOWER_STRETCH: f32 = 1.6;
-const OCEAN_FAR_REACH_METRES: f32 = 60_000.0;
 
 const DEPTH_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Depth32Float;
 const HDR_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Rgba16Float;
-
-/// Foliage tint multipliers per species, in `TreeSpecies` order.
-const SPECIES_TINTS: [[f32; 4]; 8] = [
-  [1.0, 1.0, 0.95, 0.0],
-  [0.78, 0.95, 0.85, 0.0],
-  [0.6, 0.8, 0.76, 0.0],
-  [1.12, 1.05, 0.78, 0.0],
-  [0.95, 1.12, 0.85, 0.0],
-  [1.0, 1.02, 0.8, 0.0],
-  [1.08, 1.02, 0.72, 0.0],
-  [0.95, 1.05, 0.9, 0.0],
-];
 
 /// Shader modules, each compiled the first time a pipeline needs it and
 /// shared by every pipeline that uses it.
@@ -1290,19 +719,8 @@ pub struct GpuContext {
   water_visible: bool,
   uniforms: FrameUniforms,
   last_time: f32,
-  // Wind-driven offsets are integrated over time rather than computed as
-  // speed x time, so changing the wind (for example when the weather
-  // changes) never makes clouds, mist, or currents jump.
-  cloud_offset: [f32; 2],
-  /// Cirrus drifts with its own speed, not the low clouds'.
-  cirrus_offset: [f32; 2],
-  /// So does the mid-level layer, along its own, veered wind.
-  alto_offset: [f32; 2],
-  mist_offset: [f32; 2],
-  current_offset: [f32; 2],
-  /// Sea ice floes drift with the wind.
-  sea_ice_offset: [f32; 2],
-  cloud_evolution: f32,
+  /// Wind-driven offsets (see [`UniformMotion`]).
+  motion: UniformMotion,
   /// Frames submitted to the GPU and not yet finished. Browsers keep firing
   /// animation frames on schedule even when the GPU falls behind, so without
   /// this limit frames queue up without bound and the picture lags seconds
@@ -2096,38 +1514,6 @@ fn tree_instance_layout() -> wgpu::VertexBufferLayout<'static> {
     array_stride: DRAWN_TREE_FLOATS * 4,
     step_mode: wgpu::VertexStepMode::Instance,
     attributes: &TREE_INSTANCE_ATTRIBUTES,
-  }
-}
-
-fn direction_from_degrees(degrees: f32) -> [f32; 2] {
-  let radians = degrees.to_radians();
-  [radians.sin(), radians.cos()]
-}
-
-/// The mid-level layer's drift direction: the cloud wind veered 20
-/// degrees, as winds veer with height. `alto_wind` in `atmosphere.wgsl`
-/// turns the cloud wind the same way.
-fn alto_wind_direction(cloud_wind_degrees: f32) -> [f32; 2] {
-  direction_from_degrees(cloud_wind_degrees + 20.0)
-}
-
-/// Height of the mid-level layer: the requested height, kept 300 m above
-/// the top of the ordinary cloud layer and, where there is room, 500 m
-/// below the cirrus. Storm towers may rise through it.
-fn alto_height(clouds: &CloudsOptions) -> f32 {
-  let low = clouds.height_metres + clouds.thickness_metres.max(1.0) + 300.0;
-  let high = clouds
-    .cirrus_height_metres
-    .max(clouds.height_metres + clouds.thickness_metres)
-    - 500.0;
-  clouds.alto_height_metres.clamp(low, high.max(low))
-}
-
-fn flag(on: bool) -> f32 {
-  if on {
-    1.0
-  } else {
-    0.0
   }
 }
 
@@ -2994,18 +2380,12 @@ impl GpuContext {
       water_visible: false,
       uniforms,
       last_time: 0.0,
-      cloud_offset: [0.0; 2],
-      cirrus_offset: [0.0; 2],
-      alto_offset: [0.0; 2],
-      mist_offset: [0.0; 2],
-      current_offset: [0.0; 2],
-      sea_ice_offset: [0.0; 2],
+      motion: UniformMotion::default(),
       frames_in_flight: Arc::new(AtomicU32::new(0)),
       timer,
       device_lost,
       events,
       limits,
-      cloud_evolution: 0.0,
       erosion: None,
       terrain: None,
       trees: None,
@@ -4349,11 +3729,6 @@ impl GpuContext {
       return done;
     };
     let now = (mesh, self.height_version);
-    let mut roots = [[0.0; 4]; 2];
-
-    for (slot, root) in self.tree_roots.iter().enumerate() {
-      roots[slot / 4][slot % 4] = *root;
-    }
 
     // Trees are 8 floats with a species and flags; tufts and reeds 7;
     // boulders 8, sunk by their fifth.
@@ -4405,13 +3780,11 @@ impl GpuContext {
         continue;
       }
 
-      let ground = GroundParams {
-        terrain: self.world_info.terrain,
-        terrain2: self.world_info.terrain2,
-        mesh,
-        shape: [count, floats, trees, 0],
-        roots,
-      };
+      let ground = ground_params(
+        [self.world_info.terrain, self.world_info.terrain2, mesh],
+        [count, floats, trees],
+        &self.tree_roots,
+      );
       self
         .queue
         .write_buffer(&grounding.params, 0, bytemuck::bytes_of(&ground));
@@ -4488,32 +3861,15 @@ impl GpuContext {
     counts: &wgpu::Buffer,
     changes: &crate::render::lattice::TileChanges,
   ) -> Vec<GpuJob> {
-    for slot in changes
-      .freed
-      .iter()
-      .chain(changes.jobs.iter().map(|job| &job.slot))
-    {
+    let (jobs, emptied) = tile_jobs(layout, changes);
+
+    for slot in emptied {
       self
         .queue
-        .write_buffer(counts, u64::from(*slot) * 4, bytemuck::bytes_of(&0u32));
+        .write_buffer(counts, u64::from(slot) * 4, bytemuck::bytes_of(&0u32));
     }
 
-    changes
-      .jobs
-      .iter()
-      .take(MAX_JOBS)
-      .map(|job| {
-        let (first, capacity) = layout.slot_range(job.slot);
-        GpuJob {
-          tile: job.tile,
-          first,
-          capacity,
-          slot: job.slot,
-          keep: job.keep,
-          unused: [0; 2],
-        }
-      })
-      .collect()
+    jobs
   }
 
   /// The generators' shared bindings: heights, surface, banks, cover,
@@ -4551,41 +3907,15 @@ impl GpuContext {
       return;
     };
     let frame = &params.vegetation;
-    let camera = params.camera_position;
-    let mut tall = [[0.0; 4]; 2];
-
-    for (variant, height) in stream.rules.heights.iter().enumerate() {
-      tall[variant / 4][variant % 4] = *height;
-    }
-
-    let generate = BoulderGenerateParams {
-      terrain: self.world_info.terrain,
-      terrain2: self.world_info.terrain2,
-      mesh: params.mesh_ground,
-      rules: [
-        self.texel_inverse,
-        frame.boulder_metres.max(1.0),
-        crate::render::boulders::BOULDER_SHADOW_METRES,
-        self.height as f32
-          / (2.0
-            * (params.field_of_view_degrees.to_radians() * 0.5)
-              .tan()
-              .max(1e-4)),
-      ],
-      shape: [
-        stream.rules.seed,
-        stream.layout.instance_count(),
-        stream
-          .layout
-          .classes
-          .first()
-          .map_or(1, |class| class.capacity),
-        stream.rules.stones,
-      ],
-      camera: [camera[0], camera[1], camera[2], 0.0],
-      tall,
-      planes: *planes,
-    };
+    let generate = boulder_generate_params(
+      [self.world_info.terrain, self.world_info.terrain2],
+      params,
+      self.texel_inverse,
+      self.height,
+      &stream.rules,
+      &stream.layout,
+      planes,
+    );
     self
       .queue
       .write_buffer(&stream.params, 0, bytemuck::bytes_of(&generate));
@@ -4623,7 +3953,7 @@ impl GpuContext {
       self.queue.write_buffer(
         &stream.args,
         0,
-        bytemuck::cast_slice(&self.boulders.cleared_args()),
+        bytemuck::cast_slice(&boulder_cleared_args(&self.boulders.ranges)),
       );
       let entries = [
         buffer(0, &stream.params),
@@ -4661,7 +3991,7 @@ impl GpuContext {
         1,
         stream
           .drawn
-          .slice(u64::from(BouldersGpu::list_start(list)) * BOULDER_BYTES..),
+          .slice(u64::from(boulder_list_start(list)) * BOULDER_BYTES..),
       );
       pass.draw_indexed_indirect(&stream.args, (list * 5 * 4) as u64);
     }
@@ -4689,33 +4019,8 @@ impl GpuContext {
 
       if let (false, Some(mut entries)) = (jobs.is_empty(), self.generator_entries(&stream.jobs)) {
         let trees = self.trees.as_ref();
-        let mut max_slopes = [[0.0; 4]; 2];
-        let mut roots = [[0.0; 4]; 2];
-
-        for slot in 0..SPECIES_COUNT {
-          max_slopes[slot / 4][slot % 4] = stream.rules.max_slopes[slot];
-          roots[slot / 4][slot % 4] = self.tree_roots[slot];
-        }
-
-        let generate = TreeGenerateParams {
-          terrain: mapping[0],
-          terrain2: mapping[1],
-          mesh: mapping[2],
-          rules: [
-            self.texel_inverse,
-            stream.rules.p_scale,
-            stream.rules.variation,
-            stream.rules.far_keep,
-          ],
-          shape: [
-            stream.rules.seed,
-            stream.rules.understorey.to_bits(),
-            stream.rules.boulders.unwrap_or(0),
-            u32::from(stream.rules.boulders.is_some()),
-          ],
-          max_slopes,
-          roots,
-        };
+        let generate =
+          tree_generate_params(mapping, self.texel_inverse, &stream.rules, &self.tree_roots);
         // Job slots are within the pool, which follows the static trees.
         let offset = trees.map_or(0, |trees| trees.static_count);
         let jobs: Vec<GpuJob> = jobs
@@ -4761,44 +4066,15 @@ impl GpuContext {
     let Some(stream) = self.grass.as_ref().and_then(|grass| grass.stream.as_ref()) else {
       return;
     };
-    let mut classes = [[0u32; 4]; 8];
-
-    for (slot, class) in stream.layout.classes.iter().take(8).enumerate() {
-      classes[slot] = [
-        class.first_slot,
-        class.first_instance,
-        class.capacity,
-        class.slots,
-      ];
-    }
-
-    let camera = params.camera_position;
-    let generate = GrassGenerateParams {
-      terrain: mapping[0],
-      terrain2: mapping[1],
-      mesh: mapping[2],
-      rules: [
-        self.texel_inverse,
-        stream.rules.probability,
-        stream.rules.canopy,
-        stream.rules.height,
-      ],
-      shape: [
-        stream.rules.seed,
-        stream.layout.classes.len().min(8) as u32,
-        stream.layout.instance_count(),
-        stream.rules.boulders.unwrap_or(0),
-      ],
-      camera: [camera[0], camera[1], camera[2], frame.grass_radius],
-      view: [
-        params.grass_view_distance_metres,
-        flag(stream.rules.boulders.is_some()),
-        flag(!self.grass_mask_neutral),
-        frame.grass_handover,
-      ],
-      planes: *planes,
-      classes,
-    };
+    let generate = grass_generate_params(
+      mapping,
+      params,
+      self.texel_inverse,
+      &stream.rules,
+      &stream.layout,
+      self.grass_mask_neutral,
+      planes,
+    );
     self
       .queue
       .write_buffer(&stream.params, 0, bytemuck::bytes_of(&generate));
@@ -4934,342 +4210,24 @@ impl GpuContext {
   }
 
   fn update_uniforms(&mut self, params: &FrameParams, time: f32, dt: f32) {
-    // Integrate wind-driven motion. The wind carries clouds and currents
-    // downwind, so their noise lookups move upwind.
-    let clouds = &params.clouds;
-    let cloud_wind = direction_from_degrees(clouds.wind_direction_degrees);
-    let cloud_speed = clouds.speed.max(0.0) * 15.0 * dt;
-    self.cloud_offset[0] -= cloud_wind[0] * cloud_speed;
-    self.cloud_offset[1] -= cloud_wind[1] * cloud_speed;
-    let cirrus_speed = clouds.cirrus_speed.max(0.0) * 15.0 * dt;
-    self.cirrus_offset[0] -= cloud_wind[0] * cirrus_speed;
-    self.cirrus_offset[1] -= cloud_wind[1] * cirrus_speed;
-    let alto_wind = alto_wind_direction(clouds.wind_direction_degrees);
-    let alto_speed = clouds.alto_speed.clamp(0.0, 4.0) * 15.0 * dt;
-    self.alto_offset[0] -= alto_wind[0] * alto_speed;
-    self.alto_offset[1] -= alto_wind[1] * alto_speed;
-    self.cloud_evolution += clouds.evolution.clamp(0.0, 1.0) * 14.0 * dt;
-    let mist = &params.mist;
-    let mist_wind = direction_from_degrees(mist.wind_direction_degrees);
-    let mist_speed = mist.wind_speed_metres_per_second.max(0.0) * dt;
-    self.mist_offset[0] += mist_wind[0] * mist_speed;
-    self.mist_offset[1] += mist_wind[1] * mist_speed;
-    let water = &params.water;
-    let current = direction_from_degrees(water.current_direction_degrees);
-    let current_speed = water.current_speed.max(0.0) * dt;
-    self.current_offset[0] -= current[0] * current_speed;
-    self.current_offset[1] -= current[1] * current_speed;
-    // Pack ice drifts at about 2 % of the wind speed.
-    self.sea_ice_offset[0] -= params.weather.wind[0] * 0.02 * dt;
-    self.sea_ice_offset[1] -= params.weather.wind[1] * 0.02 * dt;
-
-    let u = &mut self.uniforms;
-    let apply_gamma = u.camera_up[3];
-    let p = params.camera_position;
-    let tan_half_fov_y = (params.field_of_view_degrees.to_radians() * 0.5).tan();
-
-    u.view_proj = params.view_proj;
-    u.camera_position = [p[0], p[1], p[2], time];
-    u.camera_forward = [
-      params.camera_forward[0],
-      params.camera_forward[1],
-      params.camera_forward[2],
-      tan_half_fov_y,
-    ];
-    u.camera_right = [
-      params.camera_right[0],
-      params.camera_right[1],
-      params.camera_right[2],
-      params.aspect_ratio.max(0.001),
-    ];
-    u.camera_up = [
-      params.camera_up[0],
-      params.camera_up[1],
-      params.camera_up[2],
-      apply_gamma,
-    ];
-    u.sun_direction = [
-      params.sun_direction[0],
-      params.sun_direction[1],
-      params.sun_direction[2],
-      params.sun_intensity.max(0.0),
-    ];
-
-    let atmosphere = &params.atmosphere;
-    u.atmosphere = [
-      atmosphere.rayleigh_strength.max(0.0),
-      atmosphere.mie_strength.max(0.0),
-      atmosphere.haze_distance_metres.max(1.0),
-      atmosphere.exposure.max(0.0),
-    ];
-    u.sky_tint = [
-      atmosphere.sky_tint[0],
-      atmosphere.sky_tint[1],
-      atmosphere.sky_tint[2],
-      params.debug_view as f32,
-    ];
-    u.mist_params = [
-      params.mist_density.clamp(0.0, 1.0),
-      mist.base_height_metres,
-      mist.height_falloff_metres.max(1.0),
-      params.mist_noise_strength.max(0.0),
-    ];
-    u.mist_colour = [
-      mist.colour[0],
-      mist.colour[1],
-      mist.colour[2],
-      params.mist_water_level_metres,
-    ];
-    u.mist_wind = [
-      self.mist_offset[0],
-      self.mist_offset[1],
-      mist.sun_scattering.clamp(0.0, 1.0),
-      ((mist.seed_offset % 997) as f32 * 0.618_034).fract(),
-    ];
-
-    let seed = (clouds.seed_offset % 10_007) as f32;
-    u.clouds2 = [
-      if params.cloud_coverage > 0.0 {
-        clouds.cirrus.clamp(0.0, 1.0)
-      } else {
-        0.0
-      },
-      clouds
-        .cirrus_height_metres
-        .max(clouds.height_metres + clouds.thickness_metres),
-      cloud_wind[0],
-      cloud_wind[1],
-    ];
-    // Storm towers rise well above the ordinary cloud layer, so the slab is
-    // stretched to hold them; the shader keeps ordinary clouds at their
-    // own height inside it.
-    let towering = clouds.towering.clamp(0.0, 1.0);
-    u.cloud_params = [
-      params.cloud_coverage.clamp(0.0, 1.0),
-      clouds.height_metres,
-      clouds.thickness_metres.max(1.0) * (1.0 + towering * TOWER_STRETCH),
-      params.cloud_raymarch_steps as f32,
-    ];
-    u.clouds3 = [
-      clouds.stratiform.clamp(0.0, 1.0),
-      towering,
-      clouds.base_darkness.clamp(0.0, 1.0),
-      clouds.ragged_base.clamp(0.0, 1.0),
-    ];
-    u.clouds4 = [
-      if params.cloud_coverage > 0.0 {
-        clouds.rain_shafts.clamp(0.0, 1.0)
-      } else {
-        0.0
-      },
-      params.weather.lightning_position[0],
-      params.weather.lightning_position[1],
-      1.0 + towering * TOWER_STRETCH,
-    ];
-    u.cloud_motion = [
-      self.cloud_offset[0] + seed * 173.0,
-      self.cloud_offset[1] + seed * 311.0,
-      self.cloud_evolution,
-      clouds.density.clamp(0.0, 1.0),
-    ];
-    u.clouds5 = [
-      clouds.base_variation.clamp(0.0, 0.2),
-      clouds.base_lumpiness.clamp(0.0, 1.0),
-      params.alto_amounts[0].clamp(0.0, 1.0),
-      params.alto_amounts[1].clamp(0.0, 1.0),
-    ];
-    let alto_height = alto_height(clouds);
-    u.alto = [self.alto_offset[0], self.alto_offset[1], alto_height, 0.0];
-    u.cloud_colour = [
-      clouds.colour[0],
-      clouds.colour[1],
-      clouds.colour[2],
-      flag(clouds.cast_shadows && params.shadows.clouds.enabled),
-    ];
-    u.water_params = [
-      water.wave_scale.max(0.0),
-      water.reflectivity.clamp(0.0, 1.0),
-      water.clarity_metres.max(0.1),
-      water.foam.clamp(0.0, 1.0),
-    ];
-    u.water_shallow = [
-      water.shallow_colour[0],
-      water.shallow_colour[1],
-      water.shallow_colour[2],
-      water.sea_level_metres,
-    ];
-    u.water_deep = [
-      water.deep_colour[0],
-      water.deep_colour[1],
-      water.deep_colour[2],
-      params.near_metres.max(0.001),
-    ];
-    u.water_current = [
-      self.current_offset[0],
-      self.current_offset[1],
-      water.current_speed.max(0.0),
-      params.far_metres.max(1.0),
-    ];
-    let waves = &water.waves;
-    u.wave_params = [
-      waves.amplitude_metres.clamp(0.0, 30.0),
-      waves.wavelength_metres.clamp(0.5, 2_000.0),
-      waves.direction_degrees.to_radians(),
-      waves.steepness.clamp(0.0, 1.0),
-    ];
-    u.wave_params2 = [
-      waves.speed.max(0.0),
-      waves.directional_spread.clamp(0.0, 1.0),
-      flag(waves.enabled),
-      0.0,
-    ];
-    u.water_origin = [
-      (p[0] / OCEAN_SNAP_METRES).round() * OCEAN_SNAP_METRES,
-      (p[2] / OCEAN_SNAP_METRES).round() * OCEAN_SNAP_METRES,
-      flag(self.water_visible),
-      flag(water.reflections == vista_types::WaterReflections::Screen),
-    ];
-
-    let flora = &params.flora;
-    u.vegetation = [
-      flora.wind_strength.clamp(0.0, 1.0),
-      flora.species_variation.clamp(0.0, 1.0),
-      params.tree_style as f32,
-      params.grass_view_distance_metres.max(0.0),
-    ];
-    u.vegetation2 = [
-      flora.mesh_distance_metres.max(1.0),
-      params.grass_cover,
-      params.vegetation.grass_radius,
-      params.grass_height,
-    ];
-    let width = self.width.max(1) as f32;
-    let height = self.height.max(1) as f32;
-    u.viewport = [width, height, 1.0 / width, 1.0 / height];
-    u.output = [
-      self.canvas_width.max(1) as f32,
-      self.canvas_height.max(1) as f32,
-      self.render_scale,
-      0.0,
-    ];
-
-    let shadows = &params.shadows;
-    // Boulders in view cast into the same map as the trees.
-    let tree_shadows = shadows.trees.enabled
-      && (self.trees.is_some() || (params.needs.boulders && self.boulders.stream.is_some()))
-      && params.sun_direction[1] > 0.0;
-    u.shadow_params = [
-      if tree_shadows {
-        shadows.trees.strength.clamp(0.0, 1.0)
-      } else {
-        0.0
-      },
-      0.5 + shadows.trees.softness.clamp(0.0, 1.0) * 2.5,
-      if shadows.terrain.enabled {
-        shadows.terrain.strength.clamp(0.0, 1.0)
-      } else {
-        0.0
-      },
-      shadows.clouds.strength.clamp(0.0, 1.0),
-    ];
-    let weather = &params.weather;
-    u.weather = [
-      weather.rain,
-      weather.snow,
-      weather.wetness,
-      weather.snow_cover,
-    ];
-    u.weather2 = [
-      weather.lightning,
-      weather.overcast,
-      weather.wind[0],
-      weather.wind[1],
-    ];
-    u.distances = [
-      params.distances.render_metres,
-      params.distances.detail_metres,
-      params.distances.cloud_metres,
-      0.0,
-    ];
-    u.fades = [
-      params.distances.render_fade_metres,
-      params.distances.cloud_fade_metres,
-      0.0,
-      0.0,
-    ];
-    u.weather3 = [
-      self.cirrus_offset[0],
-      self.cirrus_offset[1],
-      flag(!weather.lens_drops.is_empty()),
-      weather.heaviness.max(1.0),
-    ];
-    u.cold = [weather.blowing_snow.clamp(0.0, 1.0), 0.0, 0.0, 0.0];
-    u.sea_ice = [
-      flag(params.sea_ice.possible),
-      params.sea_ice.open_sea_unit.clamp(0.0, 1.0),
-      self.sea_ice_offset[0],
-      self.sea_ice_offset[1],
-    ];
-    let rivers = &params.rivers;
-    u.rivers = [
-      rivers.melt.clamp(0.4, 1.4),
-      flag(rivers.freezing),
-      flag(rivers.falls),
-      flag(rivers.wet_banks),
-    ];
-    // The stones' seed in two halves, whole numbers a float holds
-    // exactly, and whether boulder meshes draw them.
-    u.rivers2 = [
-      rivers.eddies.clamp(0.0, 1.0),
-      flag(self.boulders.stream.is_some()),
-      (rivers.stones & 0xffff) as f32,
-      (rivers.stones >> 16) as f32,
-    ];
-    // Where riparian scrub thins out with distance, as the tree cull
-    // thins it, so the terrain's far tint takes over exactly there.
-    let far_keep = self
-      .trees
-      .as_ref()
-      .and_then(|trees| trees.stream.as_ref())
-      .map_or(1.0, |stream| stream.rules.far_keep);
-    u.waterside = [
-      if self.trees.is_some() {
-        params.vegetation.tree_radius.max(1.0)
-      } else {
-        0.0
-      },
-      far_keep,
-      if params.canopy.drawn {
-        params.canopy.distance.max(1.0)
-      } else {
-        1.0e30
-      },
-      params.rivers.refraction.clamp(0.0, 1.0),
-    ];
-    u.mouths = params.rivers.mouths;
-    u.ground = params.mesh_ground;
-    u.vegetation3 = [
-      params.canopy.density,
-      params.canopy.distance.max(1.0),
-      params.shadows.trees.distance_metres,
-      flag(params.canopy.drawn),
-    ];
-    u.rock = params.rock;
-    u.regional = weather.regional;
-    u.air = weather.air;
-    u.light = weather.light;
-    u.gust = weather.gust;
-    u.weather4 = weather.sea;
-    // Under cloud, shadows soften towards nothing.
-    u.shadow_params[0] *= weather.light[1];
-    u.shadow_params[2] *= weather.light[1];
-    let surface = &params.surface;
-    u.surface = [
-      flag(surface.textures),
-      flag(surface.detail_normals),
-      surface.texture_scale.clamp(0.05, 20.0),
-      0.0,
-    ];
+    let view = UniformView {
+      width: self.width,
+      height: self.height,
+      canvas_width: self.canvas_width,
+      canvas_height: self.canvas_height,
+      render_scale: self.render_scale,
+      water_visible: self.water_visible,
+      trees: self.trees.is_some(),
+      boulders_streamed: self.boulders.stream.is_some(),
+      tree_far_keep: self
+        .trees
+        .as_ref()
+        .and_then(|trees| trees.stream.as_ref())
+        .map_or(1.0, |stream| stream.rules.far_keep),
+    };
+    self
+      .motion
+      .update(&mut self.uniforms, params, &view, time, dt);
   }
 
   /// Re-bake terrain self-shadowing when the sun, softness, or terrain has
@@ -5565,28 +4523,15 @@ impl GpuContext {
     self.uniforms.shadow_view_proj = shadow_frame.view_proj;
     let tree_shadows = self.uniforms.shadow_params[0] > 0.0;
 
-    // Reusing distant clouds: only for volumetric clouds seen from well
-    // outside their layer (from inside it clouds are close and shift too
-    // much between frames), and only when the other cloud image holds the
-    // previous frame's clouds.
+    // Reusing distant clouds: see `plan::cloud_reuse`.
     let clouds_drawn = params.clouds_drawn();
-    let camera_y = params.camera_position[1];
-    let base = params.clouds.height_metres;
-    let top = base
-      + params.clouds.thickness_metres.max(1.0)
-        * (1.0 + params.clouds.towering.clamp(0.0, 1.0) * TOWER_STRETCH);
-    let outside_layer = camera_y < base - 300.0 || camera_y > top + 300.0;
 
     if let Some(target) = &mut self.cloud_target {
       if clouds_drawn {
         target.current = 1 - target.current;
       }
 
-      let reuse = params.clouds.temporal
-        && clouds_drawn
-        && params.cloud_raymarch_steps > 0
-        && outside_layer
-        && target.history_valid;
+      let reuse = cloud_reuse(params, target.history_valid);
       self.uniforms.temporal = [
         flag(reuse),
         (self.cloud_frame % 4) as f32,
@@ -5603,111 +4548,30 @@ impl GpuContext {
       .queue
       .write_buffer(&self.uniform_buffer, 0, bytemuck::bytes_of(&self.uniforms));
 
-    let impostor_vertices = if params.tree_style == 1 { 12 } else { 6 };
-
     if let Some(trees) = &self.trees {
-      let tan_half_fov_y = (params.field_of_view_degrees.to_radians() * 0.5)
-        .tan()
-        .max(0.0001);
-      let mut cull = CullParams::zeroed();
-      cull.planes = crate::maths::frustum_planes(&params.view_proj);
-      // Not `clamp`: `min` then `max` keeps a NaN reach finite.
-      #[allow(clippy::manual_clamp)]
-      let mesh_reach = params
-        .vegetation
-        .mesh_metres
-        .map_or(params.flora.mesh_distance_metres, |reach| {
-          reach.min(params.flora.mesh_distance_metres)
-        })
-        .min(IMPOSTOR_METRES)
-        .max(1.0);
-      cull.camera = [
-        params.camera_position[0],
-        params.camera_position[1],
-        params.camera_position[2],
-        mesh_reach,
-      ];
-      cull.params = [
-        params
-          .far_metres
-          .min(40_000.0)
-          .min(params.distances.render_metres),
-        params.tree_style as f32,
-        self.height as f32 / (2.0 * tan_half_fov_y),
-        trees.instance_count as f32,
-      ];
-      // The square shadow map covers a circle of radius x sqrt(2) at its
-      // corners; casters just outside it still reach into it.
-      cull.shadow = [
-        shadow_frame.centre[0],
-        shadow_frame.centre[1],
-        shadow_frame.radius * 1.42,
-        flag(tree_shadows),
-      ];
-
-      for (slot, (height, radius)) in self.tree_bounds.iter().enumerate() {
-        cull.bounds[slot] = [*height, *radius, 0.0, 0.0];
-      }
-
-      // Full meshes near, lighter ones to the mesh distance (a third of
-      // it at least), then impostors.
-      cull.lod = [
-        LOD0_METRES.min(cull.camera[3] / 3.0),
-        0.0,
-        self.tree_growth.ready as f32,
-        self.impostor_variants() as f32,
-      ];
-
-      cull.budget = [
-        params.vegetation.shadow_metres,
-        0.0,
-        UNDERSTOREY_CARD_METRES,
-        params.vegetation.max_shadow_casters as f32,
-      ];
-
-      cull.stream = [
-        trees.static_count,
-        trees
-          .stream
-          .as_ref()
-          .map_or(1, |stream| stream.layout.classes[0].capacity),
-        0,
-        0,
-      ];
-      // Without streamed tiles the far set is the whole forest: nothing
-      // thins, and with no canopy layer drawn no tree gives way to it.
-      cull.thin = [
-        params.vegetation.tree_radius.max(1.0),
-        trees
-          .stream
-          .as_ref()
-          .map_or(1.0, |stream| stream.rules.far_keep),
-        if params.canopy.drawn {
-          params.canopy.distance.max(1.0)
-        } else {
-          f32::MAX
+      let cull = tree_cull_params(
+        params,
+        &TreeCullInputs {
+          shadow: &shadow_frame,
+          tree_shadows,
+          height: self.height,
+          tree_bounds: &self.tree_bounds,
+          instance_count: trees.instance_count,
+          static_count: trees.static_count,
+          stream: trees.stream.as_ref().map(|stream| TreeStreamShape {
+            first_capacity: stream.layout.classes[0].capacity,
+            far_keep: stream.rules.far_keep,
+            understorey: stream.rules.understorey,
+          }),
+          ready_variants: self.tree_growth.ready,
+          impostor_variants: self.impostor_variants(),
         },
-        trees
-          .stream
-          .as_ref()
-          .map_or(1.0, |stream| stream.rules.understorey),
-      ];
-
+      );
       self
         .queue
         .write_buffer(&trees.cull_params_buffer, 0, bytemuck::bytes_of(&cull));
 
-      let mut args = [0u32; INDIRECT_WORDS];
-
-      for list in 0..MESH_LISTS {
-        let (first_index, index_count, base_vertex) = self.tree_ranges[list_mesh(list)];
-        args[list * 5] = index_count;
-        args[list * 5 + 2] = first_index;
-        args[list * 5 + 3] = base_vertex as u32;
-      }
-
-      args[IMPOSTOR_ARGS_BASE] = impostor_vertices;
-      args[SHADOW_ARGS_BASE] = 6;
+      let args = tree_indirect_args(&self.tree_ranges, params.tree_style);
 
       self
         .queue

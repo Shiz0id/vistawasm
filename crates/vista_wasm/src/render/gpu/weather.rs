@@ -163,29 +163,7 @@ pub fn write_regional(
   );
 }
 
-/// One step of the surface weather, as the engine asks for it.
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct SurfaceWeatherStep {
-  /// Weather seconds to advance.
-  pub dt: f32,
-  /// Settle every texel to this state first, instead of stepping.
-  pub settle: Option<crate::weather::surface::SurfaceCell>,
-  /// Sunlight reaching the ground, 0 to 1.
-  pub sun: f32,
-  /// Mean wind in m/s.
-  pub wind: f32,
-  /// The weather's temperature offset in °C.
-  pub celsius_offset: f32,
-  /// Precipitation everywhere, when there is no regional map.
-  pub precipitation: f32,
-  /// The preset's mean precipitation: settling wets each place in
-  /// proportion to its own share of it.
-  pub mean_precipitation: f32,
-  /// The regional map's size in metres, when it is read.
-  pub regional: Option<f32>,
-  /// Crown area per square metre per unit of cover share.
-  pub canopy: f32,
-}
+pub use crate::render::frame::SurfaceWeatherStep;
 
 /// Mirrors `Params` in `surface_weather.wgsl`.
 #[repr(C)]

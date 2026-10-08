@@ -7,12 +7,14 @@ pub mod debug;
 #[cfg(target_arch = "wasm32")]
 pub mod erosion_compute;
 pub mod flora;
+pub mod frame;
 #[cfg(target_arch = "wasm32")]
 pub mod gpu;
 pub mod gpu_limits;
 pub mod grass;
 pub mod lattice;
 pub mod pipelines;
+pub mod plan;
 pub mod shaders;
 pub mod shadow_math;
 pub mod terrain_mesh;
