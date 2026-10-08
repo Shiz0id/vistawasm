@@ -7,9 +7,11 @@
  * --crate-type staticlib -- --print native-static-libs` lists; on Windows
  * these are usually ws2_32, userenv, ntdll, bcrypt and advapi32.
  *
- * The library runs the browser engine's core without a GPU: terrain
- * generation, CPU erosion, rivers, lakes, glaciers, biomes, materials, and
- * tree and grass placement. The host draws the results.
+ * The library runs the browser engine's core: terrain generation, CPU
+ * erosion, rivers, lakes, glaciers, biomes, materials, and tree and grass
+ * placement. The host can draw the results itself, or attach a renderer
+ * (see "Rendering" below): the browser build's own renderer, handing the
+ * host Direct3D 11 commands to run on its device (vista_d3d11.h).
  *
  * Coordinates: world metres, y up, with the terrain's centre at x = 0,
  * z = 0. Sample (column, row) sits at
@@ -291,8 +293,12 @@ VistaStatus vista_engine_load_geotiff(
   const char *options_json
 );
 
-/* Replace one group of world options and rebuild what depends on it.
- * section: "biomes", "flora", "grass", "water" or "surface". */
+/* Replace one group of options and rebuild what depends on it. section
+ * names the group as the engine options do. "biomes", "flora", "grass",
+ * "water" and "surface" shape the world. "camera", "sun", "atmosphere",
+ * "clouds", "mist", "quality", "weather", "shadows", "timeOfDay" and
+ * "debugView" change only what a renderer draws. For "debugView",
+ * options_json is a JSON string such as "\"slope\"". */
 VistaStatus vista_engine_set(
   VistaEngine *engine,
   const char *section,
@@ -357,6 +363,95 @@ VistaStatus vista_engine_query_json(
 );
 
 void vista_string_free(char *text);
+
+/* Run the weather `seconds` ahead at once (up to a day): rain falls,
+ * puddles fill and snow settles. */
+VistaStatus vista_engine_advance_weather(VistaEngine *engine, float seconds);
+
+/* --- Rendering -----------------------------------------------------------
+ *
+ * Attach a renderer, and the engine draws each frame with the browser
+ * build's own renderer: the same passes, shaders and streaming. It
+ * records the work and lowers it to Direct3D 11 commands
+ * (vista_d3d11.h), which the host runs on its own ID3D11Device into its
+ * own render target. ports/d3d11/executor (VistaD3D11.h) runs them.
+ *
+ *   vista_renderer_attach(engine, width, height, VISTA_OUTPUT_BGRA8);
+ *   generate or load a terrain, set the camera ("camera" section);
+ *   each frame:
+ *     vista_renderer_frame(engine, now_ms, &commands);
+ *     run `commands` with the host's render target as VISTA_D3D_OUTPUT;
+ *
+ * Every stream must be run, in order: a stream's objects are used by
+ * the ones after it. A stream stays valid until the next renderer call
+ * on the same engine. The executor needs feature level 11.0. */
+
+typedef enum VistaOutputFormat {
+  VISTA_OUTPUT_RGBA8 = 0,       /* DXGI_FORMAT_R8G8B8A8_UNORM; gamma applied by the renderer */
+  VISTA_OUTPUT_RGBA8_SRGB = 1,  /* DXGI_FORMAT_R8G8B8A8_UNORM_SRGB */
+  VISTA_OUTPUT_BGRA8 = 2,       /* DXGI_FORMAT_B8G8R8A8_UNORM, as most swap chains */
+  VISTA_OUTPUT_BGRA8_SRGB = 3,  /* DXGI_FORMAT_B8G8R8A8_UNORM_SRGB */
+  VISTA_OUTPUT_RGBA16F = 4      /* DXGI_FORMAT_R16G16B16A16_FLOAT, tone mapped and gamma encoded */
+} VistaOutputFormat;
+
+/* A command stream: `bytes` bytes of records at `data`. */
+typedef struct VistaCommands {
+  const uint8_t *data;
+  size_t bytes;
+} VistaCommands;
+
+/* Attach a renderer drawing into a `width` x `height` target in `format`.
+ * An active terrain is uploaded with the next stream. Attaching again
+ * replaces the renderer: destroy the old executor's objects. */
+VistaStatus vista_renderer_attach(
+  VistaEngine *engine,
+  uint32_t width,
+  uint32_t height,
+  VistaOutputFormat format
+);
+
+/* Detach the renderer. Destroy the executor that ran its streams. */
+VistaStatus vista_renderer_detach(VistaEngine *engine);
+
+/* Resize the host's render target. */
+VistaStatus vista_renderer_resize(VistaEngine *engine, uint32_t width, uint32_t height);
+
+/* Draw a frame at the host's clock now_ms (milliseconds, any origin, never
+ * going back; negative to step a sixtieth of a second), and return
+ * everything recorded since the last stream, then the frame, which ends in
+ * VISTA_D3D_PRESENT unless the engine skipped it. Calling it also tells
+ * the engine the earlier streams were run. `out` is written even when the
+ * frame fails: run it. */
+VistaStatus vista_renderer_frame(VistaEngine *engine, double now_ms, VistaCommands *out);
+
+/* Return what was recorded since the last stream without drawing: uploads
+ * after a terrain is generated or options change. */
+VistaStatus vista_renderer_commands(VistaEngine *engine, VistaCommands *out);
+
+/* Answer a VISTA_D3D_READBACK record with the buffer's `size` bytes, or
+ * report that it could not be read. */
+VistaStatus vista_renderer_complete_read(
+  VistaEngine *engine,
+  uint32_t buffer,
+  const void *bytes,
+  size_t size
+);
+VistaStatus vista_renderer_fail_read(VistaEngine *engine, uint32_t buffer);
+
+/* Report an error running a stream, or the device lost. They come back
+ * from vista_engine_events_json(). After a lost device, detach and attach
+ * a renderer on a new device. */
+VistaStatus vista_renderer_report_error(VistaEngine *engine, const char *message);
+VistaStatus vista_renderer_report_lost(VistaEngine *engine, const char *message);
+
+/* The last frame's statistics as JSON (RenderStats). Free the string with
+ * vista_string_free(). */
+VistaStatus vista_engine_stats_json(const VistaEngine *engine, char **out);
+
+/* GPU errors since the last call and why the device was lost, if it was,
+ * as {"errors": [...], "lost": null or "..."}. Free the string with
+ * vista_string_free(). */
+VistaStatus vista_engine_events_json(const VistaEngine *engine, char **out);
 
 #ifdef __cplusplus
 }

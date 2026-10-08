@@ -131,14 +131,20 @@ fn run() -> Result<(), Failure> {
   let out = std::env::args()
     .nth(1)
     .map_or_else(|| root.join("ports/d3d11/hlsl"), PathBuf::from);
+  translate_all(&out)
+}
+
+/// Translate every module into `out`, replacing what is there.
+fn translate_all(out: &Path) -> Result<(), Failure> {
+  let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
   let shaders = root.join("crates/vista_wasm/src/shaders");
 
   // Old output goes first, so a renamed entry point leaves no stale file.
   if out.exists() {
-    fs::remove_dir_all(&out)?;
+    fs::remove_dir_all(out)?;
   }
 
-  fs::create_dir_all(&out)?;
+  fs::create_dir_all(out)?;
   let mut manifest = Vec::new();
   // Each module's WGSL, hashed, so a stale translation can be detected.
   let mut sources = BTreeMap::new();
@@ -154,7 +160,7 @@ fn run() -> Result<(), Failure> {
       source.push('\n');
     }
 
-    let entries = translate(module, &source, &out)?;
+    let entries = translate(module, &source, out)?;
     println!("{}: {} files", module.name, entries.len());
     manifest.extend(entries);
     sources.insert(module.name, format!("{:016x}", fnv1a(source.as_bytes())));
@@ -726,4 +732,44 @@ fn fxc_script(manifest: &Value) -> String {
   }
 
   script
+}
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+
+  fn files(directory: &Path, into: &mut BTreeMap<PathBuf, Vec<u8>>, base: &Path) {
+    for entry in fs::read_dir(directory).into_iter().flatten().flatten() {
+      let path = entry.path();
+
+      if path.is_dir() {
+        files(&path, into, base);
+      } else if let Ok(relative) = path.strip_prefix(base) {
+        into.insert(relative.to_path_buf(), fs::read(&path).unwrap_or_default());
+      }
+    }
+  }
+
+  /// `ports/d3d11/hlsl` is what the WGSL translates to now: run
+  /// `cargo run -p vista_hlsl` after changing a shader.
+  #[test]
+  fn the_committed_translation_is_current() {
+    let fresh = std::env::temp_dir().join(format!("vista_hlsl_check_{}", std::process::id()));
+    let made = translate_all(&fresh).map_err(|error| error.to_string());
+    let committed = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../ports/d3d11/hlsl");
+    let (mut now, mut then) = (BTreeMap::new(), BTreeMap::new());
+    files(&fresh, &mut now, &fresh);
+    files(&committed, &mut then, &committed);
+    let _ = fs::remove_dir_all(&fresh);
+    assert_eq!(made, Ok(()));
+    let stale: Vec<_> = now
+      .keys()
+      .chain(then.keys())
+      .filter(|path| now.get(*path) != then.get(*path))
+      .collect();
+    assert!(
+      stale.is_empty(),
+      "ports/d3d11/hlsl is stale ({stale:?}): run `cargo run -p vista_hlsl`, then ports/d3d11/tools/check-hlsl.sh"
+    );
+  }
 }

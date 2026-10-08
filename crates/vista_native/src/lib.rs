@@ -2,9 +2,11 @@
 //!
 //! Native engines link this crate as a static or dynamic library and call
 //! the functions declared in `include/vista_native.h`. It runs the same
-//! engine core as the browser build, without a GPU: terrain generation,
-//! CPU erosion, rivers, lakes, glaciers, biomes, materials, and tree and
-//! grass placement. The host renders the results itself.
+//! engine core as the browser build: terrain generation, CPU erosion,
+//! rivers, lakes, glaciers, biomes, materials, and tree and grass
+//! placement. The host renders the results itself, or attaches a renderer
+//! ([`renderer`]): the browser build's own, lowered to Direct3D 11
+//! commands ([`d3d11`], `include/vista_d3d11.h`) for the host's device.
 //!
 //! Options cross the boundary as JSON in the same shape as the
 //! JavaScript API's options (camelCase keys), so every option the engine
@@ -16,13 +18,17 @@
 
 #![cfg(not(target_arch = "wasm32"))]
 
+pub mod d3d11;
 mod ffi;
+pub mod renderer;
 
 use std::ffi::{c_char, c_void, CString};
 
 use vista_types::{
-  BiomeOptions, DemLoadOptions, FloraOptions, FractalTerrainOptions, GrassOptions,
-  RawHeightmapOptions, SurfaceOptions, VistaEngineOptions, WaterOptions,
+  AtmosphereOptions, BiomeOptions, CameraOptions, CloudsOptions, DebugView, DemLoadOptions,
+  FloraOptions, FractalTerrainOptions, GrassOptions, MistOptions, RawHeightmapOptions,
+  RenderQualityOptions, ShadowOptions, SunOptions, SurfaceOptions, TimeOfDayOptions,
+  VistaEngineOptions, WaterOptions, WeatherOptions,
 };
 use vista_wasm::engine::EngineCore;
 use vista_wasm::export::{MapData, MapKind, TREE_RECORD_FLOATS};
@@ -37,6 +43,8 @@ use ffi::{
 /// use each engine from one thread at a time.
 pub struct VistaEngine {
   core: EngineCore,
+  /// The renderer, once `vista_renderer_attach()` adds one.
+  renderer: Option<renderer::NativeRenderer>,
 }
 
 /// The active terrain's size and heights.
@@ -182,7 +190,10 @@ pub unsafe extern "C" fn vista_engine_create(
     let json = unsafe { optional_str_arg(options_json, "options_json") }?;
     let options: VistaEngineOptions = parse_json(json, "options_json")?;
     let core = EngineCore::new_for_tests(options)?;
-    let engine = Box::into_raw(Box::new(VistaEngine { core }));
+    let engine = Box::into_raw(Box::new(VistaEngine {
+      core,
+      renderer: None,
+    }));
     // SAFETY: checked above.
     unsafe { write_out(out, engine, "out") }
   })
@@ -297,10 +308,14 @@ pub unsafe extern "C" fn vista_engine_load_geotiff(
   })
 }
 
-/// Replace one group of options that shapes the world, and rebuild what
-/// depends on it. `section` is `"biomes"`, `"flora"`, `"grass"`,
-/// `"water"` or `"surface"`; `options_json` is that group as JSON (null
-/// or `""` for its defaults).
+/// Replace one group of options, and rebuild what depends on it.
+/// `section` names the group, as the engine options name it: `"biomes"`,
+/// `"flora"`, `"grass"`, `"water"` and `"surface"` shape the world;
+/// `"camera"`, `"sun"`, `"atmosphere"`, `"clouds"`, `"mist"`,
+/// `"quality"`, `"weather"`, `"shadows"`, `"timeOfDay"` and `"debugView"`
+/// only what a renderer draws. `options_json` is that group as JSON (null
+/// or `""` for its defaults; for `"debugView"`, a string such as
+/// `"\"slope\""`).
 ///
 /// # Safety
 ///
@@ -327,13 +342,44 @@ pub unsafe extern "C" fn vista_engine_set(
       "grass" => core.set_grass(parse_json::<GrassOptions>(json, "options_json")?)?,
       "water" => core.set_water(parse_json::<WaterOptions>(json, "options_json")?)?,
       "surface" => core.set_surface(parse_json::<SurfaceOptions>(json, "options_json")?)?,
+      "camera" => core.set_camera(parse_json::<CameraOptions>(json, "options_json")?)?,
+      "sun" => core.set_sun(parse_json::<SunOptions>(json, "options_json")?)?,
+      "atmosphere" => core.set_atmosphere(parse_json::<AtmosphereOptions>(json, "options_json")?)?,
+      "clouds" => core.set_clouds(parse_json::<CloudsOptions>(json, "options_json")?)?,
+      "mist" => core.set_mist(parse_json::<MistOptions>(json, "options_json")?)?,
+      "quality" => {
+        core.set_render_quality(parse_json::<RenderQualityOptions>(json, "options_json")?)?
+      }
+      "weather" => core.set_weather(parse_json::<WeatherOptions>(json, "options_json")?)?,
+      "shadows" => core.set_shadows(parse_json::<ShadowOptions>(json, "options_json")?)?,
+      "timeOfDay" => core.set_time_of_day(parse_json::<TimeOfDayOptions>(json, "options_json")?)?,
+      "debugView" => core.set_debug_view(parse_json::<DebugView>(json, "options_json")?)?,
       other => {
         return Err(Failure::argument(format!(
-          "section must be \"biomes\", \"flora\", \"grass\", \"water\" or \"surface\", but it is \"{other}\"."
+          "section must be \"biomes\", \"flora\", \"grass\", \"water\", \"surface\", \"camera\", \"sun\", \"atmosphere\", \"clouds\", \"mist\", \"quality\", \"weather\", \"shadows\", \"timeOfDay\" or \"debugView\", but it is \"{other}\"."
         )))
       }
     }
 
+    Ok(())
+  })
+}
+
+/// Run the weather `seconds` ahead at once (up to a day), as if that much
+/// time had passed: rain falls, puddles fill and snow settles.
+///
+/// # Safety
+///
+/// `engine` is a live engine.
+#[no_mangle]
+pub unsafe extern "C" fn vista_engine_advance_weather(
+  engine: *mut VistaEngine,
+  seconds: f32,
+) -> VistaStatus {
+  call(|| {
+    // SAFETY: as the caller promises.
+    let engine = unsafe { mut_arg(engine, "engine") }?;
+    engine.core.advance_weather(seconds)?;
     Ok(())
   })
 }
