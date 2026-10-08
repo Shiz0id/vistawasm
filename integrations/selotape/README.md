@@ -227,8 +227,78 @@ whether the prop template has a scale field for `p.scale`.
 
 Selotape draws no water on a `.ter` yet. `waterDepth` and `biome` are one
 value per terrain sample. `waterVertices` and `waterIndices` are in the
-layout `ports/d3d11/hlsl/water/*.INLAND-1.hlsl` reads, so the D3D11 port
-draws them as they are (docs/porting-d3d11.md).
+layout `ports/d3d11/hlsl/water/*.INLAND-1.hlsl` reads. Vista's own
+renderer (section 8) draws the water too, with its waves, foam and falls.
+
+### 8. Seeing the world as Vista draws it
+
+Vista's renderer runs on Selotape's own device
+([ports/d3d11/executor](../../ports/d3d11/executor)): sky, clouds, weather,
+water, trees, grass and boulders, as the browser shows them. It draws into
+a texture of the editor's, so a view can show it: a "Vista" view mode, or
+a preview of a map before it is generated at full size.
+
+It needs the engine that made the map, so keep the `VistaEngine` instead
+of destroying it after `Generate` (or generate again from the `.ter`'s
+meta block):
+
+```cpp
+#include "VistaD3D11.h"
+
+// Once, when the view opens: a texture as big as the view, which the
+// renderer draws into and the editor samples.
+D3D11_TEXTURE2D_DESC desc = {};
+desc.Width = viewWidth;
+desc.Height = viewHeight;
+desc.MipLevels = 1;
+desc.ArraySize = 1;
+desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+desc.SampleDesc.Count = 1;
+desc.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
+d3d.NativeDevice()->CreateTexture2D(&desc, nullptr, &m_vistaTexture);
+d3d.NativeDevice()->CreateShaderResourceView(m_vistaTexture, nullptr, &m_vistaView);
+m_vista = std::make_unique<VistaD3D11::Renderer_c>(
+  engine, d3d.NativeDevice(), d3d.NativeContext(), viewWidth, viewHeight, VISTA_OUTPUT_RGBA8);
+
+// Each frame, before the editor draws: Vista's camera from the editor's.
+const vec3_u eye = d3d.GetCameraPosition();
+const vec3_u dir = d3d.GetCameraDirection();
+char camera[256];
+std::snprintf(camera, sizeof(camera),
+  R"({ "position": [%g, %g, %g], "target": [%g, %g, %g], "fieldOfViewDegrees": %g,
+      "nearMetres": %g, "farMetres": %g })",
+  eye.x, eye.y, eye.z, eye.x + dir.x, eye.y + dir.y, eye.z + dir.z, fovDegrees, nearMetres, farMetres);
+vista_engine_set(engine, "camera", camera);
+
+std::string error;
+
+if (!m_vista->Frame(nowMilliseconds, m_vistaTexture, &error)) {
+  m_status = "Vista: " + error;
+}
+// The context is cleared: the editor sets its own state again as it draws.
+```
+
+- **Mirror it.** Selotape's camera is left-handed (`LookAtLH`); Vista's is
+  right-handed. The world's coordinates are the same, so Vista's frame is
+  the editor's view mirrored left to right. Show it with `u` flipped: a
+  full-screen pass that samples `m_vistaView` at `float2(1 - uv.x, uv.y)`.
+- **Draw over it before the flip.** Props and gizmos drawn into
+  `m_vistaTexture` with Vista's depth and matrices
+  (`vista_renderer_frame_info`, see the executor's README) land in the
+  right place in the unflipped frame, and the flip turns them with it.
+- **Take the field of view from the editor's projection** and pass the
+  same near and far planes, so the two views line up exactly.
+- **Size.** On a resize, make the texture again and call
+  `m_vista->Resize(width, height, &error)`.
+- **Cost.** It is the browser's renderer at its default `"balanced"`
+  quality. Lower it with
+  `vista_engine_set(engine, "quality", R"({ "preset": "preview" })")`
+  while the author sculpts.
+- **Edits.** The renderer draws Vista's terrain, not the `.ter`: sculpting
+  and painting in the editor do not show in it until the map is generated
+  again (section 3). Load the sculpted heights into the engine to see
+  them: `vista_engine_load_raw_heightmap` with `t.heights`, as
+  `AutoSplatVista` does.
 
 ## Timings
 

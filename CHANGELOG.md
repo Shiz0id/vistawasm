@@ -20,6 +20,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   terrains: heights, splat layers, trees and water, with a test.
 - `EngineCore::terrain()` and `EngineCore::river_network()`, read-only
   accessors for native hosts.
+- Native rendering: `vista_renderer_attach()` and its kin in
+  `vista_native.h` run the browser build's renderer natively and lower its
+  work to a Direct3D 11 command stream (`include/vista_d3d11.h`).
+  `vista_renderer_frame_info()` returns the scene's depth texture and
+  camera, for drawing over the frame.
+- `vista_engine_set()` sets the camera, sun, atmosphere, clouds, mist,
+  quality, weather, shadows, time of day and debug view.
+  `vista_engine_advance_weather()`, `vista_engine_stats_json()` and
+  `vista_engine_events_json()` round it out.
+- `ports/d3d11/executor`: `Executor_c` and `Renderer_c` run the stream on a
+  host's own `ID3D11Device`, with a test that draws the visual check's
+  scenes under Wine.
+- The translated HLSL gets a per-draw special-constants buffer, and the
+  manifest records each shader's source hash so stale translations and
+  compiled shaders fail a test.
+- `EngineCore::attach_renderer()`, `detach_renderer()`,
+  `set_host_clock_ms()` and `camera_matrices()` for native hosts.
 
 ### Changed
 

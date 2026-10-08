@@ -53,6 +53,49 @@ The output format decides the gamma: `VISTA_OUTPUT_RGBA8` and
 the `_SRGB` formats encode it themselves. The frame is tone mapped either
 way.
 
+## Drawing over the frame
+
+The host can draw its own geometry into the frame, depth-tested against
+Vista's world: props, characters, editor gizmos. After `Frame()`:
+
+```cpp
+VistaFrameInfo info = {};
+vista_renderer_frame_info(engine, &info);
+ID3D11Texture2D* depth = renderer.Executor().Texture(info.depth_texture);
+
+// A depth view of it (keep it while info.depth_texture stays the same).
+D3D11_DEPTH_STENCIL_VIEW_DESC dsv = {};
+dsv.Format = DXGI_FORMAT_D32_FLOAT;
+dsv.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
+device->CreateDepthStencilView(depth, &dsv, &depthView);
+
+// Draw into the frame with the world's depth.
+context->OMSetRenderTargets(1, &frameTargetView, depthView);
+```
+
+- **The camera.** `info.view` and `info.projection` are column-major,
+  right-handed, y up, with depth from 0 at the near plane to 1 at the far
+  one, compared with `LESS`. Upload them as they are and multiply in HLSL
+  as `mul(projection, mul(view, float4(position, 1)))` (HLSL's default
+  column-major packing). World space is metres, y up, with the map's
+  centre at the origin.
+- **Distance.** A depth value `z` is `info.projection[14] / (z +
+  info.projection[10])` metres along the view.
+- **Size.** The depth is at the renderer's internal resolution
+  (`info.depth_width` by `info.depth_height`), which is smaller than the
+  output while the render scale is below 1. To draw at the output's size,
+  fix the scale: `vista_engine_set(engine, "quality",
+  R"({ "renderScale": 1, "dynamicResolution": false })")`.
+- **Colour.** The frame is tone mapped and display-referred: draw colours
+  as they should appear on screen. In a `_SRGB` target the hardware
+  encodes them; in a plain one, encode them yourself.
+- **Lifetime.** The texture is the executor's. A resize or a render scale
+  change replaces it, and `info.depth_texture` then changes: make the view
+  again.
+- **Water.** The depth holds the opaque scene. The water is already in
+  the frame but not in the depth, so geometry drawn now below the water's
+  surface appears in front of the water. Keep such geometry above it.
+
 ## Requirements
 
 - Feature level 11.0. The streams use compute shaders, raw buffers,

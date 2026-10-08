@@ -14,12 +14,13 @@ licence lines in generated files.
 | --- | --- | --- | --- |
 | World generation: terrain, erosion, rivers, lakes, glaciers, biomes, materials, tree and grass placement | about 22,000 lines of Rust | Not rewritten. `crates/vista_native` builds it as a C library. | Done |
 | Shaders | 23 WGSL files, 10,000 lines | Translated to Shader Model 5.0 HLSL by `crates/vista_hlsl`, and compiled with Microsoft's compiler. | Done: 74 of 74 compile |
-| Render orchestration: resources, passes, frame order | `render/gpu.rs` and friends, about 8,500 lines of Rust over wgpu | Rewritten by hand in C++ against Direct3D 11. | To do |
-| Host glue: camera, input, frame loop | `js/src`, small | Use the engine's own. | To do |
+| Render orchestration: resources, passes, frame order | `render/gpu.rs` and friends, about 8,500 lines of Rust over wgpu | Not rewritten. Natively the same code records its work, `vista_native` lowers it to Direct3D 11 calls, and `ports/d3d11/executor` (C++) runs them on the host's device. | Done: matches the browser's frames |
+| Host glue: camera, input, frame loop | `js/src`, small | Use the engine's own. | The host's |
 
-The split keeps the hard part (world generation) identical to the browser
-build. The same seed and options make the same map in both, and fixes made
-upstream arrive by rebuilding the library.
+The split keeps both hard parts, world generation and rendering, the
+browser build's own code. The same seed and options make the same map in
+both, bit for bit, and fixes made upstream arrive by rebuilding the
+library.
 
 ## 1. The C library: `crates/vista_native`
 
@@ -96,8 +97,12 @@ compiler).
   layouts are `VistaWaterVertex` (56 bytes) and `VistaBankVertex` (44
   bytes), which are what `water.wgsl` reads, so the buffers can be uploaded
   as they are.
-- **Live edits:** `vista_engine_set()` replaces the biome, flora, grass,
-  water or surface options and rebuilds what depends on them.
+- **Live edits:** `vista_engine_set()` replaces any option group (biomes,
+  flora, grass, water, surface, camera, sun, atmosphere, clouds, mist,
+  quality, weather, shadows, time of day, debug view) and rebuilds what
+  depends on it.
+- **Rendering:** `vista_renderer_attach()` and `vista_renderer_frame()`.
+  See section 3.
 
 ### Rules
 
@@ -156,6 +161,9 @@ the WGSL in `crates/vista_wasm/src/shaders` and run the tool again.
 
 ### Buffers and layouts
 
+The renderer's lowering (section 3) does all of this. It matters only to
+an engine that draws with these shaders itself.
+
 - WGSL storage buffers become `ByteAddressBuffer` (read-only) or
   `RWByteAddressBuffer`. Create them with
   `D3D11_RESOURCE_MISC_BUFFER_ALLOW_RAW_VIEWS`, and their views with
@@ -192,79 +200,90 @@ the WGSL in `crates/vista_wasm/src/shaders` and run the tool again.
 - A pixel shader that writes UAVs shares the 8 output slots with render
   targets on feature level 11.0. None does today. The tool would flag one.
 
-## 3. The renderer: what is left
+## 3. The renderer: `vista_native` and `ports/d3d11/executor`
 
-`crates/vista_wasm/src/render/gpu.rs` is the reference. It creates the
-resources, records the passes and holds the frame order. Port it to C++
-pass by pass. Each pass has its WGSL entry point, so it maps directly to
-one of the HLSL files above.
+The browser build's renderer (`render/gpu.rs`, with `gpu/weather.rs` and
+`textures.rs`) also runs natively. It does not draw there. It records:
 
-A frame runs these passes in this order (from `PipelineKind::ALL` in
-`render/pipelines.rs`). The scene decides which ones exist (`Needs`).
+- **`render/recorder.rs`** is the part of wgpu the renderer uses, as
+  recording. `gpu.rs` compiles against it natively, unchanged, so every
+  pass, every streaming decision and every level of detail is the
+  browser's.
+- **`crates/vista_native/src/d3d11.rs`** lowers the recording to Direct3D
+  11 calls, one record each. The record format is
+  `crates/vista_native/include/vista_d3d11.h`. Every enum value is Direct3D
+  11's own. The lowering takes care of the differences:
+  - registers from `manifest.json`, and views made for how each resource
+    is bound;
+  - constant buffers written whole, as Direct3D 11.0 requires;
+  - the draw offsets `SV_VertexID` and `SV_InstanceID` leave out;
+  - typeless depth textures, with depth and float views;
+  - a 2D copy of one layer of a layered texture, for shaders that read it
+    as a 2D texture;
+  - a copy of what a dispatch reads when it writes another mip of the same
+    texture;
+  - every slot unbound before it changes, so nothing is an input and an
+    output at once.
+  The compiled shaders are embedded, so a host ships no shader files.
+- **`ports/d3d11/executor`** (`VistaD3D11.h`, `VistaD3D11.cpp`) runs the
+  records on the host's `ID3D11Device` and immediate context, into the
+  host's texture. `Renderer_c` drives an engine's renderer with one call a
+  frame. Its [README](../ports/d3d11/executor/README.md) shows the code.
 
-| Pass | Kind | HLSL |
-| --- | --- | --- |
-| Terrain shadow bake | compute | `terrain_shadow/bake` |
-| Wet ground, puddles, snow | compute | `surface_weather/step_main` |
-| Grounding trees and grass | compute | `grounding/ground_main` |
-| Tree tiles | compute | `tree_generate/generate_main` |
-| Tree culling and LOD | compute | `tree_cull/cull_main` |
-| Grass tiles, then culling | compute | `grass_generate/generate_main`, `cull_main` |
-| Boulder tiles, then culling | compute | `boulder_generate/generate_main`, `cull_main` |
-| Tree shadow map | render | `trees/vertex_shadow`, `fragment_shadow` |
-| Boulder shadows | render | `boulders/shadow_main`, `shadow_fragment` |
-| Terrain | render | `clipmap_render/vertex_main`, `fragment_main` |
-| Distant canopy | render | `clipmap_render/canopy_vertex_main`, `canopy_fragment_main` |
-| Bank strips | render | `clipmap_render/vertex_bank`, `fragment_bank` |
-| Tree meshes (near, then light) | render | `trees/vertex_mesh`, `fragment_mesh`, then the `LIGHT-1` variants |
-| Tree impostors | render | `trees/vertex_impostor`, `fragment_impostor` |
-| Grass | render | `grass_instances/vertex_main`, `fragment_main` |
-| Boulders | render | `boulders/vertex_main`, `fragment_main` |
-| Clouds (quarter, then full) | render | `atmosphere/cloud_quarter_main`, `cloud_main` |
-| Sky, fog and tone mapping | render | `atmosphere/fragment_main` |
-| Scene copy for reflections | render | `atmosphere/scene_copy_main` |
-| Ocean (with or without sea ice) | render | `water/vertex_main`, `fragment_main` (and `SEA_ICE-0`) |
-| Rivers, lakes and pools | render | `water/*.INLAND-1` |
-| Waterfalls | render | `water/fragment_fall` |
-| Present and lens drops | render | `atmosphere/present_main` |
+```cpp
+VistaD3D11::Renderer_c renderer(engine, device, context, 1280, 720, VISTA_OUTPUT_BGRA8);
+vista_engine_generate_fractal(engine, options, nullptr, nullptr);
+vista_engine_set(engine, "camera", R"({ "position": [0, 400, 900], "target": [0, 300, 0] })");
 
-The full-screen passes use `atmosphere/vertex_main`.
+// Each frame:
+renderer.Frame(nowMilliseconds, backBuffer, &error);
+```
 
-Passes that run once or when something changes:
+- **Output.** The renderer draws the finished frame, tone mapped, into a
+  texture of the host's: sky, terrain, water, trees, grass, boulders,
+  clouds, weather and lens drops. Pick its format with
+  `VistaOutputFormat`.
+- **Drawing over it.** `vista_renderer_frame_info()` gives the scene's
+  depth texture and the camera's matrices, so the host can draw its own
+  geometry into the frame, depth-tested against the world. See the
+  executor's README.
+- **Requirements.** Feature level 11.0. The streams use compute shaders,
+  raw buffers, indirect draws and typed UAV stores of `R8G8B8A8_UNORM`,
+  which every 11.0 device has.
 
-- **Procedural textures** (`texture_gen/*`, then `mipgen/*`). These bake
-  the terrain, flora and water textures and the cloud noise at start-up.
-  See `render/textures.rs`.
-- **Impostor baking** (`trees/vertex_bake`, `fragment_bake`). This renders
-  each tree species into its impostor atlas.
-- **GPU erosion** (`hydraulic_erosion/*`, `thermal_erosion/*`). This is
-  optional. `vista_native` erodes on the CPU, and the result is the same
-  model. Port it only if CPU erosion is too slow for your largest maps.
-  See `render/erosion_compute.rs`.
+### How it was checked
 
-Direct3D 11 tracks hazards between passes itself. Unbind a resource as a
-UAV before binding it as a shader resource, or the runtime unbinds it and
-warns.
+- `crates/vista_native/tests/d3d11_stream.rs` replays a real scene's
+  stream against a mock executor that enforces Direct3D 11's rules: every
+  object exists before use, views fit their resources' bind flags,
+  constant buffers are written whole, and no resource is an input and an
+  output at once.
+- `ports/d3d11/executor/test/run.sh` builds the executor with MinGW and
+  draws a scene under Wine. On DXVK over Mesa's lavapipe, the frames match
+  the browser build's frames of the same scenes:
 
-### Suggested order
+  | Scene | Mean difference (0 to 255) | Pixels over 24 |
+  | --- | --- | --- |
+  | Generated default scene | 0.68 | 0.3% |
+  | Fixed heightmap | 0.76 | 0.5% |
+  | Ground-level river, grass and trees | 2.07 | 1.0% (swaying foliage) |
+  | Rain | 0.25 | none |
+  | Sea ice at -18 °C | 0.55 | 0.1% |
 
-1. Draw the heightfield from `VISTA_MAP_HEIGHT` with your own simple
-    shader, to check scale, coordinates and orientation.
-2. Bake the procedural textures and draw the terrain with
-    `clipmap_render`. The terrain's mesh and streaming are in
-    `render/terrain_mesh.rs` and `terrain/clipmap.rs`, both plain Rust.
-3. Add the sky, fog and tone mapping (`atmosphere`).
-4. Add the water from `vista_engine_water_mesh()`.
-5. Add the trees, grass and boulders: the compute generators and culling,
-    then their draws.
-6. Add the clouds, shadows and weather.
+  Wine's own Direct3D 11 (wined3d) turns a few pixels near terrain
+  triangle edges black on llvmpipe, which DXVK does not: a fault in its
+  shader translation, not in the port.
 
 ## Keeping in step with upstream
 
-- After pulling VistaWASM, rebuild `vista_native` and run
-  `cargo run -p vista_hlsl`. Then diff `ports/d3d11/hlsl/manifest.json`:
-  any changed binding shows where the C++ side must change too.
-- `cargo test -p vista_native` checks the C API.
+- After pulling VistaWASM, rebuild `vista_native`. The renderer follows
+  upstream by itself: nothing in the executor names a pass or a shader.
+- After a shader change, run `cargo run -p vista_hlsl`, then
+  `ports/d3d11/tools/check-hlsl.sh` to compile it (Wine, or
+  `compile-fxc.ps1` on Windows). `cargo test -p vista_hlsl` fails while
+  the translation is stale, and `cargo test -p vista_native` while the
+  compiled shaders are.
+- `cargo test -p vista_native` checks the C API and the stream.
 - `crates/vista_hlsl/src/main.rs` composes the shader modules the same way
   as `render/shaders.rs`. If upstream adds a shader or changes how one is
   assembled, update `MODULES` there.
