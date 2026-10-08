@@ -548,7 +548,9 @@ fn a_scene_lowers_to_a_valid_direct3d_11_stream() {
     // The scene's depth is a live depth target at the render size, and the
     // camera looks down -z with depth from 0 to 1.
     let mut info = vista_native::renderer::VistaFrameInfo::default();
-    check(vista_native::renderer::vista_renderer_frame_info(engine, &mut info));
+    check(vista_native::renderer::vista_renderer_frame_info(
+      engine, &mut info,
+    ));
     assert_eq!((info.depth_width, info.depth_height), (320, 200));
 
     match executor.objects.get(&info.depth_texture) {
