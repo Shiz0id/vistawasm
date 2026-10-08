@@ -16,7 +16,14 @@
 //   @group(1) @binding(12) ground_layers -> t2  Texture2DArray (Sampled { kind: Float, multi: false })
 //   @group(1) @binding(13) regional_texture -> t3  Texture2D (Sampled { kind: Float, multi: false })
 //   @group(1) @binding(14) surface_weather_texture -> t4  Texture2D (Sampled { kind: Float, multi: false })
-// D3D11: reads vertex_index: SV_VertexID does not include BaseVertexLocation in Direct3D 11. Draw with base vertex 0, or add it from a constant buffer.
+// D3D11: reads vertex_index or instance_index: bind { int first_vertex; int first_instance; uint other; } at b2 for each draw, with the draw's first vertex (base vertex when indexed) and first instance. Indirect draws take 0 and 0.
+
+struct NagaConstants {
+  int first_vertex;
+  int first_instance;
+  uint other;
+};
+cbuffer NagaConstantsBlock : register(b2) { NagaConstants _NagaConstants; }
 
 struct FrameUniforms {
   row_major float4x4 view_proj;
@@ -671,7 +678,7 @@ VertexOutput_vertex_impostor vertex_impostor(ImpostorIn in_)
   float4 views = (float4)0;
   ImpostorOut out_ = (ImpostorOut)0;
 
-  float2 corner = corners[min(uint(naga_mod(in_.vertex_index, 6u)), 5u)];
+  float2 corner = corners[min(uint(naga_mod((_NagaConstants.first_vertex + in_.vertex_index), 6u)), 5u)];
   const uint _e27 = unpack_code(in_.instance_species_fade);
   uint species = (_e27 & 7u);
   uint variant = ((_e27 >> 3u) & 3u);
@@ -693,7 +700,7 @@ VertexOutput_vertex_impostor vertex_impostor(ImpostorIn in_)
   }
   bool _e89 = local;
   if (_e89) {
-    float angle_2 = (in_.instance_rotation + ((in_.vertex_index >= 6u) ? 1.5707963 : 0.0));
+    float angle_2 = (in_.instance_rotation + (((_NagaConstants.first_vertex + in_.vertex_index) >= 6u) ? 1.5707963 : 0.0));
     right = float3(cos(angle_2), 0.0, -(sin(angle_2)));
     float3 _e103 = right;
     facing = cross(_e103, up);

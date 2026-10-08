@@ -179,9 +179,13 @@ the WGSL in `crates/vista_wasm/src/shaders` and run the tool again.
 - `SV_VertexID` and `SV_InstanceID` do not include the base vertex or the
   start instance in Direct3D 11. WebGPU's do. Eight vertex shaders read one
   of them: the full-screen passes, grass, tree impostors and shadows, and
-  impostor baking. Draw these with a base vertex and start instance of 0,
-  as the browser renderer does. If a draw needs an offset, pass it in a
-  constant buffer.
+  impostor baking, which draws with start instances up to 127. Those
+  shaders add the offsets from a constant buffer, as wgpu's own Direct3D
+  12 backend does. The manifest names its register (`specialConstants`).
+  Before each draw, fill it with `{ int first_vertex; int first_instance;
+  uint other; }`: the draw's first vertex (its base vertex when indexed)
+  and first instance. Indirect draws take 0 and 0; VistaWASM's indirect
+  arguments start at 0 for these shaders.
 - Clip space and texture coordinates already match. Both APIs use depth
   from 0 to 1, y up in clip space, and a top-left origin for textures and
   render targets.

@@ -17,7 +17,14 @@
 //   @group(1) @binding(14) surface_weather_texture -> t4  Texture2D (Sampled { kind: Float, multi: false })
 //   @group(2) @binding(0) tree_shadow_map -> t5  Texture2D (Depth { multi: false })
 //   @group(2) @binding(1) shadow_sampler -> s2  SamplerComparisonState
-// D3D11: reads vertex_index: SV_VertexID does not include BaseVertexLocation in Direct3D 11. Draw with base vertex 0, or add it from a constant buffer.
+// D3D11: reads vertex_index or instance_index: bind { int first_vertex; int first_instance; uint other; } at b2 for each draw, with the draw's first vertex (base vertex when indexed) and first instance. Indirect draws take 0 and 0.
+
+struct NagaConstants {
+  int first_vertex;
+  int first_instance;
+  uint other;
+};
+cbuffer NagaConstantsBlock : register(b2) { NagaConstants _NagaConstants; }
 
 struct FrameUniforms {
   row_major float4x4 view_proj;
@@ -674,7 +681,7 @@ VertexOutput_vertex_main vertex_main(VertexIn in_)
   float spacing = (reed ? 1.0471976 : 1.5707963);
   const float _e38 = hash11_(position_seed);
   float base_angle = (_e38 * spacing);
-  quad_index = float(naga_div(in_.vertex_index, 6u));
+  quad_index = float(naga_div((_NagaConstants.first_vertex + in_.vertex_index), 6u));
   float _e45 = quad_index;
   float quad_angle = (base_angle + (_e45 * spacing));
   right = float3(cos(quad_angle), 0.0, sin(quad_angle));

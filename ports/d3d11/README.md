@@ -8,6 +8,8 @@
 - `cso/`: every file compiled with Microsoft's HLSL compiler, as
   `<module>/<entry>.cso`, ready for `CreateVertexShader`,
   `CreatePixelShader` and `CreateComputeShader`.
+- `cso/sources.json`: the 64-bit FNV-1a hash of the HLSL file each `.cso`
+  was compiled from, so a stale compile is caught.
 - `tools/check-hlsl.sh`: compiles every file on Linux through Wine and
   rewrites `cso/`. `tools/hlslc.c` is the small driver it uses.
 

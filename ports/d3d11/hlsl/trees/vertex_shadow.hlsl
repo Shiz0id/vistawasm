@@ -9,7 +9,14 @@
 // Resources (WGSL group/binding -> register):
 //   @group(0) @binding(0) frame -> b0  constant buffer
 //   @group(1) @binding(9) world -> b1  constant buffer
-// D3D11: reads vertex_index: SV_VertexID does not include BaseVertexLocation in Direct3D 11. Draw with base vertex 0, or add it from a constant buffer.
+// D3D11: reads vertex_index or instance_index: bind { int first_vertex; int first_instance; uint other; } at b2 for each draw, with the draw's first vertex (base vertex when indexed) and first instance. Indirect draws take 0 and 0.
+
+struct NagaConstants {
+  int first_vertex;
+  int first_instance;
+  uint other;
+};
+cbuffer NagaConstantsBlock : register(b2) { NagaConstants _NagaConstants; }
 
 struct FrameUniforms {
   row_major float4x4 view_proj;
@@ -261,7 +268,7 @@ VertexOutput_vertex_shadow vertex_shadow(ImpostorIn in_)
   float2 corners[6] = Constructarray6_float2_(float2(-1.0, 0.0), float2(1.0, 0.0), float2(-1.0, 1.0), float2(1.0, 0.0), float2(1.0, 1.0), float2(-1.0, 1.0));
   ShadowOut out_ = (ShadowOut)0;
 
-  float2 corner = corners[min(uint(naga_mod(in_.vertex_index, 6u)), 5u)];
+  float2 corner = corners[min(uint(naga_mod((_NagaConstants.first_vertex + in_.vertex_index), 6u)), 5u)];
   const uint _e27 = unpack_code(in_.instance_species_fade);
   uint species = (_e27 & 7u);
   uint variant = ((_e27 >> 3u) & 3u);

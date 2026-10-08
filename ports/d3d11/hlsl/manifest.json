@@ -37,6 +37,7 @@
       "module": "clipmap_render",
       "overrides": {},
       "profile": "vs_5_0",
+      "specialConstants": null,
       "stage": "vertex",
       "wgslEntryPoint": "vertex_main",
       "workgroupSize": null
@@ -162,6 +163,7 @@
       "module": "clipmap_render",
       "overrides": {},
       "profile": "ps_5_0",
+      "specialConstants": null,
       "stage": "fragment",
       "wgslEntryPoint": "fragment_main",
       "workgroupSize": null
@@ -210,6 +212,7 @@
       "module": "clipmap_render",
       "overrides": {},
       "profile": "vs_5_0",
+      "specialConstants": null,
       "stage": "vertex",
       "wgslEntryPoint": "canopy_vertex_main",
       "workgroupSize": null
@@ -272,6 +275,7 @@
       "module": "clipmap_render",
       "overrides": {},
       "profile": "ps_5_0",
+      "specialConstants": null,
       "stage": "fragment",
       "wgslEntryPoint": "canopy_fragment_main",
       "workgroupSize": null
@@ -306,6 +310,7 @@
       "module": "clipmap_render",
       "overrides": {},
       "profile": "vs_5_0",
+      "specialConstants": null,
       "stage": "vertex",
       "wgslEntryPoint": "vertex_bank",
       "workgroupSize": null
@@ -424,6 +429,7 @@
       "module": "clipmap_render",
       "overrides": {},
       "profile": "ps_5_0",
+      "specialConstants": null,
       "stage": "fragment",
       "wgslEntryPoint": "fragment_bank",
       "workgroupSize": null
@@ -465,6 +471,7 @@
       "module": "boulders",
       "overrides": {},
       "profile": "vs_5_0",
+      "specialConstants": null,
       "stage": "vertex",
       "wgslEntryPoint": "vertex_main",
       "workgroupSize": null
@@ -562,6 +569,7 @@
       "module": "boulders",
       "overrides": {},
       "profile": "ps_5_0",
+      "specialConstants": null,
       "stage": "fragment",
       "wgslEntryPoint": "fragment_main",
       "workgroupSize": null
@@ -582,6 +590,7 @@
       "module": "boulders",
       "overrides": {},
       "profile": "vs_5_0",
+      "specialConstants": null,
       "stage": "vertex",
       "wgslEntryPoint": "shadow_main",
       "workgroupSize": null
@@ -594,6 +603,7 @@
       "module": "boulders",
       "overrides": {},
       "profile": "ps_5_0",
+      "specialConstants": null,
       "stage": "fragment",
       "wgslEntryPoint": "shadow_fragment",
       "workgroupSize": null
@@ -645,6 +655,7 @@
         "SEA_ICE": false
       },
       "profile": "vs_5_0",
+      "specialConstants": null,
       "stage": "vertex",
       "wgslEntryPoint": "vertex_main",
       "workgroupSize": null
@@ -745,6 +756,7 @@
         "SEA_ICE": false
       },
       "profile": "ps_5_0",
+      "specialConstants": null,
       "stage": "fragment",
       "wgslEntryPoint": "fragment_fall",
       "workgroupSize": null
@@ -859,6 +871,7 @@
         "SEA_ICE": false
       },
       "profile": "ps_5_0",
+      "specialConstants": null,
       "stage": "fragment",
       "wgslEntryPoint": "fragment_main",
       "workgroupSize": null
@@ -910,6 +923,7 @@
         "SEA_ICE": false
       },
       "profile": "vs_5_0",
+      "specialConstants": null,
       "stage": "vertex",
       "wgslEntryPoint": "vertex_main",
       "workgroupSize": null
@@ -1010,6 +1024,7 @@
         "SEA_ICE": false
       },
       "profile": "ps_5_0",
+      "specialConstants": null,
       "stage": "fragment",
       "wgslEntryPoint": "fragment_fall",
       "workgroupSize": null
@@ -1124,6 +1139,7 @@
         "SEA_ICE": false
       },
       "profile": "ps_5_0",
+      "specialConstants": null,
       "stage": "fragment",
       "wgslEntryPoint": "fragment_main",
       "workgroupSize": null
@@ -1175,6 +1191,7 @@
         "SEA_ICE": true
       },
       "profile": "vs_5_0",
+      "specialConstants": null,
       "stage": "vertex",
       "wgslEntryPoint": "vertex_main",
       "workgroupSize": null
@@ -1275,6 +1292,7 @@
         "SEA_ICE": true
       },
       "profile": "ps_5_0",
+      "specialConstants": null,
       "stage": "fragment",
       "wgslEntryPoint": "fragment_fall",
       "workgroupSize": null
@@ -1389,6 +1407,7 @@
         "SEA_ICE": true
       },
       "profile": "ps_5_0",
+      "specialConstants": null,
       "stage": "fragment",
       "wgslEntryPoint": "fragment_main",
       "workgroupSize": null
@@ -1440,6 +1459,7 @@
         "SEA_ICE": true
       },
       "profile": "vs_5_0",
+      "specialConstants": null,
       "stage": "vertex",
       "wgslEntryPoint": "vertex_main",
       "workgroupSize": null
@@ -1540,6 +1560,7 @@
         "SEA_ICE": true
       },
       "profile": "ps_5_0",
+      "specialConstants": null,
       "stage": "fragment",
       "wgslEntryPoint": "fragment_fall",
       "workgroupSize": null
@@ -1654,6 +1675,7 @@
         "SEA_ICE": true
       },
       "profile": "ps_5_0",
+      "specialConstants": null,
       "stage": "fragment",
       "wgslEntryPoint": "fragment_main",
       "workgroupSize": null
@@ -1746,6 +1768,7 @@
         "LIGHT": false
       },
       "profile": "vs_5_0",
+      "specialConstants": null,
       "stage": "vertex",
       "wgslEntryPoint": "vertex_mesh",
       "workgroupSize": null
@@ -1803,6 +1826,7 @@
         "LIGHT": false
       },
       "profile": "ps_5_0",
+      "specialConstants": null,
       "stage": "fragment",
       "wgslEntryPoint": "fragment_mesh",
       "workgroupSize": null
@@ -1876,13 +1900,14 @@
       "entryPoint": "vertex_impostor",
       "file": "trees/vertex_impostor.hlsl",
       "hazards": [
-        "reads vertex_index: SV_VertexID does not include BaseVertexLocation in Direct3D 11. Draw with base vertex 0, or add it from a constant buffer."
+        "reads vertex_index or instance_index: bind { int first_vertex; int first_instance; uint other; } at b2 for each draw, with the draw's first vertex (base vertex when indexed) and first instance. Indirect draws take 0 and 0."
       ],
       "module": "trees",
       "overrides": {
         "LIGHT": false
       },
       "profile": "vs_5_0",
+      "specialConstants": "b2",
       "stage": "vertex",
       "wgslEntryPoint": "vertex_impostor",
       "workgroupSize": null
@@ -1933,6 +1958,7 @@
         "LIGHT": false
       },
       "profile": "ps_5_0",
+      "specialConstants": null,
       "stage": "fragment",
       "wgslEntryPoint": "fragment_impostor",
       "workgroupSize": null
@@ -1957,13 +1983,14 @@
       "entryPoint": "vertex_shadow",
       "file": "trees/vertex_shadow.hlsl",
       "hazards": [
-        "reads vertex_index: SV_VertexID does not include BaseVertexLocation in Direct3D 11. Draw with base vertex 0, or add it from a constant buffer."
+        "reads vertex_index or instance_index: bind { int first_vertex; int first_instance; uint other; } at b2 for each draw, with the draw's first vertex (base vertex when indexed) and first instance. Indirect draws take 0 and 0."
       ],
       "module": "trees",
       "overrides": {
         "LIGHT": false
       },
       "profile": "vs_5_0",
+      "specialConstants": "b2",
       "stage": "vertex",
       "wgslEntryPoint": "vertex_shadow",
       "workgroupSize": null
@@ -1993,6 +2020,7 @@
         "LIGHT": false
       },
       "profile": "ps_5_0",
+      "specialConstants": null,
       "stage": "fragment",
       "wgslEntryPoint": "fragment_shadow",
       "workgroupSize": null
@@ -2010,13 +2038,14 @@
       "entryPoint": "vertex_bake",
       "file": "trees/vertex_bake.hlsl",
       "hazards": [
-        "reads instance_index: SV_InstanceID does not include StartInstanceLocation in Direct3D 11, unlike WebGPU's first_instance. Draw with StartInstanceLocation 0, or add the offset from a constant buffer."
+        "reads vertex_index or instance_index: bind { int first_vertex; int first_instance; uint other; } at b1 for each draw, with the draw's first vertex (base vertex when indexed) and first instance. Indirect draws take 0 and 0."
       ],
       "module": "trees",
       "overrides": {
         "LIGHT": false
       },
       "profile": "vs_5_0",
+      "specialConstants": "b1",
       "stage": "vertex",
       "wgslEntryPoint": "vertex_bake",
       "workgroupSize": null
@@ -2060,6 +2089,7 @@
         "LIGHT": false
       },
       "profile": "ps_5_0",
+      "specialConstants": null,
       "stage": "fragment",
       "wgslEntryPoint": "fragment_bake",
       "workgroupSize": null
@@ -2152,6 +2182,7 @@
         "LIGHT": true
       },
       "profile": "vs_5_0",
+      "specialConstants": null,
       "stage": "vertex",
       "wgslEntryPoint": "vertex_mesh",
       "workgroupSize": null
@@ -2209,6 +2240,7 @@
         "LIGHT": true
       },
       "profile": "ps_5_0",
+      "specialConstants": null,
       "stage": "fragment",
       "wgslEntryPoint": "fragment_mesh",
       "workgroupSize": null
@@ -2282,13 +2314,14 @@
       "entryPoint": "vertex_impostor",
       "file": "trees/vertex_impostor.LIGHT-1.hlsl",
       "hazards": [
-        "reads vertex_index: SV_VertexID does not include BaseVertexLocation in Direct3D 11. Draw with base vertex 0, or add it from a constant buffer."
+        "reads vertex_index or instance_index: bind { int first_vertex; int first_instance; uint other; } at b2 for each draw, with the draw's first vertex (base vertex when indexed) and first instance. Indirect draws take 0 and 0."
       ],
       "module": "trees",
       "overrides": {
         "LIGHT": true
       },
       "profile": "vs_5_0",
+      "specialConstants": "b2",
       "stage": "vertex",
       "wgslEntryPoint": "vertex_impostor",
       "workgroupSize": null
@@ -2339,6 +2372,7 @@
         "LIGHT": true
       },
       "profile": "ps_5_0",
+      "specialConstants": null,
       "stage": "fragment",
       "wgslEntryPoint": "fragment_impostor",
       "workgroupSize": null
@@ -2363,13 +2397,14 @@
       "entryPoint": "vertex_shadow",
       "file": "trees/vertex_shadow.LIGHT-1.hlsl",
       "hazards": [
-        "reads vertex_index: SV_VertexID does not include BaseVertexLocation in Direct3D 11. Draw with base vertex 0, or add it from a constant buffer."
+        "reads vertex_index or instance_index: bind { int first_vertex; int first_instance; uint other; } at b2 for each draw, with the draw's first vertex (base vertex when indexed) and first instance. Indirect draws take 0 and 0."
       ],
       "module": "trees",
       "overrides": {
         "LIGHT": true
       },
       "profile": "vs_5_0",
+      "specialConstants": "b2",
       "stage": "vertex",
       "wgslEntryPoint": "vertex_shadow",
       "workgroupSize": null
@@ -2399,6 +2434,7 @@
         "LIGHT": true
       },
       "profile": "ps_5_0",
+      "specialConstants": null,
       "stage": "fragment",
       "wgslEntryPoint": "fragment_shadow",
       "workgroupSize": null
@@ -2416,13 +2452,14 @@
       "entryPoint": "vertex_bake",
       "file": "trees/vertex_bake.LIGHT-1.hlsl",
       "hazards": [
-        "reads instance_index: SV_InstanceID does not include StartInstanceLocation in Direct3D 11, unlike WebGPU's first_instance. Draw with StartInstanceLocation 0, or add the offset from a constant buffer."
+        "reads vertex_index or instance_index: bind { int first_vertex; int first_instance; uint other; } at b1 for each draw, with the draw's first vertex (base vertex when indexed) and first instance. Indirect draws take 0 and 0."
       ],
       "module": "trees",
       "overrides": {
         "LIGHT": true
       },
       "profile": "vs_5_0",
+      "specialConstants": "b1",
       "stage": "vertex",
       "wgslEntryPoint": "vertex_bake",
       "workgroupSize": null
@@ -2466,6 +2503,7 @@
         "LIGHT": true
       },
       "profile": "ps_5_0",
+      "specialConstants": null,
       "stage": "fragment",
       "wgslEntryPoint": "fragment_bake",
       "workgroupSize": null
@@ -2553,11 +2591,12 @@
       "entryPoint": "vertex_main",
       "file": "grass_instances/vertex_main.hlsl",
       "hazards": [
-        "reads vertex_index: SV_VertexID does not include BaseVertexLocation in Direct3D 11. Draw with base vertex 0, or add it from a constant buffer."
+        "reads vertex_index or instance_index: bind { int first_vertex; int first_instance; uint other; } at b2 for each draw, with the draw's first vertex (base vertex when indexed) and first instance. Indirect draws take 0 and 0."
       ],
       "module": "grass_instances",
       "overrides": {},
       "profile": "vs_5_0",
+      "specialConstants": "b2",
       "stage": "vertex",
       "wgslEntryPoint": "vertex_main",
       "workgroupSize": null
@@ -2585,6 +2624,7 @@
       "module": "grass_instances",
       "overrides": {},
       "profile": "ps_5_0",
+      "specialConstants": null,
       "stage": "fragment",
       "wgslEntryPoint": "fragment_main",
       "workgroupSize": null
@@ -2594,11 +2634,12 @@
       "entryPoint": "vertex_main",
       "file": "atmosphere/vertex_main.hlsl",
       "hazards": [
-        "reads vertex_index: SV_VertexID does not include BaseVertexLocation in Direct3D 11. Draw with base vertex 0, or add it from a constant buffer."
+        "reads vertex_index or instance_index: bind { int first_vertex; int first_instance; uint other; } at b0 for each draw, with the draw's first vertex (base vertex when indexed) and first instance. Indirect draws take 0 and 0."
       ],
       "module": "atmosphere",
       "overrides": {},
       "profile": "vs_5_0",
+      "specialConstants": "b0",
       "stage": "vertex",
       "wgslEntryPoint": "vertex_main",
       "workgroupSize": null
@@ -2661,6 +2702,7 @@
       "module": "atmosphere",
       "overrides": {},
       "profile": "ps_5_0",
+      "specialConstants": null,
       "stage": "fragment",
       "wgslEntryPoint": "cloud_quarter_main",
       "workgroupSize": null
@@ -2737,6 +2779,7 @@
       "module": "atmosphere",
       "overrides": {},
       "profile": "ps_5_0",
+      "specialConstants": null,
       "stage": "fragment",
       "wgslEntryPoint": "cloud_main",
       "workgroupSize": null
@@ -2834,6 +2877,7 @@
       "module": "atmosphere",
       "overrides": {},
       "profile": "ps_5_0",
+      "specialConstants": null,
       "stage": "fragment",
       "wgslEntryPoint": "fragment_main",
       "workgroupSize": null
@@ -2868,6 +2912,7 @@
       "module": "atmosphere",
       "overrides": {},
       "profile": "ps_5_0",
+      "specialConstants": null,
       "stage": "fragment",
       "wgslEntryPoint": "scene_copy_main",
       "workgroupSize": null
@@ -2916,6 +2961,7 @@
       "module": "atmosphere",
       "overrides": {},
       "profile": "ps_5_0",
+      "specialConstants": null,
       "stage": "fragment",
       "wgslEntryPoint": "present_main",
       "workgroupSize": null
@@ -2985,6 +3031,7 @@
       "module": "tree_cull",
       "overrides": {},
       "profile": "cs_5_0",
+      "specialConstants": null,
       "stage": "compute",
       "wgslEntryPoint": "cull_main",
       "workgroupSize": [
@@ -3065,6 +3112,7 @@
       "module": "tree_generate",
       "overrides": {},
       "profile": "cs_5_0",
+      "specialConstants": null,
       "stage": "compute",
       "wgslEntryPoint": "generate_main",
       "workgroupSize": [
@@ -3166,6 +3214,7 @@
       "module": "grass_generate",
       "overrides": {},
       "profile": "cs_5_0",
+      "specialConstants": null,
       "stage": "compute",
       "wgslEntryPoint": "generate_main",
       "workgroupSize": [
@@ -3218,6 +3267,7 @@
       "module": "grass_generate",
       "overrides": {},
       "profile": "cs_5_0",
+      "specialConstants": null,
       "stage": "compute",
       "wgslEntryPoint": "cull_main",
       "workgroupSize": [
@@ -3284,6 +3334,7 @@
       "module": "boulder_generate",
       "overrides": {},
       "profile": "cs_5_0",
+      "specialConstants": null,
       "stage": "compute",
       "wgslEntryPoint": "generate_main",
       "workgroupSize": [
@@ -3336,6 +3387,7 @@
       "module": "boulder_generate",
       "overrides": {},
       "profile": "cs_5_0",
+      "specialConstants": null,
       "stage": "compute",
       "wgslEntryPoint": "cull_main",
       "workgroupSize": [
@@ -3374,6 +3426,7 @@
       "module": "grounding",
       "overrides": {},
       "profile": "cs_5_0",
+      "specialConstants": null,
       "stage": "compute",
       "wgslEntryPoint": "ground_main",
       "workgroupSize": [
@@ -3412,6 +3465,7 @@
       "module": "terrain_shadow",
       "overrides": {},
       "profile": "cs_5_0",
+      "specialConstants": null,
       "stage": "compute",
       "wgslEntryPoint": "bake",
       "workgroupSize": [
@@ -3471,6 +3525,7 @@
       "module": "surface_weather",
       "overrides": {},
       "profile": "cs_5_0",
+      "specialConstants": null,
       "stage": "compute",
       "wgslEntryPoint": "step_main",
       "workgroupSize": [
@@ -3509,6 +3564,7 @@
       "module": "texture_gen",
       "overrides": {},
       "profile": "cs_5_0",
+      "specialConstants": null,
       "stage": "compute",
       "wgslEntryPoint": "gen_terrain",
       "workgroupSize": [
@@ -3547,6 +3603,7 @@
       "module": "texture_gen",
       "overrides": {},
       "profile": "cs_5_0",
+      "specialConstants": null,
       "stage": "compute",
       "wgslEntryPoint": "gen_terrain_normals",
       "workgroupSize": [
@@ -3585,6 +3642,7 @@
       "module": "texture_gen",
       "overrides": {},
       "profile": "cs_5_0",
+      "specialConstants": null,
       "stage": "compute",
       "wgslEntryPoint": "gen_flora",
       "workgroupSize": [
@@ -3609,6 +3667,7 @@
       "module": "texture_gen",
       "overrides": {},
       "profile": "cs_5_0",
+      "specialConstants": null,
       "stage": "compute",
       "wgslEntryPoint": "gen_water",
       "workgroupSize": [
@@ -3633,6 +3692,7 @@
       "module": "texture_gen",
       "overrides": {},
       "profile": "cs_5_0",
+      "specialConstants": null,
       "stage": "compute",
       "wgslEntryPoint": "gen_noise",
       "workgroupSize": [
@@ -3657,6 +3717,7 @@
       "module": "texture_gen",
       "overrides": {},
       "profile": "cs_5_0",
+      "specialConstants": null,
       "stage": "compute",
       "wgslEntryPoint": "gen_cloud",
       "workgroupSize": [
@@ -3695,6 +3756,7 @@
       "module": "mipgen",
       "overrides": {},
       "profile": "cs_5_0",
+      "specialConstants": null,
       "stage": "compute",
       "wgslEntryPoint": "count",
       "workgroupSize": [
@@ -3740,6 +3802,7 @@
       "module": "mipgen",
       "overrides": {},
       "profile": "cs_5_0",
+      "specialConstants": null,
       "stage": "compute",
       "wgslEntryPoint": "downsample",
       "workgroupSize": [
@@ -3778,6 +3841,7 @@
       "module": "mipgen",
       "overrides": {},
       "profile": "cs_5_0",
+      "specialConstants": null,
       "stage": "compute",
       "wgslEntryPoint": "average_canopy",
       "workgroupSize": [
@@ -3816,6 +3880,7 @@
       "module": "hydraulic_erosion",
       "overrides": {},
       "profile": "cs_5_0",
+      "specialConstants": null,
       "stage": "compute",
       "wgslEntryPoint": "rain",
       "workgroupSize": [
@@ -3861,6 +3926,7 @@
       "module": "hydraulic_erosion",
       "overrides": {},
       "profile": "cs_5_0",
+      "specialConstants": null,
       "stage": "compute",
       "wgslEntryPoint": "outflow",
       "workgroupSize": [
@@ -3913,6 +3979,7 @@
       "module": "hydraulic_erosion",
       "overrides": {},
       "profile": "cs_5_0",
+      "specialConstants": null,
       "stage": "compute",
       "wgslEntryPoint": "update_water",
       "workgroupSize": [
@@ -3965,6 +4032,7 @@
       "module": "hydraulic_erosion",
       "overrides": {},
       "profile": "cs_5_0",
+      "specialConstants": null,
       "stage": "compute",
       "wgslEntryPoint": "erode",
       "workgroupSize": [
@@ -4010,6 +4078,7 @@
       "module": "hydraulic_erosion",
       "overrides": {},
       "profile": "cs_5_0",
+      "specialConstants": null,
       "stage": "compute",
       "wgslEntryPoint": "advect",
       "workgroupSize": [
@@ -4055,6 +4124,7 @@
       "module": "hydraulic_erosion",
       "overrides": {},
       "profile": "cs_5_0",
+      "specialConstants": null,
       "stage": "compute",
       "wgslEntryPoint": "evaporate",
       "workgroupSize": [
@@ -4107,6 +4177,7 @@
       "module": "hydraulic_erosion",
       "overrides": {},
       "profile": "cs_5_0",
+      "specialConstants": null,
       "stage": "compute",
       "wgslEntryPoint": "settle",
       "workgroupSize": [
@@ -4145,6 +4216,7 @@
       "module": "thermal_erosion",
       "overrides": {},
       "profile": "cs_5_0",
+      "specialConstants": null,
       "stage": "compute",
       "wgslEntryPoint": "exchange",
       "workgroupSize": [
@@ -4183,6 +4255,7 @@
       "module": "thermal_erosion",
       "overrides": {},
       "profile": "cs_5_0",
+      "specialConstants": null,
       "stage": "compute",
       "wgslEntryPoint": "apply",
       "workgroupSize": [
@@ -4207,6 +4280,7 @@
       "module": "normals",
       "overrides": {},
       "profile": "cs_5_0",
+      "specialConstants": null,
       "stage": "compute",
       "wgslEntryPoint": "main",
       "workgroupSize": [
@@ -4218,5 +4292,25 @@
   ],
   "generator": "vista_hlsl",
   "naga": "30",
-  "shaderModel": "5.0"
+  "shaderModel": "5.0",
+  "sources": {
+    "atmosphere": "a7ccdfc7c58a6c85",
+    "boulder_generate": "e6e24341c4323374",
+    "boulders": "a48ef19745c0a750",
+    "clipmap_render": "fcf2a0edafd9f7d1",
+    "grass_generate": "fff35e9c05e10303",
+    "grass_instances": "bf1b2128137350c3",
+    "grounding": "bb37a780aa2ef70f",
+    "hydraulic_erosion": "7486d7dbdedf2a1f",
+    "mipgen": "278217adf8b4ef82",
+    "normals": "a357d2b2492eea6d",
+    "surface_weather": "d26162e707b41482",
+    "terrain_shadow": "8d3d5af79f8d6354",
+    "texture_gen": "49403d4b521ef86e",
+    "thermal_erosion": "379fcca1476b611a",
+    "tree_cull": "3bcfe9682e51b7b8",
+    "tree_generate": "6a1ac0dcfa84c9e8",
+    "trees": "24eaad610937a720",
+    "water": "cf458185dbc222bf"
+  }
 }

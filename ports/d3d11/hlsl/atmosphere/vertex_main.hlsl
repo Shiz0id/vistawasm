@@ -6,7 +6,14 @@
 // Entry point: vertex_main, compile with /T vs_5_0 /E vertex_main
 //
 // Resources (WGSL group/binding -> register):
-// D3D11: reads vertex_index: SV_VertexID does not include BaseVertexLocation in Direct3D 11. Draw with base vertex 0, or add it from a constant buffer.
+// D3D11: reads vertex_index or instance_index: bind { int first_vertex; int first_instance; uint other; } at b0 for each draw, with the draw's first vertex (base vertex when indexed) and first instance. Indirect draws take 0 and 0.
+
+struct NagaConstants {
+  int first_vertex;
+  int first_instance;
+  uint other;
+};
+cbuffer NagaConstantsBlock : register(b0) { NagaConstants _NagaConstants; }
 
 struct VertexOut {
   float4 clip_position : SV_Position;
@@ -47,7 +54,7 @@ VertexOutput_vertex_main vertex_main(uint vertex_index : SV_VertexID)
   float2 positions[3] = Constructarray3_float2_(float2(-1.0, -1.0), float2(3.0, -1.0), float2(-1.0, 3.0));
   VertexOut out_ = (VertexOut)0;
 
-  float2 position = positions[min(uint(vertex_index), 2u)];
+  float2 position = positions[min(uint((_NagaConstants.first_vertex + vertex_index)), 2u)];
   out_.clip_position = float4(position, 0.0, 1.0);
   out_.ndc = position;
   VertexOut _e20 = out_;

@@ -129,6 +129,20 @@ int main(int argc, char **argv) {
     if (FAILED(result) || code == NULL) {
       fprintf(stderr, "FAILED %s (0x%08lx)\n", path, (unsigned long)result);
       failures += 1;
+
+      /* An older compile of the file must not pass for this one. */
+      if (argc > 3) {
+        const char *relative = strncmp(path, "hlsl/", 5) == 0 ? path + 5 : path;
+        char stale[1024];
+        snprintf(stale, sizeof(stale), "%s/%s", argv[3], relative);
+        size_t at = strlen(stale);
+
+        if (at > 5 && strcmp(stale + at - 5, ".hlsl") == 0) {
+          strcpy(stale + at - 5, ".cso");
+          DeleteFileA(stale);
+        }
+      }
+
       continue;
     }
 

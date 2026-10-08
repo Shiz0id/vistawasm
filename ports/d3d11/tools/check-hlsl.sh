@@ -6,7 +6,8 @@
 #
 # Writes the compiled shaders to OUT_DIR, by default ports/d3d11/cso (the
 # committed copy), as <module>/<entry>.cso beside the manifest's
-# hlsl/<module>/<entry>.hlsl. Compiling is deterministic, so an unchanged
+# hlsl/<module>/<entry>.hlsl, and sources.json, the hash of each HLSL
+# file compiled. Compiling is deterministic, so an unchanged
 # shader writes the same bytes. Expect about 12 minutes: the texture bake's
 # two shaders take 3 minutes each.
 #
@@ -62,4 +63,26 @@ out=$(cd "$out" && pwd)
 cd "$port"
 export WINEPREFIX="$work/prefix" WINEDEBUG=-all WINEDLLOVERRIDES="d3dcompiler_43=n"
 # Without the flag the tool does not treat warnings as errors.
-"$wine" "$work/hlslc.exe" "$work/D3DCompiler_43.dll" "$work/list.txt" "$out"
+status=0
+"$wine" "$work/hlslc.exe" "$work/D3DCompiler_43.dll" "$work/list.txt" "$out" || status=$?
+
+# Which HLSL each compiled shader came from, by 64-bit FNV-1a of the file,
+# so vista_native's tests can tell when a shader was translated again
+# without being compiled again.
+python3 -I -c "
+import json, os, sys
+port, out = sys.argv[1], sys.argv[2]
+manifest = json.load(open(os.path.join(port, 'hlsl', 'manifest.json')))
+stamps = {}
+for f in manifest['files']:
+  cso = os.path.join(out, f['file'][:-len('.hlsl')] + '.cso')
+  if not os.path.exists(cso):
+    continue
+  h = 0xcbf29ce484222325
+  for byte in open(os.path.join(port, 'hlsl', f['file']), 'rb').read():
+    h = ((h ^ byte) * 0x100000001b3) & 0xffffffffffffffff
+  stamps[f['file']] = '%016x' % h
+json.dump(stamps, open(os.path.join(out, 'sources.json'), 'w'), indent=2, sort_keys=True)
+open(os.path.join(out, 'sources.json'), 'a').write('\\n')
+" "$port" "$out"
+exit $status

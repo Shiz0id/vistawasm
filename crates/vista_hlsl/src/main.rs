@@ -140,6 +140,8 @@ fn run() -> Result<(), Failure> {
 
   fs::create_dir_all(&out)?;
   let mut manifest = Vec::new();
+  // Each module's WGSL, hashed, so a stale translation can be detected.
+  let mut sources = BTreeMap::new();
 
   for module in MODULES {
     let mut source = String::new();
@@ -155,12 +157,14 @@ fn run() -> Result<(), Failure> {
     let entries = translate(module, &source, &out)?;
     println!("{}: {} files", module.name, entries.len());
     manifest.extend(entries);
+    sources.insert(module.name, format!("{:016x}", fnv1a(source.as_bytes())));
   }
 
   let manifest = json!({
     "generator": "vista_hlsl",
     "naga": "30",
     "shaderModel": "5.0",
+    "sources": sources,
     "files": manifest,
   });
   fs::write(
@@ -389,10 +393,25 @@ fn write_entry(
       )
     })
     .collect();
+  // WebGPU's vertex_index and instance_index count from the draw's first
+  // vertex (or base vertex) and first instance; Direct3D 11's SV_VertexID
+  // and SV_InstanceID count from 0. Naga adds the offsets from a constant
+  // buffer, in the next free b register, which the renderer fills per draw.
+  let builtins = entry_builtins(module, entry);
+  let special_constants = (builtins.contains(&BuiltIn::VertexIndex)
+    || builtins.contains(&BuiltIn::InstanceIndex))
+  .then(|| *next.entry('b').or_insert(0));
   let options = hlsl::Options {
     shader_model: ShaderModel::V5_0,
     binding_map,
     sampler_buffer_binding_map,
+    special_constants_binding: special_constants.map(|register| BindTarget {
+      space: 0,
+      register,
+      binding_array_size: None,
+      dynamic_storage_buffer_offsets_index: None,
+      restrict_indexing: false,
+    }),
     fake_missing_bindings: false,
     zero_initialize_workgroup_memory: true,
     // Naga bounds every loop with a 64-bit counter, against Direct3D 12
@@ -415,6 +434,29 @@ fn write_entry(
     .ok_or("no entry point written")?
     .map_err(|error| format!("{}::{}: {error:?}", source.name, entry.name))?;
   let mut text = two_space_indent(&direct_samplers(&text)?);
+
+  // Naga declares the draw's first vertex and instance as
+  // `ConstantBuffer<T>`, which needs Shader Model 5.1.
+  if let Some(register) = special_constants {
+    let declared = format!("ConstantBuffer<NagaConstants> _NagaConstants: register(b{register});");
+
+    if !text.contains(&declared) {
+      return Err(
+        format!(
+          "{}::{}: naga's special constants moved",
+          source.name, entry.name
+        )
+        .into(),
+      );
+    }
+
+    text = text.replace(
+      &declared,
+      &format!(
+        "cbuffer NagaConstantsBlock : register(b{register}) {{ NagaConstants _NagaConstants; }}"
+      ),
+    );
+  }
 
   // fxc refuses a loop in divergent flow whose exit depends on data read
   // from a UAV (X3671) unless the loop says that is intended.
@@ -473,14 +515,10 @@ fn write_entry(
     ));
   }
 
-  let builtins = entry_builtins(module, entry);
-
-  if builtins.contains(&BuiltIn::InstanceIndex) {
-    hazards.push("reads instance_index: SV_InstanceID does not include StartInstanceLocation in Direct3D 11, unlike WebGPU's first_instance. Draw with StartInstanceLocation 0, or add the offset from a constant buffer.".to_string());
-  }
-
-  if builtins.contains(&BuiltIn::VertexIndex) {
-    hazards.push("reads vertex_index: SV_VertexID does not include BaseVertexLocation in Direct3D 11. Draw with base vertex 0, or add it from a constant buffer.".to_string());
+  if let Some(register) = special_constants {
+    hazards.push(format!(
+      "reads vertex_index or instance_index: bind {{ int first_vertex; int first_instance; uint other; }} at b{register} for each draw, with the draw's first vertex (base vertex when indexed) and first instance. Indirect draws take 0 and 0."
+    ));
   }
 
   let profile = match entry.stage {
@@ -548,6 +586,7 @@ fn write_entry(
       "register": format!("{}{register}", slot.class),
       "kind": slot.kind,
     })).collect::<Vec<_>>(),
+    "specialConstants": special_constants.map(|register| format!("b{register}")),
     "hazards": hazards,
   }))
 }
@@ -614,6 +653,13 @@ fn direct_samplers(text: &str) -> Result<String, Failure> {
   }
 
   Ok(out)
+}
+
+/// 64-bit FNV-1a, as `vista_native` checks the translation with.
+fn fnv1a(bytes: &[u8]) -> u64 {
+  bytes.iter().fold(0xcbf2_9ce4_8422_2325, |hash, byte| {
+    (hash ^ u64::from(*byte)).wrapping_mul(0x0000_0100_0000_01b3)
+  })
 }
 
 /// HLSL's name for a texture dimension.

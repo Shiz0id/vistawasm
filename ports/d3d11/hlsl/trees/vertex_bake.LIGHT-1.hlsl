@@ -8,7 +8,14 @@
 //
 // Resources (WGSL group/binding -> register):
 //   @group(1) @binding(9) world -> b0  constant buffer
-// D3D11: reads instance_index: SV_InstanceID does not include StartInstanceLocation in Direct3D 11, unlike WebGPU's first_instance. Draw with StartInstanceLocation 0, or add the offset from a constant buffer.
+// D3D11: reads vertex_index or instance_index: bind { int first_vertex; int first_instance; uint other; } at b1 for each draw, with the draw's first vertex (base vertex when indexed) and first instance. Indirect draws take 0 and 0.
+
+struct NagaConstants {
+  int first_vertex;
+  int first_instance;
+  uint other;
+};
+cbuffer NagaConstantsBlock : register(b1) { NagaConstants _NagaConstants; }
 
 struct WorldInfo {
   float4 species[8];
@@ -96,8 +103,8 @@ VertexOutput_vertex_bake vertex_bake(BakeIn in_)
   float depth = (float)0;
   BakeOut out_ = (BakeOut)0;
 
-  uint species_1 = naga_div(in_.view, 16u);
-  uint view = naga_mod(in_.view, 16u);
+  uint species_1 = naga_div((_NagaConstants.first_instance + in_.view), 16u);
+  uint view = naga_mod((_NagaConstants.first_instance + in_.view), 16u);
   float4 bounds = world.species[species_1];
   float yaw = (float(naga_mod(min(view, 8u), 8u)) * 0.7853982);
   const float3 _e20 = rotate_y(in_.position, -(yaw));
