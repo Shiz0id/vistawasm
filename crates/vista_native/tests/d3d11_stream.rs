@@ -443,8 +443,24 @@ impl Executor {
       }
       44 => {
         assert!(self.compute != 0, "a dispatch without a shader");
-        let clash = self.inputs(&[2]).intersection(&self.outputs(true)).count();
-        assert_eq!(clash, 0, "a dispatch reads what it writes");
+        // Per resource, not per subresource: some runtimes unbind a
+        // shader resource whose resource has any subresource bound as a
+        // UAV.
+        let read: HashSet<u32> = self
+          .inputs(&[2])
+          .into_iter()
+          .map(|(resource, _)| resource)
+          .collect();
+        let written: HashSet<u32> = self
+          .outputs(true)
+          .into_iter()
+          .map(|(resource, _)| resource)
+          .collect();
+        assert_eq!(
+          read.intersection(&written).count(),
+          0,
+          "a dispatch reads a resource it writes"
+        );
         self.dispatches += 1;
       }
       50 => self.presents += 1,

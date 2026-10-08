@@ -18,6 +18,10 @@
 //! - Every slot a draw or dispatch does not use is unbound, and passes
 //!   start from nothing bound, so a resource is never an input and an
 //!   output at once.
+//! - A dispatch that reads one mip of a texture while it writes another
+//!   (mip generation) reads a copy: Direct3D 11 allows it per
+//!   subresource, but runtimes that track hazards per resource unbind
+//!   the input.
 
 use std::collections::{HashMap, HashSet};
 
@@ -268,6 +272,20 @@ struct TextureInfo {
   generation: u64,
   /// 2D copies of single layers, for 2D views of a layered texture.
   aliases: HashMap<u32, Alias>,
+  /// Copies of subresources a dispatch reads while it writes others:
+  /// (first mip, mips, first layer, layers) to the copy and its view.
+  snapshots: HashMap<(u32, u32, u32, u32), (u32, u32)>,
+}
+
+/// What a shader resource or unordered access view of a texture covers.
+#[derive(Clone, Copy)]
+struct Cover {
+  texture: Id,
+  dimension: TextureViewDimension,
+  base_mip: u32,
+  mips: u32,
+  base_layer: u32,
+  layers: u32,
 }
 
 impl TextureInfo {
@@ -387,6 +405,8 @@ pub struct Lowering {
   /// Releases waiting until no constant buffer copies from them.
   pinned: HashMap<Id, u32>,
   pending_release: HashSet<Id>,
+  /// What each texture view made for shaders covers.
+  covers: HashMap<u32, Cover>,
   warned: HashSet<String>,
   /// Problems found since the last [`Self::take_warnings`].
   warnings: Vec<String>,
@@ -410,6 +430,7 @@ impl Lowering {
       special: 0,
       pinned: HashMap::new(),
       pending_release: HashSet::new(),
+      covers: HashMap::new(),
       warned: HashSet::new(),
       warnings: Vec::new(),
     };
@@ -434,6 +455,7 @@ impl Lowering {
         format,
         generation: 0,
         aliases: HashMap::new(),
+        snapshots: HashMap::new(),
       },
     );
     self.emit(op::OUTPUT_SIZE, &[width, height, dxgi_format(format)]);
@@ -737,6 +759,7 @@ impl Lowering {
         format,
         generation: 0,
         aliases: HashMap::new(),
+        snapshots: HashMap::new(),
       },
     );
     self.emit(
@@ -774,9 +797,15 @@ impl Lowering {
         self.emit(op::RELEASE, &[alias.id]);
       }
 
+      for (copy, view) in texture.snapshots.into_values() {
+        self.emit(op::RELEASE, &[view]);
+        self.emit(op::RELEASE, &[copy]);
+      }
+
       self.emit(op::RELEASE, &[id]);
     } else if let Some(view) = self.views.remove(&id) {
       for made in view.made.into_values() {
+        self.covers.remove(&made);
         self.emit(op::RELEASE, &[made]);
       }
     } else if let Some(pipeline) = self.pipelines.remove(&id) {
@@ -1208,6 +1237,20 @@ impl Lowering {
 
     if let Some(view) = self.views.get_mut(&id) {
       view.made.insert(kind, made);
+    }
+
+    if matches!(kind, ViewKind::Srv | ViewKind::Uav) {
+      self.covers.insert(
+        made,
+        Cover {
+          texture: texture_id,
+          dimension,
+          base_mip,
+          mips,
+          base_layer,
+          layers,
+        },
+      );
     }
 
     Some(made)
@@ -1847,9 +1890,112 @@ impl Lowering {
       self.pass.set_pipeline = Some(id);
     }
 
-    let wanted = self.wanted_slots(&[(2, shader)]);
+    let mut wanted = self.wanted_slots(&[(2, shader)]);
+    self.read_copies_of_written(&mut wanted);
     self.apply_slots(&[2], &wanted);
     true
+  }
+
+  /// Point every shader resource of a texture the dispatch also writes
+  /// at a fresh copy of what it reads.
+  fn read_copies_of_written(&mut self, wanted: &mut [(usize, u32, usize, u32)]) {
+    let written: HashSet<Id> = wanted
+      .iter()
+      .filter(|(_, kind, _, _)| *kind == 3)
+      .filter_map(|(_, _, _, object)| self.covers.get(object).map(|cover| cover.texture))
+      .collect();
+
+    for entry in wanted.iter_mut() {
+      if entry.1 != 1 {
+        continue;
+      }
+
+      let Some(cover) = self.covers.get(&entry.3).copied() else {
+        continue;
+      };
+
+      if written.contains(&cover.texture) {
+        if let Some(view) = self.snapshot(cover) {
+          entry.3 = view;
+        }
+      }
+    }
+  }
+
+  /// A view of a copy of what `cover` covers, copied now.
+  fn snapshot(&mut self, cover: Cover) -> Option<u32> {
+    let texture = self.textures.get(&cover.texture)?;
+
+    if texture.dimension != TextureDimension::D2 {
+      self.warn("a dispatch reads and writes one 3D texture".to_string());
+      return None;
+    }
+
+    let (width, height, all_mips, format) = (
+      (texture.width >> cover.base_mip).max(1),
+      (texture.height >> cover.base_mip).max(1),
+      texture.mips,
+      texture.format,
+    );
+    let key = (cover.base_mip, cover.mips, cover.base_layer, cover.layers);
+    let (copy, view) = match texture.snapshots.get(&key) {
+      Some(made) => *made,
+      None => {
+        let (copy, view) = (self.own_id(), self.own_id());
+        self.emit(
+          op::CREATE_TEXTURE,
+          &[
+            copy,
+            2,
+            width,
+            height,
+            cover.layers,
+            cover.mips,
+            dxgi_format(format),
+            BIND_SHADER_RESOURCE,
+          ],
+        );
+        let dimension = if cover.dimension == TextureViewDimension::D2 && cover.layers == 1 {
+          [SRV_TEXTURE2D, 0, cover.mips, 0, 0]
+        } else {
+          [SRV_TEXTURE2DARRAY, 0, cover.mips, 0, cover.layers]
+        };
+        let mut words = vec![view, copy, dxgi_format(format)];
+        words.extend(dimension);
+        self.emit(op::CREATE_SRV, &words);
+
+        if let Some(texture) = self.textures.get_mut(&cover.texture) {
+          texture.snapshots.insert(key, (copy, view));
+        }
+
+        (copy, view)
+      }
+    };
+
+    for mip in 0..cover.mips {
+      for layer in 0..cover.layers {
+        self.emit(
+          op::COPY_TEXTURE,
+          &[
+            copy,
+            mip + layer * cover.mips,
+            0,
+            0,
+            0,
+            cover.texture,
+            cover.base_mip + mip + (cover.base_layer + layer) * all_mips,
+            0,
+            0,
+            0,
+            (width >> mip).max(1),
+            (height >> mip).max(1),
+            1,
+          ],
+        );
+      }
+    }
+
+    Some(view)
   }
 }
 

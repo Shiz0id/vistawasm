@@ -98,7 +98,9 @@ typedef struct VistaD3DCreateBuffer {
 
 /* dimension 1, 2 or 3. For 1 and 2, depth_or_layers is ArraySize; for 3,
  * Depth. Format is a DXGI_FORMAT (typeless for depth textures). Contents
- * start as zeros. */
+ * start as zeros, as in WebGPU, render targets included: pass zeroed
+ * initial data. A depth texture (BIND_DEPTH_STENCIL) need not be: the
+ * stream clears it before it is read. */
 typedef struct VistaD3DCreateTexture {
   uint32_t id;
   uint32_t dimension;
