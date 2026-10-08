@@ -38,4 +38,22 @@ uint64_t PackLayerWeights(const float w[k_layers]) {
   return packed;
 }
 
+// From its declaration's comment: "Blends the outer `width` metres down to
+// `height`". Smoothstep from the edge inwards.
+void FadeEdges(Terrain_s* t, float width, float height) {
+  for (uint32_t z = 0; z < t->samplesZ; ++z) {
+    for (uint32_t x = 0; x < t->samplesX; ++x) {
+      const float fromEdge = std::fmin(std::fmin(float(x), float(t->samplesX - 1 - x)),
+                                       std::fmin(float(z), float(t->samplesZ - 1 - z))) * t->spacing;
+
+      if (fromEdge < width) {
+        const float k = fromEdge / width;
+        const float blend = k * k * (3.0f - 2.0f * k);
+        float& h = t->heights[t->Index(x, z)];
+        h = height + (h - height) * blend;
+      }
+    }
+  }
+}
+
 }  // namespace SelotapeTerrain

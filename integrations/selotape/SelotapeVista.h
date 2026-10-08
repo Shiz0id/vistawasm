@@ -6,24 +6,25 @@
 // The trees, the water depth and the river meshes come back beside it for
 // the editor to place or draw.
 //
-// Licence: AGPL-3.0-only, as VistaWASM.
+// The editor's own operations that assume Selotape's generator each have a
+// Vista counterpart here: Job_c for generating off the UI thread,
+// RegenerateInPlace for Regenerate, AutoSplatVista for AutoSplat,
+// PrepareApron for the apron, and TreePlacements for scattering the trees
+// as props. README.md says where each one plugs in.
 //
-// What it does not do, so the editor routes around it:
-//   - Regenerate, AutoSplat and the apron read Terrain_s::gen and rules,
-//     which are Selotape's own generator's. A Vista terrain keeps its
-//     settings in Settings_s (MetaLines / ParseMetaLines) and is
-//     regenerated through Generate here.
-//   - It blocks. A 1 km map takes about a second and a 4 km one tens of
-//     seconds, so call it from a worker, as the BEAST bake runs.
+// Licence: AGPL-3.0-only, as VistaWASM.
 
 #pragma once
 
 #include "selotape/SelotapeTerrain.h"
 #include "vista_native.h"
 
+#include <atomic>
 #include <cstdint>
 #include <functional>
+#include <mutex>
 #include <string>
+#include <thread>
 #include <vector>
 
 namespace SelotapeVista {
@@ -56,7 +57,8 @@ struct Settings_s {
   // seaLevelMetres, landform, edges, erosion, shape). Empty for none.
   std::string extraJson;
   // Vista's biome and flora options as JSON (docs/options-reference.md),
-  // such as { "temperatureCelsius": 4 }. Empty for the defaults.
+  // such as { "temperatureBias": 0.8, "moistureBias": -0.8 } for a hot,
+  // dry climate. Empty for the defaults.
   std::string biomesJson;
   std::string floraJson;
 };
@@ -84,7 +86,7 @@ struct Tree_s {
   uint32_t species = 0;                    // VistaTreeSpecies
   uint32_t variant = 0;
   float    scale = 1.0f;
-  float    yawDegrees = 0.0f;
+  float    yawDegrees = 0.0f;              // about +y, from Vista's frame
 };
 
 struct Result_s {
@@ -104,19 +106,143 @@ struct Result_s {
 };
 
 // `phase` names the stage ("tectonics", "erosion", "rivers", ...);
-// `progress` runs 0..1 within it.
-using Progress_t = std::function<void(const char* phase, float progress)>;
+// `progress` runs 0..1 within it. Return false to cancel.
+using Progress_t = std::function<bool(const char* phase, float progress)>;
 
 // The world for `settings`, laid on a terrain of `settings.sizeMetres` at
 // `settings.spacing`, with `materials` stored as given and its splat from
-// `layers`. False with the reason in *error; *out is then untouched.
+// `layers`. False with the reason in *error, and *out untouched; *cancelled
+// (when given) says whether `progress` cancelled it.
+//
+// It blocks: 3 s for 1 km at 2 m, 13 s for 1 km at 1 m, about 45 s for 4 km
+// at 1 m. Use Job_c from the editor.
 bool Generate(const Settings_s& settings, const std::string& materials, const LayerMap_s& layers,
-              Result_s* out, std::string* error, const Progress_t& progress = Progress_t());
+              Result_s* out, std::string* error, const Progress_t& progress = Progress_t(),
+              bool* cancelled = nullptr);
 
 // The FractalTerrainOptions JSON Generate passes Vista, for logs and tests.
 std::string FractalJson(const Settings_s& settings, uint32_t vistaSamples);
 // The Vista grid Generate uses for `settings`.
 uint32_t VistaSamples(const Settings_s& settings);
+
+// --- off the UI thread ------------------------------------------------------
+
+// One Generate on a worker thread, for a dialog with a progress bar and a
+// Cancel button. Every member may be called from the UI thread while it
+// runs. Not copyable; destroying a running job cancels it and waits.
+class Job_c {
+public:
+  Job_c() = default;
+  Job_c(const Job_c&) = delete;
+  Job_c& operator=(const Job_c&) = delete;
+  ~Job_c();
+
+  // Starts Generate on a worker. False (and nothing started) while an
+  // earlier job runs or holds an untaken result.
+  bool Start(const Settings_s& settings, const std::string& materials, const LayerMap_s& layers);
+  // Asks the worker to stop at Vista's next report. Done() then turns true,
+  // and Take() returns false with *cancelled set.
+  void Cancel();
+  bool Running() const;
+  bool Done() const;
+  // The stage now running, and the whole job's progress from 0 to 1
+  // (weighted by how long each stage usually takes, so a bar moves evenly).
+  std::string Phase() const;
+  float Progress() const;
+  // Once Done(): the result, or false with *error (and *cancelled). Joins
+  // the worker, so the job can Start again.
+  bool Take(Result_s* out, std::string* error, bool* cancelled = nullptr);
+
+private:
+  void Join();
+
+  std::thread       m_worker;
+  std::atomic<bool> m_running { false };
+  std::atomic<bool> m_done { false };
+  std::atomic<bool> m_cancel { false };
+  mutable std::mutex m_lock;   // guards everything below
+  std::string m_phase;
+  float       m_progress = 0.0f;
+  bool        m_ok = false;
+  bool        m_cancelled = false;
+  std::string m_error;
+  Result_s    m_result;
+};
+
+// The whole generation's progress from 0 to 1, from a stage and the
+// progress within it, by how long each stage usually takes.
+float OverallProgress(const std::string& phase, float progress);
+
+// --- the editor's operations, for a Vista terrain ------------------------------
+
+// Regenerate: new heights and splat for `t` from `settings`, keeping its
+// size, origin, materials and everything else on it. `settings.sizeMetres`
+// and `spacing` are taken from `t`, which must be square. `rest`, when
+// given, receives the new trees, water and biomes (its terrain is left
+// empty). False with *error, and `t` unchanged. The editor records the old
+// terrain for undo first, as for Regenerate.
+bool RegenerateInPlace(SelotapeTerrain::Terrain_s* t, Settings_s settings, const LayerMap_s& layers,
+                       std::string* error, const Progress_t& progress = Progress_t(),
+                       bool* cancelled = nullptr, Result_s* rest = nullptr);
+
+// AutoSplat: the splat of `region` (all of `t` when empty) from Vista's own
+// ground classification of `t`'s heights as they now are, sculpting
+// included, with `settings`' landform, climate and sea level. Painted
+// weights inside the region are replaced, as AutoSplat replaces them.
+// False with *error, and `t` unchanged.
+bool AutoSplatVista(SelotapeTerrain::Terrain_s* t, const Settings_s& settings, const LayerMap_s& layers,
+                    const SelotapeTerrain::Rect_s& region, std::string* error);
+
+// The apron (BuildApronMesh) continues the ground past the edge with the
+// terrain's own generator settings, which for a Vista terrain are not what
+// made it. This makes them a flat plain at the height the edge averages,
+// and fades the outer `fadeMetres` of the terrain down to it with
+// SelotapeTerrain::FadeEdges, so the two meet. Returns that height.
+// Needs GeneratedHeight to give baseHeight for amplitude 0 and shape
+// noise, as Selotape's generator does.
+float PrepareApron(SelotapeTerrain::Terrain_s* t, float fadeMetres);
+
+// --- the trees as props -------------------------------------------------------
+
+// The palette entry each tree species is placed as, in VistaTreeSpecies
+// order (oak, pine, spruce, palm, jungle, cypress, acacia, shrub). An entry
+// with an empty templateName is not placed.
+struct SpeciesProp_s {
+  std::string templateName;   // as Scatter_s::templateName
+  std::string model;          // as Scatter_s::model; may be empty
+  float       baseScale = 1.0f;   // the model's size for a tree of Vista scale 1
+};
+struct SpeciesMap_s {
+  SpeciesProp_s species[8];
+};
+
+// One prop to place: what NewPropText takes.
+struct Placement_s {
+  std::string templateName;
+  std::string model;
+  float pos[3] = {};      // world metres, on the ground less `sink`
+  float rotDeg[3] = {};   // (0, yaw, 0): check the yaw sign against PropTransform
+  float scale = 1.0f;     // for a template with a scale field
+  uint32_t species = 0;
+};
+
+// Which trees to place.
+struct TreeFilter_s {
+  uint32_t maxCount = 2000;     // props are heavier than foliage
+  float    minSpacing = 0.0f;   // metres between trunks; 0 keeps Vista's own spacing
+  float    sink = 0.2f;         // metres pressed into the ground, as Scatter_s::sink
+  // World rectangle (min x, min z, max x, max z); all of it when min > max.
+  float    region[4] = { 1.0f, 1.0f, 0.0f, 0.0f };
+};
+
+// The trees of `result` as props, mapped by `species`, thinned to
+// `filter`. Deterministic: the same inputs place the same props. When
+// there are more than maxCount, the ones kept are spread evenly over the
+// map rather than the first in Vista's order.
+std::vector<Placement_s> TreePlacements(const std::vector<Tree_s>& trees, const SpeciesMap_s& species,
+                                        const TreeFilter_s& filter);
+
+// --- the .ter's meta block ------------------------------------------------------
 
 // The settings as "vista.<field> = <value>" lines for the .ter's meta
 // block, and back. Parse ignores lines it does not know; it is false only

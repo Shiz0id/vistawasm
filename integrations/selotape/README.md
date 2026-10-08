@@ -87,53 +87,165 @@ of it is dry ground.
 
 ## Wiring it into CMapEditor
 
-These are the places that need changing. All of them are in your
-`CMapEditor_terrain.cpp` and `SelotapeTerrain.cpp`, which were not
-uploaded, so check each one there.
+Every editor operation that assumes Selotape's own generator has a Vista
+counterpart in `SelotapeVista.h`. The snippets use CMapEditor's own
+declarations (`FinishTerrainMap`, `TerrainWholeOp`, `NewPropText`,
+`UniqueName`). Field names like `m_vistaJob` are suggestions. Your
+`CMapEditor_terrain.cpp` was not uploaded, so match the surrounding code.
 
-1. **New terrain map.** Add Vista as a generator choice in the dialog
-    (`DrawNewTerrainMap` and `DrawNewTerrainModal`). Run `Generate` on a
-    worker, as the BEAST bake does: it blocks. When it finishes, pass
-    `&result.terrain` to `FinishTerrainMap`.
-2. **Saving the settings.** Append `MetaLines(settings)` to the `.ter`'s
-    meta block in `Serialise`. On load, `IsVistaMeta(meta)` says whether
-    the terrain came from Vista and `ParseMetaLines` reads the settings
-    back. Check that `Parse` keeps meta lines it does not know.
-3. **Regenerate.** `TerrainRegenerate` calls Selotape's own generator from
-    `Terrain_s::gen`. For a Vista terrain, call `Generate` again with the
-    saved settings instead, and keep the old terrain as the undo step.
-4. **Auto-splat.** Vista's terrains disable every rule. `TerrainAutoSplat`
-    would replace Vista's splat with the rules' result. Either hide it for
-    Vista terrains or have it run the `LayerMap_s` fold again.
-5. **The apron.** `BuildApronMesh` continues the ground past the edge
-    with `GeneratedHeight(gen)`, which is Selotape's noise, not Vista's. It
-    will not match a Vista terrain's edge. Two ways round it:
-    `FadeEdges(&terrain, width, height)` so the edge meets a plain, or
-    `settings.edges = "coast"` so the land ends in sea.
-6. **Trees.** `result.trees` has every tree Vista placed. Map each
-    `VistaTreeSpecies` to a palette entry and place them as `TerrainScatter`
-    places props, or as foliage. `y` is already on the ground. Check that
-    `yawDegrees` turns the same way as a prop's `rot`.
-7. **Water.** Selotape draws no water on a `.ter` yet. `waterDepth` and
-    `biome` are ready for a water pass. `waterVertices` is in the layout
-    that `ports/d3d11/hlsl/water/*.INLAND-1.hlsl` reads.
+### 1. New terrain map: generate off the UI thread
+
+`Job_c` runs `Generate` on a worker, with progress and Cancel for the
+dialog:
+
+```cpp
+// CMapEditor members.
+SelotapeVista::Job_c      m_vistaJob;
+SelotapeVista::Settings_s m_vistaSettings;
+std::string               m_vistaMapName;
+
+// The dialog's Create button.
+m_vistaSettings.sizeMetres = float(m_newTerrainSize) * 1024.0f;
+m_vistaSettings.spacing = float(m_newTerrainSpacing);
+m_vistaJob.Start(m_vistaSettings, materials, SelotapeVista::LayerMapFor(PaintableLayers()));
+
+// Each frame while the dialog is open.
+DrawProgressBar(m_vistaJob.Phase(), m_vistaJob.Progress());   // your UI
+if (cancelPressed) m_vistaJob.Cancel();
+
+if (m_vistaJob.Done()) {
+  SelotapeVista::Result_s result;
+  std::string error;
+  bool cancelled = false;
+
+  if (m_vistaJob.Take(&result, &error, &cancelled)) {
+    FinishTerrainMap(m_vistaMapName, &result.terrain, materials, setupPath, terrainPath, "");
+    PlaceVistaTrees(result.trees);   // step 6
+  } else if (!cancelled) {
+    m_status = "Vista: " + error;
+  }
+}
+```
+
+`Progress()` is weighted by how long each stage really takes, so the bar
+moves evenly. A cancel lands within about half a second, and the
+previous terrain is untouched. Destroying a running job cancels it and
+waits.
+
+### 2. Saving and loading the settings
+
+Write `SelotapeVista::MetaLines(settings)` into the `.ter`'s meta block
+in `SelotapeTerrain::Serialise`, after the existing lines. On load,
+`IsVistaMeta(meta)` says the terrain came from Vista, and
+`ParseMetaLines(meta, &settings, &error)` reads the settings back.
+`Parse` must keep meta lines it does not recognise. If it drops them,
+keep the raw meta text on `Terrain_s` beside `gen`.
+
+### 3. Regenerate
+
+For a Vista terrain, `TerrainRegenerate` calls `RegenerateInPlace`
+instead of Selotape's generator. Size, origin, materials, haze and stock
+fields stay; heights and splat are replaced. Run it through the job (or
+`TerrainWholeOp` for small maps) so it is one undo step:
+
+```cpp
+TerrainWholeOp("Regenerate (Vista)", SelotapeTerrain::Rect_s::All(*m_terrain), [&](SelotapeTerrain::Terrain_s& t) {
+  std::string error;
+  SelotapeVista::Result_s rest;
+
+  if (!SelotapeVista::RegenerateInPlace(&t, settings, layers, &error, {}, nullptr, &rest)) {
+    m_status = "Vista: " + error;
+  }
+});
+```
+
+### 4. Auto-splat
+
+Vista terrains have every Selotape rule disabled, so `TerrainAutoSplat`
+would paint nothing useful. For a Vista terrain, call `AutoSplatVista`.
+It hands the current heights, sculpting included, back to Vista, which
+classifies the ground with the saved landform and climate:
+
+```cpp
+TerrainWholeOp("Auto-splat (Vista)", region, [&](SelotapeTerrain::Terrain_s& t) {
+  std::string error;
+
+  if (!SelotapeVista::AutoSplatVista(&t, settings, SelotapeVista::LayerMapFor(PaintableLayers()), region, &error)) {
+    m_status = "Vista: " + error;
+  }
+});
+```
+
+On ground nobody sculpted it agrees with `Generate`'s painting on 94% of
+samples. The rest differs only where Vista's rivers would carve their beds
+again.
+
+### 5. The apron
+
+`BuildApronMesh` continues the ground past the edge with
+`GeneratedHeight(gen)`, Selotape's own noise. Call
+`PrepareApron(&terrain, 64.0f)` once after generating. It sets `gen` to a
+flat plain at the edge's average height and fades the outer 64 m down to
+it, so the two meet. It relies on `GeneratedHeight` giving `baseHeight`
+when `amplitude` is 0, which is how the header describes the generator.
+Check this against `SelotapeTerrain.cpp`.
+
+### 6. Trees as props
+
+`TreePlacements` maps each Vista species to a palette entry, thins the
+forest evenly to `maxCount`, keeps `minSpacing`, and presses trunks
+`sink` metres into the ground. Every result is ready for `NewPropText`:
+
+```cpp
+void CMapEditor::PlaceVistaTrees(const std::vector<SelotapeVista::Tree_s>& trees) {
+  SelotapeVista::SpeciesMap_s species;
+  species.species[0] = { "staticprop", "haze:foliage/oak_a", 1.0f };    // your models
+  species.species[1] = { "staticprop", "haze:foliage/pine_a", 1.0f };
+  // ... spruce, palm, jungle, cypress, acacia, shrub; an empty templateName skips a species.
+
+  SelotapeVista::TreeFilter_s filter;
+  filter.maxCount = 2000;
+  filter.minSpacing = 4.0f;
+  std::set<std::string> taken = /* the setup's declaration names */;
+
+  for (const SelotapeVista::Placement_s& p : SelotapeVista::TreePlacements(trees, species, filter)) {
+    const std::string name = UniqueName("vistaTree", taken);
+    taken.insert(name);
+    const vec3_u pos(p.pos[0], p.pos[1], p.pos[2]);
+    const vec3_u rot(p.rotDeg[0], p.rotDeg[1], p.rotDeg[2]);
+    const std::string text = NewPropText(p.templateName, name, pos, rot, bg, p.model);
+    // Append `text` as TerrainScatter appends its props: one undo step for the lot.
+  }
+}
+```
+
+Two things to check against the engine: whether `rotDeg.y` turns the same
+way as Vista's yaw (flip its sign if trees face the wrong way), and
+whether the prop template has a scale field for `p.scale`.
+
+### 7. Water
+
+Selotape draws no water on a `.ter` yet. `waterDepth` and `biome` are one
+value per terrain sample. `waterVertices` and `waterIndices` are in the
+layout `ports/d3d11/hlsl/water/*.INLAND-1.hlsl` reads, so the D3D11 port
+draws them as they are (docs/porting-d3d11.md).
 
 ## Timings
 
-These are one thread of a cloud machine, erosion at `"balanced"`. Your
-editor PC will likely be faster.
+One thread of a cloud machine, erosion at `"balanced"`. An editor PC will
+likely be faster.
 
 | Terrain | Vista grid | Time |
 | --- | --- | --- |
-| 512 m at 2 m | 256 | 0.5 s |
-| 1 km at 2 m | 512 | 3 s |
-| 1 km at 1 m | 1024 | 13 s |
+| 512 m at 2 m | 256 | 0.4 s |
+| 1 km at 2 m | 512 | 2.4 s |
+| 1 km at 1 m | 1024 | 11 s |
 | 4 km at 1 m | 2048 | about 45 s |
 
-For previews in the dialog, set `vistaSamples = 256` and
-`erosionQuality = "preview"`. Then generate at full size once the author
-is happy. The same seed gives the same land at any grid size, at
-different detail.
+Erosion is two-thirds of the time. For a quick preview, set
+`vistaSamples = 256` and `erosionQuality = "preview"`, then generate at
+full size once the author is happy. The same seed gives the same land at
+any grid size, at different detail.
 
 ## Testing
 
@@ -149,10 +261,22 @@ The test generates the editor's sizes and checks:
 - that trees and water stay on the map;
 - that the `.ter` meta block reads back what was written;
 - that bad settings are refused with a reason;
-- that the heights match Vista's own resampling, to 0.08 mm.
+- that the heights match Vista's own resampling, to 0.08 mm;
+- `Job_c`: progress only rises, a cancel during erosion lands within a
+  second, the job starts again afterwards, and destroying a running job
+  is safe;
+- `RegenerateInPlace` replaces only the ground, and refuses a terrain that
+  is not square without touching it;
+- `AutoSplatVista` turns a sculpted peak to rock or snow, leaves samples
+  outside its region alone, and agrees with `Generate` on unsculpted
+  ground;
+- `PrepareApron` sets the rim to the apron's height and leaves the middle;
+- `TreePlacements` keeps to `maxCount`, `minSpacing` and its region, covers
+  the whole map when thinned, and places the same props every time;
+- how long each stage takes, which the progress weights come from.
 
 Add `--large` to include a 4 km map at 1 m. Without Selotape's include
 directory, it builds against `test/standin`, which declares only what
-`SelotapeVista` uses. `PackLayerWeights` is a stand-in written from its
-declaration's comment, so build against Selotape's own to test the real
-one.
+`SelotapeVista` uses. `PackLayerWeights` and `FadeEdges` are stand-ins
+written from their declarations' comments, so build against Selotape's own
+to test the real ones.
