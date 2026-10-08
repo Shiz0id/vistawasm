@@ -95,6 +95,9 @@ int main(int argc, char **argv) {
 
   char line[1024];
   int failures = 0, total = 0;
+  /* HLSLC_FLAGS adds D3DCOMPILE_* flags (hexadecimal), for experiments. */
+  const char *flags_text = getenv("HLSLC_FLAGS");
+  UINT extra_flags = flags_text ? (UINT)strtoul(flags_text, NULL, 16) : 0;
 
   while (fgets(line, sizeof(line), list) != NULL) {
     char path[512], entry[128], profile[32];
@@ -115,7 +118,8 @@ int main(int argc, char **argv) {
 
     Blob *code = NULL, *errors = NULL;
     ULONGLONG started = GetTickCount64();
-    HRESULT result = compile(source, size, path, NULL, NULL, entry, profile, COMPILE_FLAGS, 0, &code, &errors);
+    HRESULT result = compile(source, size, path, NULL, NULL, entry, profile, COMPILE_FLAGS | extra_flags, 0, &code,
+                              &errors);
     free(source);
     printf("%7.1f s  %s\n", (double)(GetTickCount64() - started) / 1000.0, path);
     fflush(stdout);
