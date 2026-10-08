@@ -245,6 +245,41 @@ int main(int argc, char** argv) {
     }
 
     std::printf("presents %llu\n", static_cast<unsigned long long>(renderer.Executor().Presents()));
+    VistaFrameInfo info = {};
+
+    if (vista_renderer_frame_info(engine, &info) == VISTA_OK) {
+      // The depth at the centre, read back and turned into metres with the
+      // projection: what a host drawing over the frame tests against.
+      ID3D11Texture2D* depth = renderer.Executor().Texture(info.depth_texture);
+      D3D11_TEXTURE2D_DESC depthDesc = {};
+
+      if (depth) {
+        depth->GetDesc(&depthDesc);
+        depthDesc.Usage = D3D11_USAGE_STAGING;
+        depthDesc.BindFlags = 0;
+        depthDesc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
+        VistaD3D11::Com_c<ID3D11Texture2D> copy;
+        D3D11_MAPPED_SUBRESOURCE mapped = {};
+
+        if (SUCCEEDED(device->CreateTexture2D(&depthDesc, nullptr, copy.Put()))) {
+          context->CopyResource(copy.Get(), depth);
+
+          if (SUCCEEDED(context->Map(copy.Get(), 0, D3D11_MAP_READ, 0, &mapped))) {
+            const auto* row = static_cast<const uint8_t*>(mapped.pData) + size_t(depthDesc.Height / 2) * mapped.RowPitch;
+            float z = 0.0f;
+            std::memcpy(&z, row + (depthDesc.Width / 2) * 4, 4);
+            context->Unmap(copy.Get(), 0);
+            // Clip w is the distance d along the view: z = (P[14] - P[10] d) / d,
+            // so d = P[14] / (z + P[10]), with P column-major.
+            const float metres = info.projection[14] / (z + info.projection[10]);
+            std::printf("depth %ux%u, at the centre %.4f (%.1f m away)\n", depthDesc.Width, depthDesc.Height, z, metres);
+          }
+        }
+      } else {
+        std::printf("no depth texture\n");
+        status = 1;
+      }
+    }
     char* stats = nullptr;
 
     if (vista_engine_stats_json(engine, &stats) == VISTA_OK) {

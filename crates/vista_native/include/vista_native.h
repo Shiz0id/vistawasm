@@ -444,6 +444,26 @@ VistaStatus vista_renderer_fail_read(VistaEngine *engine, uint32_t buffer);
 VistaStatus vista_renderer_report_error(VistaEngine *engine, const char *message);
 VistaStatus vista_renderer_report_lost(VistaEngine *engine, const char *message);
 
+/* What a host needs to draw its own geometry into the renderer's frame
+ * (see "Drawing over the frame" in ports/d3d11/executor/README.md). */
+typedef struct VistaFrameInfo {
+  /* The scene's depth texture as a stream object id, 0 before the first
+   * frame: R32_TYPELESS, with D32_FLOAT and R32_FLOAT views. It holds the
+   * opaque scene's depth after each frame; water does not write it. */
+  uint32_t depth_texture;
+  /* Its size: the renderer's internal resolution, below the output's while
+   * the render scale is below 1. */
+  uint32_t depth_width;
+  uint32_t depth_height;
+  /* The camera's view and projection matrices, column-major: right-handed,
+   * y up, depth 0 at the near plane and 1 at the far one. */
+  float view[16];
+  float projection[16];
+} VistaFrameInfo;
+
+/* The depth and camera of the frame vista_renderer_frame() last drew. */
+VistaStatus vista_renderer_frame_info(const VistaEngine *engine, VistaFrameInfo *out);
+
 /* The last frame's statistics as JSON (RenderStats). Free the string with
  * vista_string_free(). */
 VistaStatus vista_engine_stats_json(const VistaEngine *engine, char **out);

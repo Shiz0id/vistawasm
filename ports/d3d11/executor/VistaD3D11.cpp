@@ -766,6 +766,25 @@ std::vector<Read_s> Executor_c::TakeReads() {
   return done;
 }
 
+ID3D11Texture2D* Executor_c::Texture(uint32_t id) const {
+  auto found = m_objects.find(id);
+
+  if (found == m_objects.end()) {
+    return nullptr;
+  }
+
+  // Only 2D textures answer to the interface; anything else gives null.
+  ID3D11Texture2D* texture = nullptr;
+
+  if (FAILED(found->second.object->QueryInterface(__uuidof(ID3D11Texture2D), reinterpret_cast<void**>(&texture)))) {
+    return nullptr;
+  }
+
+  // The executor keeps its own reference.
+  texture->Release();
+  return texture;
+}
+
 std::vector<std::string> Executor_c::TakeErrors() {
   std::vector<std::string> errors;
   errors.swap(m_errors);

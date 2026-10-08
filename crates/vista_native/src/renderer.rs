@@ -306,6 +306,65 @@ pub unsafe extern "C" fn vista_renderer_report_lost(
   })
 }
 
+/// What a host needs to draw its own geometry into the renderer's frame:
+/// the scene's depth and the camera it was drawn with.
+#[repr(C)]
+#[derive(Clone, Copy, Debug, Default)]
+pub struct VistaFrameInfo {
+  /// The scene's depth texture, as a stream object id (0 before the first
+  /// frame): `R32_TYPELESS`, with `D32_FLOAT` and `R32_FLOAT` views. It
+  /// holds the opaque scene's depth after each frame; water does not
+  /// write it.
+  pub depth_texture: u32,
+  /// Its size: the renderer's internal resolution, which is smaller than
+  /// the output while the render scale is below 1.
+  pub depth_width: u32,
+  pub depth_height: u32,
+  /// The camera's view and projection matrices, column-major: right-handed,
+  /// y up, depth from 0 at the near plane to 1 at the far one.
+  pub view: [f32; 16],
+  pub projection: [f32; 16],
+}
+
+/// The depth and camera of the frame `vista_renderer_frame()` last drew.
+///
+/// # Safety
+///
+/// `engine` is a live engine with a renderer; `out` points to writable
+/// memory for a `VistaFrameInfo`.
+#[no_mangle]
+pub unsafe extern "C" fn vista_renderer_frame_info(
+  engine: *const VistaEngine,
+  out: *mut VistaFrameInfo,
+) -> VistaStatus {
+  call(|| {
+    require_out(out, "out")?;
+    // SAFETY: as the caller promises.
+    let engine = unsafe { ref_arg(engine, "engine") }?;
+    let renderer = engine.renderer.as_ref().ok_or_else(|| Failure {
+      status: VistaStatus::Engine,
+      message: "The engine has no renderer: call vista_renderer_attach() first.".to_string(),
+    })?;
+    let (depth_texture, depth_width, depth_height) =
+      renderer.lowering.scene_depth().unwrap_or_default();
+    let (view, projection) = engine.core.camera_matrices();
+    // SAFETY: checked above.
+    unsafe {
+      write_out(
+        out,
+        VistaFrameInfo {
+          depth_texture,
+          depth_width,
+          depth_height,
+          view,
+          projection,
+        },
+        "out",
+      )
+    }
+  })
+}
+
 fn json_out(value: &serde_json::Value, out: *mut *mut c_char) -> Outcome {
   let text = CString::new(value.to_string()).map_err(|_| Failure::argument("unreadable JSON"))?;
   // SAFETY: the caller checked `out`.

@@ -1612,6 +1612,13 @@ impl EngineCore {
     gpu
   }
 
+  /// The camera's view and projection matrices, column-major: right-handed,
+  /// y up, depth from 0 at the near plane to 1 at the far one, as the
+  /// renderer draws with.
+  pub fn camera_matrices(&self) -> ([f32; 16], [f32; 16]) {
+    (self.camera.view_matrix, self.camera.projection_matrix)
+  }
+
   /// The native renderer, if one is attached.
   #[cfg(not(target_arch = "wasm32"))]
   pub fn renderer(&self) -> Option<&crate::render::gpu::GpuContext> {

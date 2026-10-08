@@ -92,6 +92,11 @@ public:
   // What failed since the last call.
   std::vector<std::string> TakeErrors();
 
+  // A texture the streams made, by its id (VistaFrameInfo::depth_texture,
+  // say): null if there is none. It stays the executor's; it lives until a
+  // stream releases it.
+  ID3D11Texture2D* Texture(uint32_t id) const;
+
   // Frames the streams finished (VISTA_D3D_PRESENT records), in all.
   uint64_t Presents() const { return m_presents; }
 

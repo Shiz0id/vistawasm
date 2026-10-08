@@ -545,6 +545,18 @@ fn a_scene_lowers_to_a_valid_direct3d_11_stream() {
       "the trees' draw counts are read back each frame"
     );
 
+    // The scene's depth is a live depth target at the render size, and the
+    // camera looks down -z with depth from 0 to 1.
+    let mut info = vista_native::renderer::VistaFrameInfo::default();
+    check(vista_native::renderer::vista_renderer_frame_info(engine, &mut info));
+    assert_eq!((info.depth_width, info.depth_height), (320, 200));
+
+    match executor.objects.get(&info.depth_texture) {
+      Some(Object::Texture { bind, .. }) => assert!(bind & BIND_DEPTH_STENCIL != 0),
+      other => panic!("the depth texture is {other:?}"),
+    }
+
+    assert_eq!(info.projection[11], -1.0);
     let mut events = ptr::null_mut();
     check(vista_native::renderer::vista_engine_events_json(
       engine,

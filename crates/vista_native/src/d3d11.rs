@@ -407,6 +407,8 @@ pub struct Lowering {
   pending_release: HashSet<Id>,
   /// What each texture view made for shaders covers.
   covers: HashMap<u32, Cover>,
+  /// The scene's depth texture and its size, while it exists.
+  scene_depth: Option<(Id, u32, u32)>,
   warned: HashSet<String>,
   /// Problems found since the last [`Self::take_warnings`].
   warnings: Vec<String>,
@@ -431,6 +433,7 @@ impl Lowering {
       pinned: HashMap::new(),
       pending_release: HashSet::new(),
       covers: HashMap::new(),
+      scene_depth: None,
       warned: HashSet::new(),
       warnings: Vec::new(),
     };
@@ -471,6 +474,13 @@ impl Lowering {
   /// The stream lowered since the last call.
   pub fn take_stream(&mut self) -> Vec<u8> {
     std::mem::take(&mut self.out)
+  }
+
+  /// The scene's depth texture and its size: the opaque scene's depth
+  /// after each frame (water does not write it), at the renderer's internal
+  /// resolution. `R32_TYPELESS`, with `D32_FLOAT` and `R32_FLOAT` views.
+  pub fn scene_depth(&self) -> Option<(Id, u32, u32)> {
+    self.scene_depth
   }
 
   /// What went wrong since the last call: shaders the port lacks and
@@ -521,8 +531,15 @@ impl Lowering {
         dimension,
         format,
         usage,
-        ..
-      } => self.create_texture(id, size, mip_level_count, dimension, format, usage),
+        label,
+      } => {
+        // The renderer's own name for it (`gpu::create_render_targets`).
+        if label == "VistaWASM depth buffer" {
+          self.scene_depth = Some((id, size.width, size.height));
+        }
+
+        self.create_texture(id, size, mip_level_count, dimension, format, usage);
+      }
       Op::CreateView {
         id,
         texture,
@@ -778,6 +795,10 @@ impl Lowering {
   }
 
   fn release(&mut self, id: Id) {
+    if self.scene_depth.is_some_and(|(depth, _, _)| depth == id) {
+      self.scene_depth = None;
+    }
+
     if let Some(buffer) = self.buffers.remove(&id) {
       for view in buffer.views.into_values() {
         self.emit(op::RELEASE, &[view]);
