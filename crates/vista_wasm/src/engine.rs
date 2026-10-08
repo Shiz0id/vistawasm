@@ -11,13 +11,11 @@ use crate::config::VistaEngineConfig;
 use crate::dem::{decode_geotiff, decode_raw_heightmap};
 use crate::errors::{VistaError, VistaResult};
 use crate::maths::smoothstep;
-#[cfg(target_arch = "wasm32")]
 use crate::maths::{cross, normalise, sub};
 use crate::render::flora::TreeInstance;
 use crate::render::pipelines::Needs;
 use crate::render::tree_models::{layers, mesh_from_arrays, TreeMesh};
 use crate::render::water::{build_river_network, restore_carving, RiverNetwork, RiverSources};
-#[cfg(target_arch = "wasm32")]
 use crate::terrain::biomes::celsius_to_unit;
 use crate::terrain::biomes::sea_level_celsius;
 use crate::terrain::biomes::SurfaceSample;
@@ -157,35 +155,65 @@ pub struct EngineCore {
   /// Cached per-sample normals for the active terrain, computed once when
   /// the terrain is installed and reused by every LOD mesh rebuild so the
   /// camera can recentre the mesh without repeating a full-heightmap pass.
-  #[cfg(target_arch = "wasm32")]
+  /// Empty without a renderer.
   terrain_normals: Vec<vista_types::Vec3>,
   /// Heightmap-sample coordinates the LOD mesh was last centred on. `None`
   /// until a terrain is installed.
-  #[cfg(target_arch = "wasm32")]
   mesh_centre_sample: Option<(f32, f32)>,
   /// The next camera-centred mesh, while it is being built a few rows per
   /// frame.
-  #[cfg(target_arch = "wasm32")]
   mesh_stream: Option<MeshStream>,
   /// Camera position (heightmap samples) last frame, and its smoothed
   /// velocity in samples per second, for building the next mesh ahead of
   /// the camera.
-  #[cfg(target_arch = "wasm32")]
   camera_track: Option<(f32, f32)>,
-  #[cfg(target_arch = "wasm32")]
   camera_velocity: (f32, f32),
-  #[cfg(target_arch = "wasm32")]
-  gpu: crate::render::gpu::GpuContext,
+  /// The renderer: the browser's WebGPU context, or natively the one a
+  /// host attached (see [`EngineCore::attach_renderer`]).
+  gpu: GpuSlot,
+  /// The host's clock in milliseconds, for native renderers; without one
+  /// each frame steps a sixtieth of a second.
+  #[cfg(not(target_arch = "wasm32"))]
+  host_clock_ms: Option<f64>,
+}
+
+/// The renderer, always present in browser builds.
+#[cfg(target_arch = "wasm32")]
+type GpuSlot = crate::render::gpu::GpuContext;
+/// The renderer, natively present once a host attaches one.
+#[cfg(not(target_arch = "wasm32"))]
+type GpuSlot = Option<crate::render::gpu::GpuContext>;
+
+/// The renderer, if there is one.
+#[cfg(target_arch = "wasm32")]
+fn gpu_mut(slot: &mut GpuSlot) -> Option<&mut crate::render::gpu::GpuContext> {
+  Some(slot)
+}
+
+/// The renderer, if there is one.
+#[cfg(target_arch = "wasm32")]
+fn gpu_ref(slot: &GpuSlot) -> Option<&crate::render::gpu::GpuContext> {
+  Some(slot)
+}
+
+/// The renderer, if there is one.
+#[cfg(not(target_arch = "wasm32"))]
+fn gpu_mut(slot: &mut GpuSlot) -> Option<&mut crate::render::gpu::GpuContext> {
+  slot.as_mut()
+}
+
+/// The renderer, if there is one.
+#[cfg(not(target_arch = "wasm32"))]
+fn gpu_ref(slot: &GpuSlot) -> Option<&crate::render::gpu::GpuContext> {
+  slot.as_ref()
 }
 
 /// Rows of the camera-centred terrain mesh built and uploaded per frame
 /// while the next mesh streams in: about 33,000 vertices, so a rebuild is
 /// spread over eight frames instead of stalling one.
-#[cfg(target_arch = "wasm32")]
 const MESH_ROWS_PER_FRAME: u32 = 64;
 
 /// The next camera-centred terrain mesh, built a slice at a time.
-#[cfg(target_arch = "wasm32")]
 struct MeshStream {
   centre: (f32, f32),
   next_row: u32,
@@ -388,6 +416,13 @@ impl EngineCore {
       terrain_materials: 0,
       tree_roots: crate::render::tree_models::TreeSpecies::ALL
         .map(crate::render::flora::species_root_radius),
+      terrain_normals: Vec::new(),
+      mesh_centre_sample: None,
+      mesh_stream: None,
+      camera_track: None,
+      camera_velocity: (0.0, 0.0),
+      gpu: None,
+      host_clock_ms: None,
     })
   }
 
@@ -625,35 +660,33 @@ impl EngineCore {
     // there are reported as `"gpuError"` events rather than reach only
     // the console. They arrive once the GPU has caught up, after the
     // call: waiting for them would hold every terrain call back.
-    #[cfg(target_arch = "wasm32")]
-    let scopes = self.gpu.begin_error_scopes();
+    let scopes = gpu_ref(&self.gpu).map(|gpu| gpu.begin_error_scopes());
     self.landform = landform;
     // From here the new terrain replaces the old, so the reports cannot
     // cancel: what they return is not read.
     let handle = self.install_terrain(map, progress);
     progress("finishing", 1.0);
     self.state = EngineState::Ready;
-    #[cfg(target_arch = "wasm32")]
-    self.gpu.end_error_scopes_later(scopes);
+    if let (Some(gpu), Some(scopes)) = (gpu_ref(&self.gpu), scopes) {
+      gpu.end_error_scopes_later(scopes);
+    }
     Ok(handle)
   }
 
   /// GPU errors no error scope caught since the last call, and why the
-  /// device was lost, once (see `GpuContext::take_events`). Native builds
-  /// have no GPU.
+  /// device was lost, once (see `GpuContext::take_events`). None without
+  /// a renderer.
   pub fn take_gpu_events(&self) -> (Vec<String>, Option<String>) {
-    #[cfg(target_arch = "wasm32")]
-    return self.gpu.take_events();
-    #[cfg(not(target_arch = "wasm32"))]
-    (Vec::new(), None)
+    gpu_ref(&self.gpu).map_or((Vec::new(), None), |gpu| gpu.take_events())
   }
 
   /// Wait for the GPU to finish the work submitted so far (engine
   /// start-up, erosion), so the terrain upload that follows does not
-  /// freeze the page while it waits. Native builds have no GPU.
+  /// freeze the page while it waits.
   async fn finish_gpu_work(&self) -> VistaResult<()> {
-    #[cfg(target_arch = "wasm32")]
-    self.gpu.finish_submitted_work().await?;
+    if let Some(gpu) = gpu_ref(&self.gpu) {
+      gpu.finish_submitted_work().await?;
+    }
 
     Ok(())
   }
@@ -785,10 +818,9 @@ impl EngineCore {
   pub fn set_flora(&mut self, flora: FloraOptions) -> VistaResult<()> {
     self.ensure_live()?;
     crate::config::validate_flora(&flora)?;
-    #[cfg(target_arch = "wasm32")]
-    self
-      .gpu
-      .set_tree_variants(flora.variants_per_species as usize);
+    if let Some(gpu) = gpu_mut(&mut self.gpu) {
+      gpu.set_tree_variants(flora.variants_per_species as usize);
+    }
     self.flora = flora;
     self.refresh_flora();
     // The forest floor follows the trees' canopy.
@@ -937,9 +969,10 @@ impl EngineCore {
       if self.surface_weather_pending >= chunk || remaining <= 0.0 {
         self.weather.refresh_terrain_rows(self.terrain_half());
 
-        #[cfg(target_arch = "wasm32")]
-        if let Some(upload) = self.weather.regional_mut().take_upload() {
-          self.gpu.upload_regional_weather(upload);
+        if let Some(gpu) = gpu_ref(&self.gpu) {
+          if let Some(upload) = self.weather.regional_mut().take_upload() {
+            gpu.upload_regional_weather(upload);
+          }
         }
 
         self.step_surface_weather(true);
@@ -1113,8 +1146,11 @@ impl EngineCore {
 
     self.surface_weather.step(dt, &shared, precipitation);
 
-    #[cfg(target_arch = "wasm32")]
-    self.gpu.step_surface_weather(
+    let canopy = crate::render::lattice::canopy_density(self.tree_density());
+    let Some(gpu) = gpu_mut(&mut self.gpu) else {
+      return;
+    };
+    gpu.step_surface_weather(
       &crate::render::gpu::SurfaceWeatherStep {
         dt,
         settle: settle.then(|| self.weather.settled_ground()),
@@ -1124,12 +1160,10 @@ impl EngineCore {
         precipitation: uniform,
         mean_precipitation: mean,
         regional: regional.then(|| self.weather.regional().size_metres()),
-        canopy: crate::render::lattice::canopy_density(self.tree_density()),
+        canopy,
       },
       now,
     );
-    #[cfg(not(target_arch = "wasm32"))]
-    let _ = now;
   }
 
   /// What every place on the ground shares this step: the sunlight, the
@@ -1212,8 +1246,9 @@ impl EngineCore {
     self.ensure_live()?;
     crate::config::validate_surface(&surface)?;
 
-    #[cfg(target_arch = "wasm32")]
-    self.gpu.set_material_tints(&surface.material_tints);
+    if let Some(gpu) = gpu_mut(&mut self.gpu) {
+      gpu.set_material_tints(&surface.material_tints);
+    }
 
     // Rockiness changes the soil, so the ground and everything growing on
     // it are baked again. Trees and grass leave room for boulders only
@@ -1280,9 +1315,6 @@ impl EngineCore {
   }
 
   fn install_tree_model(&mut self, species: TreeSpeciesKind, mesh: Option<TreeMesh>) {
-    #[cfg(target_arch = "wasm32")]
-    self.gpu.set_tree_model(species.index(), mesh);
-
     // As `build_library` roots them for the GPU.
     #[cfg(not(target_arch = "wasm32"))]
     {
@@ -1291,6 +1323,10 @@ impl EngineCore {
         crate::render::flora::species_root_radius(TreeSpecies::ALL[species.index()]),
         |mesh| mesh.trunk_radius() * crate::render::flora::ROOT_RADII,
       );
+    }
+
+    if let Some(gpu) = gpu_mut(&mut self.gpu) {
+      gpu.set_tree_model(species.index(), mesh);
     }
   }
 
@@ -1321,8 +1357,9 @@ impl EngineCore {
       )));
     }
 
-    #[cfg(target_arch = "wasm32")]
-    self.gpu.replace_texture_layer(target, layer, rgba);
+    if let Some(gpu) = gpu_mut(&mut self.gpu) {
+      gpu.replace_texture_layer(target, layer, rgba);
+    }
 
     Ok(())
   }
@@ -1332,8 +1369,9 @@ impl EngineCore {
   pub fn reset_textures(&mut self) -> VistaResult<()> {
     self.ensure_live()?;
 
-    #[cfg(target_arch = "wasm32")]
-    self.gpu.reset_textures();
+    if let Some(gpu) = gpu_mut(&mut self.gpu) {
+      gpu.reset_textures();
+    }
 
     Ok(())
   }
@@ -1346,8 +1384,7 @@ impl EngineCore {
     // While the GPU is still drawing earlier frames, skip this one instead
     // of queueing it. The unchanged `frame_index` tells the caller that
     // nothing was drawn.
-    #[cfg(target_arch = "wasm32")]
-    if self.gpu.is_busy() {
+    if gpu_ref(&self.gpu).is_some_and(|gpu| gpu.is_busy()) {
       return Ok(&self.stats);
     }
 
@@ -1367,9 +1404,10 @@ impl EngineCore {
       self.step_surface_weather(false);
     }
 
-    #[cfg(target_arch = "wasm32")]
-    if let Some(upload) = self.weather.regional_mut().take_upload() {
-      self.gpu.upload_regional_weather(upload);
+    if let Some(gpu) = gpu_ref(&self.gpu) {
+      if let Some(upload) = self.weather.regional_mut().take_upload() {
+        gpu.upload_regional_weather(upload);
+      }
     }
 
     // Drops land while it rains and keep running off or evaporating after.
@@ -1391,11 +1429,11 @@ impl EngineCore {
       },
     );
 
-    // Native builds have no GPU mesh to measure, so report a theoretical
-    // estimate based on the configured clipmap level budget. Browser
-    // builds report the real uploaded mesh below instead.
+    // Without a renderer there is no mesh to measure, so report a
+    // theoretical estimate based on the configured clipmap level budget.
+    // With one, the real uploaded mesh is reported below instead.
     #[cfg(not(target_arch = "wasm32"))]
-    if let Some(terrain) = &self.terrain {
+    if let (None, Some(terrain)) = (&self.gpu, &self.terrain) {
       let levels = clipmap_levels(
         terrain.metadata.width,
         terrain.metadata.metres_per_sample,
@@ -1407,17 +1445,18 @@ impl EngineCore {
         });
     }
 
-    #[cfg(target_arch = "wasm32")]
-    {
+    if gpu_ref(&self.gpu).is_some() {
       self.recentre_terrain_mesh_if_needed(dt);
       let view_proj =
         crate::maths::mat4_multiply(self.camera.projection_matrix, self.camera.view_matrix);
       let budget = self.quality.vegetation();
       let tree_style = self.frame_tree_style();
 
-      (self.stats.tree_growth_ms, self.stats.tree_bake_ms) = self.gpu.tree_timings();
+      if let Some(gpu) = gpu_ref(&self.gpu) {
+        (self.stats.tree_growth_ms, self.stats.tree_bake_ms) = gpu.tree_timings();
+      }
 
-      if let Some(draw) = self.gpu.tree_draw(tree_style) {
+      if let Some(draw) = gpu_ref(&self.gpu).and_then(|gpu| gpu.tree_draw(tree_style)) {
         self.stats.tree_triangles = draw.triangles().min(u64::from(u32::MAX)) as u32;
         self.streams.triangles.observe(
           &draw,
@@ -1434,7 +1473,10 @@ impl EngineCore {
           || self.streams.grass.is_some()
           || self.streams.boulders.is_some(),
       );
-      self.streams.waiting = self.gpu.generators_ready().map(|ready| !ready);
+      if let Some(gpu) = gpu_ref(&self.gpu) {
+        self.streams.waiting = gpu.generators_ready().map(|ready| !ready);
+      }
+
       let vegetation = self.streams.update(
         &self.ground,
         self.camera.options.position,
@@ -1458,8 +1500,12 @@ impl EngineCore {
       self.stats.grass_instances = vegetation.grass_drawn;
       let mut params = self.frame_params();
       params.vegetation = vegetation;
-      self.gpu.render_once(&params)?;
-      self.stats.gpu_pass_times_ms = self.gpu.pass_times();
+
+      if let Some(gpu) = gpu_mut(&mut self.gpu) {
+        gpu.render_once(&params)?;
+        self.stats.gpu_pass_times_ms = gpu.pass_times();
+      }
+
       self.stats.gpu_frame_time_ms = self.stats.gpu_pass_times_ms.map(|times| {
         times.shadows
           + times.tree_culling
@@ -1493,12 +1539,90 @@ impl EngineCore {
     self.render_height = height;
     self.device_pixel_ratio = ratio;
 
-    #[cfg(target_arch = "wasm32")]
-    self.gpu.resize(width, height, ratio)?;
+    if let Some(gpu) = gpu_mut(&mut self.gpu) {
+      gpu.resize(width, height, ratio)?;
+    }
 
     let aspect = width as f32 / height.max(1) as f32;
     self.camera = CameraProjector::new(self.camera.options.clone(), aspect)?;
     Ok(())
+  }
+
+  /// Attach a native renderer: from now on the engine records into
+  /// `recorder` what a browser build would draw (see `render::recorder`),
+  /// for a host to replay on its own graphics API. Its render target is
+  /// `width` x `height` pixels in `format`. An active terrain is uploaded
+  /// at once; it takes as long as installing it did. A renderer already
+  /// attached is replaced.
+  #[cfg(not(target_arch = "wasm32"))]
+  pub fn attach_renderer(
+    &mut self,
+    recorder: crate::render::recorder::Recorder,
+    width: u32,
+    height: u32,
+    format: crate::render::recorder::TextureFormat,
+  ) -> VistaResult<()> {
+    self.ensure_live()?;
+    crate::config::validate_surface_size("attachRenderer", width, height, 1.0)?;
+    let mut gpu = crate::render::gpu::GpuContext::new_native(
+      recorder,
+      width,
+      height,
+      format,
+      self.shadows.trees.resolution,
+      self.flora.variants_per_species as usize,
+    );
+    gpu.set_material_tints(&self.surface_options.material_tints);
+    self.gpu = Some(gpu);
+    self.render_width = width;
+    self.render_height = height;
+    self.device_pixel_ratio = 1.0;
+    self.camera = CameraProjector::new(
+      self.camera.options.clone(),
+      width as f32 / height.max(1) as f32,
+    )?;
+    self.mesh_centre_sample = None;
+    self.mesh_stream = None;
+    self.camera_track = None;
+    self.weather.refresh_all_rows();
+
+    if self.terrain.is_some() {
+      self.upload_world();
+      self.rebake_surface(None);
+    }
+
+    Ok(())
+  }
+
+  /// Detach the native renderer, if one is attached. The engine carries
+  /// on without drawing, as before one was attached.
+  #[cfg(not(target_arch = "wasm32"))]
+  pub fn detach_renderer(&mut self) -> Option<crate::render::gpu::GpuContext> {
+    self.terrain_normals = Vec::new();
+    self.mesh_centre_sample = None;
+    self.mesh_stream = None;
+    let gpu = self.gpu.take();
+
+    // Without tiles to stream, the far set is every tree again.
+    if gpu.is_some() && self.terrain.is_some() {
+      self.refresh_flora();
+    }
+
+    gpu
+  }
+
+  /// The native renderer, if one is attached.
+  #[cfg(not(target_arch = "wasm32"))]
+  pub fn renderer(&self) -> Option<&crate::render::gpu::GpuContext> {
+    self.gpu.as_ref()
+  }
+
+  /// Time the next frames by the host's clock, in milliseconds (any
+  /// origin, never going back), instead of a fixed sixtieth of a second
+  /// a frame. `None` returns to the fixed step.
+  #[cfg(not(target_arch = "wasm32"))]
+  pub fn set_host_clock_ms(&mut self, now: Option<f64>) {
+    self.host_clock_ms = now.filter(|now| now.is_finite());
   }
 
   /// Export the active heightmap as little-endian `f32` bytes.
@@ -1907,12 +2031,9 @@ impl EngineCore {
     self.vegetation_masks = [None, None];
     self.sounds = Default::default();
 
-    #[cfg(target_arch = "wasm32")]
-    {
-      self.terrain_normals = Vec::new();
-      self.mesh_centre_sample = None;
-      self.mesh_stream = None;
-    }
+    self.terrain_normals = Vec::new();
+    self.mesh_centre_sample = None;
+    self.mesh_stream = None;
 
     Ok(())
   }
@@ -1936,12 +2057,8 @@ impl EngineCore {
     self.terrain = Some(map);
     self.active_terrain_id = Some(id);
 
-    #[cfg(target_arch = "wasm32")]
-    {
-      self.mesh_centre_sample = None;
-      self.mesh_stream = None;
-    }
-
+    self.mesh_centre_sample = None;
+    self.mesh_stream = None;
     self.rebuild_world_with(progress);
     let mut metadata = self
       .terrain
@@ -2082,8 +2199,9 @@ impl EngineCore {
             terrain,
             self.vegetation_masks[0].as_deref(),
           );
-          #[cfg(target_arch = "wasm32")]
-          self.gpu.upload_surface(&self.ground, &self.channel_bins);
+          if let Some(gpu) = gpu_mut(&mut self.gpu) {
+            gpu.upload_surface(&self.ground, &self.channel_bins);
+          }
         }
       }
 
@@ -2274,22 +2392,20 @@ impl EngineCore {
       .as_ref()
       .map_or((0.0, 0.0), terrain_height_range);
 
-    #[cfg(target_arch = "wasm32")]
-    if let Some(terrain) = self.terrain.as_ref() {
-      self.gpu.upload_heightmap(terrain, &self.ground);
-      self
-        .gpu
-        .upload_rivers(&self.rivers.vertices, &self.rivers.indices);
-      self
-        .gpu
-        .upload_falls(&self.rivers.fall_vertices, &self.rivers.fall_indices);
-      self
-        .gpu
-        .upload_bank_strips(&self.rivers.bank_vertices, &self.rivers.bank_indices);
-      self.gpu.upload_channel_field(&self.rivers.field);
-    }
-
+    self.upload_world();
     self.rebake_surface(before_rivers);
+  }
+
+  /// Upload the terrain's heights, water and channel field to the
+  /// renderer, if there is one.
+  fn upload_world(&mut self) {
+    if let (Some(gpu), Some(terrain)) = (gpu_mut(&mut self.gpu), self.terrain.as_ref()) {
+      gpu.upload_heightmap(terrain, &self.ground);
+      gpu.upload_rivers(&self.rivers.vertices, &self.rivers.indices);
+      gpu.upload_falls(&self.rivers.fall_vertices, &self.rivers.fall_indices);
+      gpu.upload_bank_strips(&self.rivers.bank_vertices, &self.rivers.bank_indices);
+      gpu.upload_channel_field(&self.rivers.field);
+    }
   }
 
   /// Drop everything derived from the terrain before a new world is built
@@ -2312,12 +2428,9 @@ impl EngineCore {
       self.placed_trees = Vec::new();
     }
 
-    #[cfg(target_arch = "wasm32")]
-    {
-      self.terrain_normals = Vec::new();
-      // A half-built next mesh has the old heights and colours.
-      self.mesh_stream = None;
-    }
+    self.terrain_normals = Vec::new();
+    // A half-built next mesh has the old heights and colours.
+    self.mesh_stream = None;
   }
 
   /// Re-bake normals and biome/surface data, rebuild the terrain mesh, and
@@ -2386,8 +2499,7 @@ impl EngineCore {
           self.terrain_materials |= (1 << MAT_MUD) | (1 << MAT_GRAVEL) | (1 << MAT_SAND);
         }
 
-        #[cfg(target_arch = "wasm32")]
-        {
+        if let Some(gpu) = gpu_mut(&mut self.gpu) {
           let (centre_sample_x, centre_sample_z) = self.mesh_centre_sample.unwrap_or((
             (terrain.metadata.width as f32 - 1.0) * 0.5,
             (terrain.metadata.height as f32 - 1.0) * 0.5,
@@ -2400,16 +2512,13 @@ impl EngineCore {
             centre_sample_z,
             crate::render::terrain_mesh::CENTRED_MESH_SAMPLES_PER_SIDE,
           );
-          self.gpu.upload_terrain(&mesh);
-          self.gpu.upload_surface(&self.ground, &self.channel_bins);
+          gpu.upload_terrain(&mesh);
+          gpu.upload_surface(&self.ground, &self.channel_bins);
           self.terrain_normals = normals;
           self.mesh_centre_sample = Some((centre_sample_x, centre_sample_z));
           // A half-built next mesh has the old heights and colours.
           self.mesh_stream = None;
         }
-
-        #[cfg(not(target_arch = "wasm32"))]
-        drop(normals);
       }
       None => {
         self.surface = Vec::new();
@@ -2444,7 +2553,6 @@ impl EngineCore {
 
   /// The rock shading's uniforms: the beds' dip and spacing, and the side
   /// the sun mostly shines on, where lichen grows.
-  #[cfg(target_arch = "wasm32")]
   fn rock_frame(&self) -> [f32; 4] {
     let strata = crate::terrain::soil::Strata::new(self.landform, self.terrain_seed);
     [
@@ -2506,10 +2614,9 @@ impl EngineCore {
       self.stats.flora_instances = custom.len() as u32;
       self.ground.cover = vec![[0; 4]; self.ground.heights.len()];
 
-      #[cfg(target_arch = "wasm32")]
-      {
-        self.gpu.upload_cover(&self.ground);
-        self.gpu.upload_trees(custom, None);
+      if let Some(gpu) = gpu_mut(&mut self.gpu) {
+        gpu.upload_cover(&self.ground);
+        gpu.upload_trees(custom, None);
       }
 
       return;
@@ -2549,9 +2656,9 @@ impl EngineCore {
           &self.rivers.bands,
         );
         let mass = crate::render::vegetation::TileMass::trees(&self.ground, &rules, &scrub);
-        // Native builds have no tiles to stream, so the far set is every
-        // tree.
-        rules.far_keep = if cfg!(target_arch = "wasm32") {
+        // Without a renderer there are no tiles to stream, so the far set
+        // is every tree.
+        rules.far_keep = if gpu_ref(&self.gpu).is_some() {
           crate::render::lattice::far_keep(mass.total())
         } else {
           1.0
@@ -2576,13 +2683,10 @@ impl EngineCore {
         });
       }
 
-      #[cfg(target_arch = "wasm32")]
-      self.gpu.upload_cover(&self.ground);
-
-      #[cfg(target_arch = "wasm32")]
-      {
+      if let Some(gpu) = gpu_mut(&mut self.gpu) {
+        gpu.upload_cover(&self.ground);
         let species = crate::render::vegetation::cover_species(&self.ground.cover);
-        self.gpu.upload_trees(
+        gpu.upload_trees(
           &trees,
           self
             .streams
@@ -2628,8 +2732,10 @@ impl EngineCore {
             .collect();
           capped_mask(&texels, crate::render::lattice::grass_probability, density)
         });
-      #[cfg(target_arch = "wasm32")]
-      self.gpu.upload_grass_mask(&self.ground);
+      if let Some(gpu) = gpu_mut(&mut self.gpu) {
+        gpu.upload_grass_mask(&self.ground);
+      }
+
       // Reeds are grass too, and on a terrain past the vegetation cap
       // their candidates alone took gigabytes.
       if self.vegetation_fits() {
@@ -2665,16 +2771,17 @@ impl EngineCore {
         });
       }
 
-      #[cfg(target_arch = "wasm32")]
-      self.gpu.upload_grass(
-        &self.ground,
-        &reeds,
-        self
-          .streams
-          .grass
-          .as_ref()
-          .map(|stream| (&stream.layout, rules)),
-      );
+      if let Some(gpu) = gpu_mut(&mut self.gpu) {
+        gpu.upload_grass(
+          &self.ground,
+          &reeds,
+          self
+            .streams
+            .grass
+            .as_ref()
+            .map(|stream| (&stream.layout, rules)),
+        );
+      }
     }
 
     self.streams.reeds = reeds.len() as u32;
@@ -2716,23 +2823,25 @@ impl EngineCore {
       })
     });
 
-    #[cfg(target_arch = "wasm32")]
-    self.gpu.upload_boulders(
-      self
-        .streams
-        .boulders
-        .as_ref()
-        .zip(rules)
-        .map(|(stream, rules)| (&stream.layout, rules)),
-    );
+    if let Some(gpu) = gpu_mut(&mut self.gpu) {
+      gpu.upload_boulders(
+        self
+          .streams
+          .boulders
+          .as_ref()
+          .zip(rules)
+          .map(|(stream, rules)| (&stream.layout, rules)),
+      );
+    }
   }
 
   /// Update water visibility for the active terrain.
   fn refresh_water(&mut self) {
-    #[cfg(target_arch = "wasm32")]
-    self
-      .gpu
-      .set_water_visible(self.water.enabled && self.terrain.is_some());
+    let visible = self.water.enabled && self.terrain.is_some();
+
+    if let Some(gpu) = gpu_mut(&mut self.gpu) {
+      gpu.set_water_visible(visible);
+    }
   }
 
   /// Resolve the options the weather drives this frame. Systems the
@@ -2992,7 +3101,6 @@ impl EngineCore {
   }
 
   /// The weather's temperature offset in °C, or 0 without weather.
-  #[cfg(target_arch = "wasm32")]
   fn weather_temperature_offset(&self) -> f32 {
     if self.weather.options().enabled {
       self
@@ -3038,7 +3146,6 @@ impl EngineCore {
   }
 
   /// Tree style: 0 billboard, 1 cross-quad, 2 mesh.
-  #[cfg(target_arch = "wasm32")]
   fn frame_tree_style(&self) -> u32 {
     match self.flora.tree_quality {
       vista_types::TreeQuality::Billboard => 0,
@@ -3048,7 +3155,6 @@ impl EngineCore {
   }
 
   /// Collect every per-frame shading parameter for the GPU.
-  #[cfg(target_arch = "wasm32")]
   fn frame_params(&self) -> crate::render::gpu::FrameParams {
     let view_proj =
       crate::maths::mat4_multiply(self.camera.projection_matrix, self.camera.view_matrix);
@@ -3206,7 +3312,6 @@ impl EngineCore {
   ///
   /// Also refreshes `terrain_triangles` and `clipmap_levels` stats to
   /// reflect the real uploaded mesh rather than a theoretical estimate.
-  #[cfg(target_arch = "wasm32")]
   fn recentre_terrain_mesh_if_needed(&mut self, dt: f32) {
     use crate::render::terrain_mesh::{
       build_centred_mesh_rows, next_mesh_centre, world_to_sample_coordinates,
@@ -3250,7 +3355,10 @@ impl EngineCore {
         camera.1,
         samples_per_side,
       );
-      self.gpu.upload_terrain(&mesh);
+      if let Some(gpu) = gpu_mut(&mut self.gpu) {
+        gpu.upload_terrain(&mesh);
+      }
+
       self.mesh_centre_sample = Some(camera);
       return;
     };
@@ -3293,10 +3401,11 @@ impl EngineCore {
       &mut stream.scratch,
     );
 
-    if !self
-      .gpu
-      .write_next_terrain_vertices(stream.next_row * samples_per_side, &stream.scratch)
-    {
+    let written = gpu_mut(&mut self.gpu).is_some_and(|gpu| {
+      gpu.write_next_terrain_vertices(stream.next_row * samples_per_side, &stream.scratch)
+    });
+
+    if !written {
       self.mesh_stream = None;
       return;
     }
@@ -3305,19 +3414,26 @@ impl EngineCore {
 
     if end >= samples_per_side {
       let centre = stream.centre;
-      self.gpu.show_next_terrain();
+
+      if let Some(gpu) = gpu_mut(&mut self.gpu) {
+        gpu.show_next_terrain();
+      }
+
       self.mesh_centre_sample = Some(centre);
       self.mesh_stream = None;
     }
   }
 
-  /// Seconds since the previous frame. Native builds (tests) step a fixed
-  /// sixtieth of a second so weather runs deterministically.
+  /// Seconds since the previous frame. Native builds step by the host's
+  /// clock ([`Self::set_host_clock_ms`]), or else a fixed sixtieth of a
+  /// second so weather runs deterministically.
   fn frame_delta_seconds(&mut self) -> f32 {
     #[cfg(target_arch = "wasm32")]
     let now = crate::render::gpu::now_millis();
     #[cfg(not(target_arch = "wasm32"))]
-    let now = self.last_frame_ms.map_or(0.0, |last| last + 1_000.0 / 60.0);
+    let now = self
+      .host_clock_ms
+      .unwrap_or_else(|| self.last_frame_ms.map_or(0.0, |last| last + 1_000.0 / 60.0));
     let dt = self
       .last_frame_ms
       .map_or(0.0, |last| ((now - last) / 1_000.0) as f32);
@@ -3530,7 +3646,6 @@ fn terrain_height_range(map: &HeightMap) -> (f32, f32) {
 }
 
 /// Shader index for a debug view (see `clipmap_render.wgsl`).
-#[cfg(target_arch = "wasm32")]
 fn debug_view_index(view: DebugView) -> u32 {
   match view {
     DebugView::None | DebugView::Lod | DebugView::Flow | DebugView::NoData => 0,

@@ -3,14 +3,19 @@ use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
 use std::sync::{Arc, Mutex};
 
 use bytemuck::Zeroable;
-use vista_types::{ErosionOptions, TextureTarget};
+#[cfg(target_arch = "wasm32")]
+use vista_types::ErosionOptions;
+use vista_types::TextureTarget;
 
 use crate::errors::{VistaError, VistaResult};
+#[cfg(target_arch = "wasm32")]
 use crate::render::erosion_compute::ErosionCompute;
 use crate::render::flora::{FloraInstance, TreeInstance};
 use crate::render::grass::GRASS_BASE_TUFT;
 use crate::render::pipelines::{Needs, PipelineKind, PipelineSlots};
 use crate::render::plan::*;
+#[cfg(not(target_arch = "wasm32"))]
+use crate::render::recorder as wgpu;
 use crate::render::shaders;
 use crate::render::shadow_math::tree_shadow_frame;
 use crate::render::terrain_mesh::{TerrainMeshData, TerrainVertex};
@@ -275,10 +280,23 @@ struct TreeGrowth {
 
 /// Milliseconds since the page loaded, from the monotonic page clock:
 /// unlike `Date.now()`, it does not jump when the system clock is set.
+#[cfg(target_arch = "wasm32")]
 pub fn now_millis() -> f64 {
   web_sys::window()
     .and_then(|window| window.performance())
     .map_or(0.0, |performance| performance.now())
+}
+
+/// Milliseconds since the renderer's clock started, from a monotonic
+/// clock.
+#[cfg(not(target_arch = "wasm32"))]
+pub fn now_millis() -> f64 {
+  static START: std::sync::OnceLock<std::time::Instant> = std::sync::OnceLock::new();
+  START
+    .get_or_init(std::time::Instant::now)
+    .elapsed()
+    .as_secs_f64()
+    * 1_000.0
 }
 
 /// Tree shadow map resources.
@@ -343,6 +361,7 @@ struct GpuTimer {
 }
 
 impl GpuTimer {
+  #[cfg(target_arch = "wasm32")]
   fn new(device: &wgpu::Device, queue: &wgpu::Queue) -> Self {
     let size = u64::from(TIMED_PASSES * 2) * 8;
     Self {
@@ -736,9 +755,14 @@ pub struct GpuContext {
   /// them outside any call, so they wait here until the wrapper asks.
   events: Arc<Mutex<GpuEvents>>,
   /// The device's buffer limits, which large buffers are checked against.
+  #[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
   limits: crate::render::gpu_limits::BufferLimits,
   /// Erosion compute pipelines, created when erosion is first requested.
+  #[cfg(target_arch = "wasm32")]
   erosion: Option<ErosionCompute>,
+  /// What a native host replays (see `render::recorder`).
+  #[cfg(not(target_arch = "wasm32"))]
+  recorder: wgpu::Recorder,
   terrain: Option<TerrainGpu>,
   trees: Option<TreesGpu>,
   grass: Option<GrassGpu>,
@@ -1259,6 +1283,7 @@ fn push_error_scopes(device: &wgpu::Device) -> [wgpu::ErrorScopeGuard; 2] {
 }
 
 /// Pop the scopes in the reverse order, and return the first error.
+#[cfg(target_arch = "wasm32")]
 async fn pop_error_scopes(scopes: [wgpu::ErrorScopeGuard; 2]) -> Option<String> {
   let [out_of_memory, validation] = scopes;
   let validation = validation.pop().await;
@@ -2054,11 +2079,106 @@ fn create_pipeline_of(
   }
 }
 
+/// What the browser or a native host provides: the device, the surface
+/// it draws to, and how it reports trouble.
+struct Platform {
+  surface: wgpu::Surface<'static>,
+  device: wgpu::Device,
+  queue: wgpu::Queue,
+  config: wgpu::SurfaceConfiguration,
+  timer: Option<GpuTimer>,
+  device_lost: Arc<AtomicBool>,
+  events: Arc<Mutex<GpuEvents>>,
+  limits: crate::render::gpu_limits::BufferLimits,
+  #[cfg(not(target_arch = "wasm32"))]
+  recorder: wgpu::Recorder,
+}
+
+/// Report the device lost, and uncaptured errors, into `events`.
+fn watch_device(
+  device: &wgpu::Device,
+  device_lost: &Arc<AtomicBool>,
+  events: &Arc<Mutex<GpuEvents>>,
+) {
+  let lost_flag = Arc::clone(device_lost);
+  let lost_events = Arc::clone(events);
+  device.set_device_lost_callback(move |reason, message| {
+    lost_flag.store(true, Ordering::Release);
+
+    if let Ok(mut events) = lost_events.lock() {
+      events.lost = Some(match reason {
+        wgpu::DeviceLostReason::Destroyed => format!("the device was destroyed: {message}"),
+        _ => format!("the browser lost the device: {message}"),
+      });
+    }
+  });
+  let error_events = Arc::clone(events);
+  device.on_uncaptured_error(Arc::new(move |error: wgpu::Error| {
+    if let Ok(mut events) = error_events.lock() {
+      // A broken pipeline can raise the same error every frame; a
+      // handful is enough to say what is wrong.
+      if events.errors.len() < MAX_PENDING_GPU_ERRORS {
+        events.errors.push(describe(error));
+      }
+    }
+  }));
+}
+
 impl GpuContext {
+  /// Create the renderer for a native host, recording into `recorder`
+  /// what the host replays on its own graphics API: the same resources,
+  /// passes and draws the browser build makes. The host's render target
+  /// is `width` x `height` pixels in `format`.
+  #[cfg(not(target_arch = "wasm32"))]
+  pub fn new_native(
+    recorder: wgpu::Recorder,
+    width: u32,
+    height: u32,
+    format: wgpu::TextureFormat,
+    tree_shadow_resolution: u32,
+    tree_variants: usize,
+  ) -> Self {
+    let (device, queue) = recorder.device();
+    let device_lost = Arc::new(AtomicBool::new(false));
+    let events = Arc::new(Mutex::new(GpuEvents::default()));
+    watch_device(&device, &device_lost, &events);
+    let width = width.clamp(1, crate::config::MAX_RENDER_SIZE);
+    let height = height.clamp(1, crate::config::MAX_RENDER_SIZE);
+    let surface = recorder.surface(width, height, format);
+    let config = surface.config();
+    Self::assemble(
+      Platform {
+        surface,
+        device,
+        queue,
+        config,
+        timer: None,
+        device_lost,
+        events,
+        limits: crate::render::gpu_limits::BufferLimits::requested(
+          crate::render::gpu_limits::BufferLimits {
+            max_buffer_size: 1 << 31,
+            max_storage_binding: 1 << 31,
+          },
+        ),
+        recorder,
+      },
+      tree_shadow_resolution,
+      tree_variants,
+    )
+  }
+
+  /// What the host replays.
+  #[cfg(not(target_arch = "wasm32"))]
+  pub fn recorder(&self) -> &wgpu::Recorder {
+    &self.recorder
+  }
+
   /// Create and configure WebGPU resources for a browser canvas, bake the
   /// procedural textures and model the tree species. Pipelines, the tree
   /// impostors and the 3D cloud noise are made when a scene first needs
   /// them (see [`Self::ensure_pipelines`]).
+  #[cfg(target_arch = "wasm32")]
   pub async fn new(
     canvas: web_sys::HtmlCanvasElement,
     width: u32,
@@ -2111,28 +2231,7 @@ impl GpuContext {
       .then(|| GpuTimer::new(&device, &queue));
     let device_lost = Arc::new(AtomicBool::new(false));
     let events = Arc::new(Mutex::new(GpuEvents::default()));
-    let lost_flag = Arc::clone(&device_lost);
-    let lost_events = Arc::clone(&events);
-    device.set_device_lost_callback(move |reason, message| {
-      lost_flag.store(true, Ordering::Release);
-
-      if let Ok(mut events) = lost_events.lock() {
-        events.lost = Some(match reason {
-          wgpu::DeviceLostReason::Destroyed => format!("the device was destroyed: {message}"),
-          _ => format!("the browser lost the device: {message}"),
-        });
-      }
-    });
-    let error_events = Arc::clone(&events);
-    device.on_uncaptured_error(Arc::new(move |error: wgpu::Error| {
-      if let Ok(mut events) = error_events.lock() {
-        // A broken pipeline can raise the same error every frame; a
-        // handful is enough to say what is wrong.
-        if events.errors.len() < MAX_PENDING_GPU_ERRORS {
-          events.errors.push(describe(error));
-        }
-      }
-    }));
+    watch_device(&device, &device_lost, &events);
     // Errors creating the engine's resources reject `create`, instead of
     // reaching only the console.
     let scopes = push_error_scopes(&device);
@@ -2143,7 +2242,44 @@ impl GpuContext {
       .ok_or(VistaError::CanvasInvalid)?;
 
     surface.configure(&device, &config);
+    let context = Self::assemble(
+      Platform {
+        surface,
+        device,
+        queue,
+        config,
+        timer,
+        device_lost,
+        events,
+        limits,
+      },
+      tree_shadow_resolution,
+      tree_variants,
+    );
 
+    if let Some(error) = pop_error_scopes(scopes).await {
+      return Err(VistaError::GpuError(error));
+    }
+
+    Ok(context)
+  }
+
+  /// Everything but the platform: render targets, layouts, samplers, the
+  /// baked textures and the first variant of each tree species.
+  fn assemble(platform: Platform, tree_shadow_resolution: u32, tree_variants: usize) -> Self {
+    let Platform {
+      surface,
+      device,
+      queue,
+      config,
+      timer,
+      device_lost,
+      events,
+      limits,
+      #[cfg(not(target_arch = "wasm32"))]
+      recorder,
+    } = platform;
+    let (pixel_width, pixel_height) = (config.width, config.height);
     let (depth_view, hdr_view) = create_render_targets(&device, pixel_width, pixel_height);
     let uniform_buffer = device.create_buffer(&wgpu::BufferDescriptor {
       label: Some("VistaWASM frame uniforms"),
@@ -2319,7 +2455,7 @@ impl GpuContext {
     let mut uniforms = FrameUniforms::zeroed();
     uniforms.camera_up[3] = flag(!config.format.is_srgb());
 
-    let context = Self {
+    Self {
       surface,
       device,
       queue,
@@ -2386,7 +2522,10 @@ impl GpuContext {
       device_lost,
       events,
       limits,
+      #[cfg(target_arch = "wasm32")]
       erosion: None,
+      #[cfg(not(target_arch = "wasm32"))]
+      recorder,
       terrain: None,
       trees: None,
       grass: None,
@@ -2396,13 +2535,7 @@ impl GpuContext {
       canvas_width: pixel_width,
       canvas_height: pixel_height,
       render_scale: 1.0,
-    };
-
-    if let Some(error) = pop_error_scopes(scopes).await {
-      return Err(VistaError::GpuError(error));
     }
-
-    Ok(context)
   }
 
   /// Create every pipeline the scene needs that does not exist yet, in the
@@ -2873,6 +3006,7 @@ impl GpuContext {
 
   /// Erode `map` on the GPU and return the eroded heights. See
   /// [`ErosionCompute::run`] for details.
+  #[cfg(target_arch = "wasm32")]
   pub async fn run_erosion(
     &mut self,
     map: &crate::terrain::HeightMap,
@@ -2906,6 +3040,14 @@ impl GpuContext {
   /// `"gpuError"` event, instead of waiting for it: the answer comes only
   /// once the GPU has caught up with the work before it, which held a
   /// terrain call back by a second under software rendering.
+  #[cfg(not(target_arch = "wasm32"))]
+  pub fn end_error_scopes_later(&self, _scopes: [wgpu::ErrorScopeGuard; 2]) {
+    // A native host reports its errors as they happen.
+  }
+
+  /// Pop `scopes` now, but report what they caught later, as a
+  /// `"gpuError"` event, instead of waiting for it.
+  #[cfg(target_arch = "wasm32")]
   pub fn end_error_scopes_later(&self, scopes: [wgpu::ErrorScopeGuard; 2]) {
     // Popped here, innermost first, so no scope pushed meanwhile can
     // come between them.
@@ -2938,7 +3080,15 @@ impl GpuContext {
   /// running (and receiving progress events) while the browser compiles
   /// start-up work, instead of freezing inside the upload.
   pub async fn finish_submitted_work(&self) -> VistaResult<()> {
-    crate::render::erosion_compute::work_done(&self.queue).await
+    #[cfg(target_arch = "wasm32")]
+    {
+      crate::render::erosion_compute::work_done(&self.queue).await
+    }
+    // A native host runs the recording when it asks for it.
+    #[cfg(not(target_arch = "wasm32"))]
+    {
+      Ok(())
+    }
   }
 
   /// Replace one species' model (`None` restores the procedural model),

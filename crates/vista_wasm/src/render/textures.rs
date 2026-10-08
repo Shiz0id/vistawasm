@@ -10,6 +10,9 @@
 //! downloaded, the output is identical on every run, and the cost is GPU
 //! time instead of megabytes of image assets.
 
+#[cfg(not(target_arch = "wasm32"))]
+use crate::render::recorder as wgpu;
+
 /// Edge length of each terrain material layer.
 pub const TERRAIN_TEXTURE_SIZE: u32 = 512;
 /// Number of terrain material layers.

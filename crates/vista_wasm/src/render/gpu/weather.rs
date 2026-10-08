@@ -10,6 +10,9 @@
 
 use bytemuck::{Pod, Zeroable};
 
+#[cfg(not(target_arch = "wasm32"))]
+use crate::render::recorder as wgpu;
+
 use super::{
   buffer_with_data, create_texture_2d, default_view, uniform_entry, view_entry, write_layer,
 };

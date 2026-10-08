@@ -133,9 +133,57 @@ pub fn compute_source(body: &'static str) -> std::borrow::Cow<'static, str> {
   }
 }
 
+/// The name `vista_hlsl` gives the module compiled from `source`, which
+/// must be composed as the engine composes it ([`render_source`],
+/// [`compute_source`] or a standalone shader): `None` for any other
+/// source. A native renderer finds its translated shaders by it.
+pub fn module_name(source: &str) -> Option<&'static str> {
+  let render = [
+    ("clipmap_render", TERRAIN),
+    ("boulders", BOULDERS),
+    ("water", WATER),
+    ("trees", TREES),
+    ("grass_instances", GRASS),
+    ("atmosphere", ATMOSPHERE),
+  ];
+  let compute = [
+    ("tree_cull", TREE_CULL),
+    ("tree_generate", TREE_GENERATE),
+    ("grass_generate", GRASS_GENERATE),
+    ("boulder_generate", BOULDER_GENERATE),
+    ("grounding", GROUNDING),
+    ("terrain_shadow", TERRAIN_SHADOW),
+    ("surface_weather", SURFACE_WEATHER),
+    ("texture_gen", TEXTURE_GEN),
+    ("mipgen", MIPGEN),
+    ("hydraulic_erosion", HYDRAULIC_EROSION),
+    ("thermal_erosion", THERMAL_EROSION),
+  ];
+  render
+    .into_iter()
+    .find(|(_, body)| render_source(body) == source)
+    .or_else(|| {
+      compute
+        .into_iter()
+        .find(|(_, body)| compute_source(body) == source)
+    })
+    .map(|(name, _)| name)
+}
+
 #[cfg(test)]
 mod tests {
   use super::*;
+
+  #[test]
+  fn every_composed_module_has_a_name() {
+    assert_eq!(module_name(&render_source(WATER)), Some("water"));
+    assert_eq!(
+      module_name(&compute_source(GRASS_GENERATE)),
+      Some("grass_generate")
+    );
+    assert_eq!(module_name(MIPGEN), Some("mipgen"));
+    assert_eq!(module_name(WATER), None);
+  }
 
   fn validate(name: &str, source: &str) {
     let module = naga::front::wgsl::parse_str(source)
