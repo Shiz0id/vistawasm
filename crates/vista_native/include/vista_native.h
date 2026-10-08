@@ -53,7 +53,9 @@ typedef enum VistaStatus {
   /* The engine refused or failed the request. */
   VISTA_ERROR_ENGINE = 3,
   /* The engine panicked. Destroy it: its state is unknown. */
-  VISTA_ERROR_PANIC = 4
+  VISTA_ERROR_PANIC = 4,
+  /* The progress callback asked to stop. Nothing changed. */
+  VISTA_CANCELLED = 5
 } VistaStatus;
 
 /* Map kinds for vista_engine_export_map(). Float maps hold `float`s; the
@@ -233,8 +235,16 @@ typedef struct VistaMesh {
 
 /* Called as generation advances. `phase` is "tectonics", "drainage",
  * "detail", "erosion", "finishing" or "rivers", valid only during the
- * call; `progress` runs from 0 to 1 within each phase. */
-typedef void (*VistaProgressFn)(const char *phase, float progress, void *user);
+ * call; `progress` runs from 0 to 1 within each phase.
+ *
+ * Return 0 to go on, or anything else to cancel: generation stops at its
+ * next report (each stage reports as it starts and ends, and erosion, the
+ * longest, every tenth of the way) and the call returns VISTA_CANCELLED
+ * with the previous terrain unchanged. Once the
+ * new terrain starts to replace the old ("rivers" and the end of
+ * "finishing"), the return value is not read. To cancel from another
+ * thread, have the callback read an atomic flag that thread sets. */
+typedef int (*VistaProgressFn)(const char *phase, float progress, void *user);
 
 /* The library's version, such as "2.0.0". */
 const char *vista_version(void);
@@ -253,8 +263,8 @@ void vista_engine_destroy(VistaEngine *engine);
 /* Generate a seeded terrain from fractal terrain options as JSON (null for
  * the defaults), and build its world: rivers, lakes, glaciers, biomes,
  * materials, trees and grass. Erosion, when the options ask for it, runs
- * on the CPU. A failure leaves the previous terrain in place.
- * `progress` may be null. */
+ * on the CPU. A failure or a cancellation leaves the previous terrain in
+ * place. `progress` may be null. */
 VistaStatus vista_engine_generate_fractal(
   VistaEngine *engine,
   const char *options_json,

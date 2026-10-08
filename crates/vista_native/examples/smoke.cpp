@@ -44,7 +44,7 @@ MapPtr export_map(const VistaEngine *engine, VistaMapKind kind) {
   return MapPtr(map);
 }
 
-void on_progress(const char *phase, float progress, void *user) {
+int on_progress(const char *phase, float progress, void *user) {
   auto *last = static_cast<std::string *>(user);
 
   if (*last != phase) {
@@ -53,6 +53,7 @@ void on_progress(const char *phase, float progress, void *user) {
   }
 
   (void)progress;
+  return 0;  // go on
 }
 
 }  // namespace

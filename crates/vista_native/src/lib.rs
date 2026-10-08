@@ -146,8 +146,9 @@ struct OwnedMesh {
 }
 
 /// Called as generation advances, with the phase's name and its progress
-/// from 0 to 1. `phase` is valid only during the call.
-pub type VistaProgressFn = Option<unsafe extern "C" fn(*const c_char, f32, *mut c_void)>;
+/// from 0 to 1. `phase` is valid only during the call. Returns 0 to go on,
+/// or anything else to cancel.
+pub type VistaProgressFn = Option<unsafe extern "C" fn(*const c_char, f32, *mut c_void) -> i32>;
 
 /// The library's version, such as `"2.0.0"`.
 #[no_mangle]
@@ -204,7 +205,10 @@ pub unsafe extern "C" fn vista_engine_destroy(engine: *mut VistaEngine) {
 /// Generate a seeded terrain from fractal terrain options as JSON (null
 /// or `""` for the defaults), and build its world. Erosion, when the
 /// options ask for it, runs on the CPU. A failure leaves the previous
-/// terrain in place.
+/// terrain in place. `progress` returning non-zero cancels: generation
+/// stops at its next check with `VISTA_CANCELLED`, the previous terrain
+/// unchanged. Once the new terrain starts to replace the old ("rivers" and
+/// the end of "finishing"), the return value is not read.
 ///
 /// # Safety
 ///
@@ -223,11 +227,10 @@ pub unsafe extern "C" fn vista_engine_generate_fractal(
     // SAFETY: as the caller promises.
     let json = unsafe { optional_str_arg(options_json, "options_json") }?;
     let options: FractalTerrainOptions = parse_json(json, "options_json")?;
-    let mut report = |phase: &str, fraction: f32| {
-      if let (Some(callback), Ok(phase)) = (progress, CString::new(phase)) {
-        // SAFETY: the caller promises the callback is safe with `user`.
-        unsafe { callback(phase.as_ptr(), fraction, user) };
-      }
+    let mut report = |phase: &str, fraction: f32| match (progress, CString::new(phase)) {
+      // SAFETY: the caller promises the callback is safe with `user`.
+      (Some(callback), Ok(phase)) => (unsafe { callback(phase.as_ptr(), fraction, user) }) == 0,
+      _ => true,
     };
     ffi::block_on(
       engine

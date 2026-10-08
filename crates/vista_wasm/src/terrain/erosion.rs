@@ -590,13 +590,15 @@ impl ErosionField {
   }
 
   /// Run `iterations`, interleaving thermal steps with hydraulic ones,
-  /// then settle. `tick` is called after every iteration.
+  /// then settle. `tick` is called after every iteration and returns
+  /// whether to go on; when it returns `false` the run stops there,
+  /// unsettled, and `run` returns `false`.
   pub fn run(
     &mut self,
     params: &ErosionParams,
     iterations: ErosionIterations,
-    tick: &mut dyn FnMut(),
-  ) {
+    tick: &mut dyn FnMut() -> bool,
+  ) -> bool {
     for step in 0..iterations.hydraulic.max(iterations.thermal) {
       if step < iterations.hydraulic {
         self.hydraulic_step(params);
@@ -606,10 +608,13 @@ impl ErosionField {
         self.thermal_step(params);
       }
 
-      tick();
+      if !tick() {
+        return false;
+      }
     }
 
     self.settle();
+    true
   }
 }
 
@@ -632,15 +637,17 @@ pub fn apply_erosion(
   let total = (iterations.hydraulic.max(iterations.thermal)).max(1);
   let mut done = 0u32;
   let mut reported = 0.0f32;
-  progress("erosion", 0.0);
+  crate::terrain::fractal::report(progress, "erosion", 0.0)?;
   let mut tick = || {
     done += 1;
     let fraction = done as f32 / total as f32;
 
     if fraction - reported >= 0.1 || done == total {
       reported = fraction;
-      progress("erosion", fraction.min(1.0));
+      return progress("erosion", fraction.min(1.0));
     }
+
+    true
   };
 
   let metres = map.metadata.metres_per_sample;
@@ -652,11 +659,13 @@ pub fn apply_erosion(
       let low = downsample(&map.heights, size);
       let terrain: Vec<f32> = low.iter().map(|h| h / cell).collect();
       let mut field = ErosionField::new(half, terrain, &rain_weights(map, half as u32));
-      field.run(
+      if !field.run(
         &ErosionParams::new(options, landform, cell),
         phase.iterations,
         &mut tick,
-      );
+      ) {
+        return Err(crate::VistaError::Cancelled);
+      }
       let change: Vec<f32> = field
         .terrain
         .iter()
@@ -670,11 +679,13 @@ pub fn apply_erosion(
     } else {
       let terrain: Vec<f32> = map.heights.iter().map(|h| h / metres).collect();
       let mut field = ErosionField::new(size, terrain, &rain_weights(map, size as u32));
-      field.run(
+      if !field.run(
         &ErosionParams::new(options, landform, metres),
         phase.iterations,
         &mut tick,
-      );
+      ) {
+        return Err(crate::VistaError::Cancelled);
+      }
 
       for (height, eroded) in map.heights.iter_mut().zip(&field.terrain) {
         *height = eroded * metres;
@@ -775,7 +786,7 @@ mod tests {
         hydraulic: 150,
         thermal: 0,
       },
-      &mut || {},
+      &mut || true,
     );
 
     // The lowest 20 % of the interior cells, where the valley opens out.

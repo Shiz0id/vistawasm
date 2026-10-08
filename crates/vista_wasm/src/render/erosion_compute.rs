@@ -196,7 +196,7 @@ impl ErosionCompute {
     let chunk = total.div_ceil(10).max(1);
     let mut done = 0;
     let metres = map.metadata.metres_per_sample;
-    progress("erosion", 0.0);
+    crate::terrain::fractal::report(progress, "erosion", 0.0)?;
 
     for phase in erosion_schedule(iterations, size as u32) {
       let (grid, cell) = if phase.half {
@@ -241,7 +241,11 @@ impl ErosionCompute {
         work_done(queue).await?;
         step += count;
         done += count;
-        progress("erosion", (done as f32 / total as f32).min(1.0));
+        crate::terrain::fractal::report(
+          progress,
+          "erosion",
+          (done as f32 / total as f32).min(1.0),
+        )?;
       }
 
       let eroded = read_terrain(device, queue, &field).await?;

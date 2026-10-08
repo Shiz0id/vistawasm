@@ -487,7 +487,7 @@ impl EngineCore {
     options: FractalTerrainOptions,
   ) -> VistaResult<TerrainHandle> {
     self
-      .generate_fractal_with_progress(options, &mut |_, _| {})
+      .generate_fractal_with_progress(options, &mut |_, _| true)
       .await
   }
 
@@ -532,6 +532,7 @@ impl EngineCore {
         Ok(eroded) => {
           map.heights = eroded;
         }
+        Err(VistaError::Cancelled) => return Err(VistaError::Cancelled),
         Err(error) => {
           crate::terrain::erosion::apply_erosion(&mut map, erosion, &landform, progress)?;
           map.metadata.warnings.push(format!(
@@ -541,7 +542,7 @@ impl EngineCore {
       }
     }
 
-    progress("finishing", 0.0);
+    crate::terrain::fractal::report(progress, "finishing", 0.0)?;
     crate::terrain::finish_fractal_heightmap(&mut map, options);
     Ok(map)
   }
@@ -568,7 +569,7 @@ impl EngineCore {
       Err(error) => return Err(self.end_loading(previous, error)),
     };
     self
-      .install_loaded(map, Default::default(), previous, &mut |_, _| {})
+      .install_loaded(map, Default::default(), previous, &mut |_, _| true)
       .await
   }
 
@@ -589,7 +590,7 @@ impl EngineCore {
         map,
         options.landform.unwrap_or_default(),
         previous,
-        &mut |_, _| {},
+        &mut |_, _| true,
       )
       .await
   }
@@ -627,6 +628,8 @@ impl EngineCore {
     #[cfg(target_arch = "wasm32")]
     let scopes = self.gpu.begin_error_scopes();
     self.landform = landform;
+    // From here the new terrain replaces the old, so the reports cannot
+    // cancel: what they return is not read.
     let handle = self.install_terrain(map, progress);
     progress("finishing", 1.0);
     self.state = EngineState::Ready;
@@ -2175,7 +2178,7 @@ impl EngineCore {
   /// shaping and carving first), then re-bake surface shading and every
   /// terrain-dependent layer.
   fn rebuild_world(&mut self) {
-    self.rebuild_world_with(&mut |_, _| {});
+    self.rebuild_world_with(&mut |_, _| true);
   }
 
   /// [`Self::rebuild_world`], reporting the `"rivers"` phase while the
@@ -3881,7 +3884,7 @@ mod tests {
       metadata,
     )
     .unwrap();
-    engine.install_terrain(map, &mut |_, _| {});
+    engine.install_terrain(map, &mut |_, _| true);
     engine
   }
 
@@ -4000,7 +4003,7 @@ mod tests {
       metadata,
     )
     .unwrap();
-    engine.install_terrain(map, &mut |_, _| {});
+    engine.install_terrain(map, &mut |_, _| true);
     let mut water = WaterOptions::default();
     water.rivers.enabled = false;
     engine.set_water(water).unwrap();
@@ -4113,7 +4116,7 @@ mod tests {
     assert_eq!(engine.rivers.reaches.len(), 1);
 
     let map = engine.terrain.clone().unwrap();
-    engine.install_terrain(map, &mut |_, _| {});
+    engine.install_terrain(map, &mut |_, _| true);
     assert!(engine.water_mask.is_none());
     assert!(engine.rivers.reaches.is_empty());
   }
@@ -4570,7 +4573,7 @@ mod tests {
       metadata,
     )
     .unwrap();
-    engine.install_terrain(map, &mut |_, _| {});
+    engine.install_terrain(map, &mut |_, _| true);
     let mut water = WaterOptions::default();
     water.rivers.min_catchment_km2 = 0.005;
     water.rivers.inflow = vista_types::RiverInflows::List(vec![vista_types::RiverInflow {

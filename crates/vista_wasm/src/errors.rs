@@ -46,6 +46,10 @@ pub enum VistaError {
   /// Unexpected internal fault.
   #[error("VistaWASM encountered an internal fault: {0}")]
   InternalError(String),
+  /// The host's progress callback asked generation to stop. Only native
+  /// hosts (`vista_native`) can ask; the browser build never does.
+  #[error("Terrain generation was cancelled. The previous terrain is unchanged.")]
+  Cancelled,
 }
 
 impl VistaError {
@@ -65,6 +69,8 @@ impl VistaError {
       Self::GpuError(_) => VistaErrorCode::GpuError,
       Self::EngineDisposed => VistaErrorCode::EngineDisposed,
       Self::InternalError(_) => VistaErrorCode::InternalError,
+      // JavaScript cannot cancel, so it has no code of its own.
+      Self::Cancelled => VistaErrorCode::TerrainGenerationFailed,
     }
   }
 

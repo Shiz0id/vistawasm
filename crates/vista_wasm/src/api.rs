@@ -63,6 +63,9 @@ impl VistaEngine {
           &JsValue::from_f64(value as f64),
         );
       }
+
+      // JavaScript cannot cancel generation.
+      true
     };
     let handle = self
       .core_mut()?

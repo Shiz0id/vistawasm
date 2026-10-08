@@ -272,7 +272,7 @@ fn a_raw_heightmap_loads() {
 
 #[test]
 fn progress_reports_each_phase_in_order() {
-  unsafe extern "C" fn record(phase: *const c_char, _: f32, user: *mut c_void) {
+  unsafe extern "C" fn record(phase: *const c_char, _: f32, user: *mut c_void) -> i32 {
     let phases = unsafe { &mut *user.cast::<Vec<String>>() };
     let phase = unsafe { CStr::from_ptr(phase) }
       .to_string_lossy()
@@ -281,6 +281,8 @@ fn progress_reports_each_phase_in_order() {
     if phases.last() != Some(&phase) {
       phases.push(phase);
     }
+
+    0
   }
 
   let engine = Engine::new();
@@ -297,4 +299,69 @@ fn progress_reports_each_phase_in_order() {
   assert_eq!(status, VistaStatus::Ok, "{}", last_error());
   assert_eq!(phases.first().map(String::as_str), Some("tectonics"));
   assert!(phases.iter().any(|phase| phase == "finishing"));
+}
+
+#[test]
+fn cancelling_stops_generation_and_keeps_the_previous_terrain() {
+  /// Cancels at the first report of `user`'s phase, and counts the reports
+  /// after it.
+  struct Stop {
+    phase: &'static str,
+    stopped: bool,
+    later: u32,
+  }
+
+  unsafe extern "C" fn stop_at(phase: *const c_char, _: f32, user: *mut c_void) -> i32 {
+    let stop = unsafe { &mut *user.cast::<Stop>() };
+
+    if stop.stopped {
+      stop.later += 1;
+    }
+
+    let phase = unsafe { CStr::from_ptr(phase) }.to_string_lossy();
+    stop.stopped |= phase == stop.phase;
+    i32::from(stop.stopped)
+  }
+
+  let engine = Engine::island();
+  let before = engine.map(0, 0, 0).unwrap();
+  let heights_before =
+    unsafe { std::slice::from_raw_parts((*before).data.cast::<f32>(), 64 * 64) }.to_vec();
+  unsafe { vista_map_free(before) };
+
+  for phase in ["tectonics", "drainage", "erosion"] {
+    let mut stop = Stop {
+      phase,
+      stopped: false,
+      later: 0,
+    };
+    let options = c(r#"{ "seed": 99, "size": 128, "erosion": {} }"#);
+    let status = unsafe {
+      vista_engine_generate_fractal(
+        engine.0,
+        options.as_ptr(),
+        Some(stop_at),
+        (&mut stop as *mut Stop).cast(),
+      )
+    };
+    assert_eq!(status, VistaStatus::Cancelled, "{phase}");
+    assert!(stop.stopped, "{phase}");
+    assert_eq!(stop.later, 0, "{phase}: no report after the cancel");
+    assert!(last_error().contains("cancelled"), "{}", last_error());
+
+    // The island is still there, sample for sample.
+    let mut info = VistaTerrainInfo::default();
+    unsafe { vista_engine_terrain_info(engine.0, &mut info) };
+    assert_eq!((info.width, info.height), (64, 64), "{phase}");
+    let after = engine.map(0, 0, 0).unwrap();
+    let heights_after = unsafe { std::slice::from_raw_parts((*after).data.cast::<f32>(), 64 * 64) };
+    assert_eq!(heights_after, &heights_before[..], "{phase}");
+    unsafe { vista_map_free(after) };
+  }
+
+  // And the engine still generates afterwards.
+  let options = c(r#"{ "seed": 99, "size": 32 }"#);
+  let status =
+    unsafe { vista_engine_generate_fractal(engine.0, options.as_ptr(), None, ptr::null_mut()) };
+  assert_eq!(status, VistaStatus::Ok, "{}", last_error());
 }

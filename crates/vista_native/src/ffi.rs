@@ -23,6 +23,8 @@ pub enum VistaStatus {
   Engine = 3,
   /// The engine panicked. Destroy it: its state is unknown.
   Panic = 4,
+  /// The progress callback asked to stop. Nothing changed.
+  Cancelled = 5,
 }
 
 /// A failed call: its status and the message `vista_last_error()` returns.
@@ -51,6 +53,7 @@ impl From<VistaError> for Failure {
   fn from(error: VistaError) -> Self {
     let status = match error {
       VistaError::OptionsInvalid(_) => VistaStatus::Options,
+      VistaError::Cancelled => VistaStatus::Cancelled,
       _ => VistaStatus::Engine,
     };
 

@@ -21,8 +21,25 @@ use crate::terrain::tectonics::{tectonic_base, Tectonics, COAST_RIM, COAST_RIM_M
 const GENERATOR_VERSION: &str = "vistawasm-fractal-0.2.0";
 
 /// Receives `(phase, progress)` as generation advances, with `progress`
-/// from 0 to 1 within each phase.
-pub type Progress<'a> = &'a mut dyn FnMut(&str, f32);
+/// from 0 to 1 within each phase, and returns whether to go on. Returning
+/// `false` stops generation at its next check with
+/// [`VistaError::Cancelled`](crate::VistaError::Cancelled). The checks
+/// are at every report until the new terrain starts to replace the old
+/// one; the reports after that ("rivers" and the end of "finishing")
+/// cannot cancel.
+pub type Progress<'a> = &'a mut dyn FnMut(&str, f32) -> bool;
+
+/// Report `(phase, value)` and stop with [`VistaError::Cancelled`] when
+/// the host asks.
+///
+/// [`VistaError::Cancelled`]: crate::VistaError::Cancelled
+pub fn report(progress: Progress<'_>, phase: &str, value: f32) -> VistaResult<()> {
+  if progress(phase, value) {
+    Ok(())
+  } else {
+    Err(crate::VistaError::Cancelled)
+  }
+}
 
 /// Stream-power iterations on the coarse grid.
 const STREAM_POWER_ITERATIONS: u32 = 40;
@@ -53,7 +70,7 @@ pub const MIN_BASIN_SAMPLES: usize = 24;
 /// erode, then [`finish_fractal_heightmap`]. This function is the
 /// single-call path used by native builds, tests, and as a fallback.
 pub fn generate_fractal_heightmap(options: &FractalTerrainOptions) -> VistaResult<HeightMap> {
-  generate_fractal_heightmap_with_progress(options, &mut |_, _| {})
+  generate_fractal_heightmap_with_progress(options, &mut |_, _| true)
 }
 
 /// [`generate_fractal_heightmap`] with progress reporting.
@@ -67,7 +84,7 @@ pub fn generate_fractal_heightmap_with_progress(
     apply_erosion(&mut map, erosion, &fractal_landform(options), progress)?;
   }
 
-  progress("finishing", 0.0);
+  report(progress, "finishing", 0.0)?;
   finish_fractal_heightmap(&mut map, options);
   Ok(map)
 }
@@ -82,7 +99,7 @@ pub fn fractal_landform(options: &FractalTerrainOptions) -> Landform {
 /// erosion, so a caller can erode separately (for example, on the GPU).
 /// Call [`finish_fractal_heightmap`] afterwards.
 pub fn generate_fractal_heightmap_base(options: &FractalTerrainOptions) -> VistaResult<HeightMap> {
-  generate_fractal_heightmap_base_with_progress(options, &mut |_, _| {})
+  generate_fractal_heightmap_base_with_progress(options, &mut |_, _| true)
 }
 
 /// [`generate_fractal_heightmap_base`] with progress reporting.
@@ -99,7 +116,7 @@ pub fn generate_fractal_heightmap_base_with_progress(
   let sea = options.sea_level_metres.unwrap_or(0.0);
 
   // Stage A: continents and uplift on the coarse grid.
-  progress("tectonics", 0.0);
+  report(progress, "tectonics", 0.0)?;
   let mut base = tectonic_base(
     options.seed,
     size,
@@ -108,10 +125,10 @@ pub fn generate_fractal_heightmap_base_with_progress(
     &landform,
     options.edges == TerrainEdges::Coast,
   );
-  progress("tectonics", 1.0);
+  report(progress, "tectonics", 1.0)?;
 
   // Stage B: carve the valley network into the coarse grid.
-  progress("drainage", 0.0);
+  report(progress, "drainage", 0.0)?;
   let spacing_coarse = base.spacing as f64;
   // Hillslopes stand a little below the angle of repose; the talus angle
   // itself is left for scree below cliffs in stage D.
@@ -141,7 +158,7 @@ pub fn generate_fractal_heightmap_base_with_progress(
       crest_passes: CREST_PASSES,
     },
   );
-  progress("drainage", 0.3);
+  report(progress, "drainage", 0.3)?;
 
   // Ranges reach the steady state between uplift and erosion, standing on
   // the lowlands: anywhere without uplift is their base level.
@@ -225,16 +242,16 @@ pub fn generate_fractal_heightmap_base_with_progress(
     carve_caldera(&mut coarse, base.size, base.summit, &landform);
   }
 
-  progress("drainage", 1.0);
+  report(progress, "drainage", 1.0)?;
   // Stage C: full-resolution detail.
-  progress("detail", 0.0);
+  report(progress, "detail", 0.0)?;
   let mut heights = add_detail(options, &landform, &base, &coarse);
 
   if options.edges == TerrainEdges::Coast {
     shelve_border(size as usize, spacing, &mut heights, &landform, 0.0);
   }
 
-  progress("detail", 1.0);
+  report(progress, "detail", 1.0)?;
 
   let relief = (landform.lowland_relief + landform.mountain_relief).max(100.0);
   let vertical_scale = options.vertical_scale;
